@@ -14,7 +14,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model OTP {
+model Otp {
   id             String    @id @default(cuid()) // Use cuid for unique id
   phoneNo        String    @unique
   isVerified     Boolean   @default(false)

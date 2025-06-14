@@ -1,11 +1,7 @@
 import dotenv from 'dotenv'
 import path from 'path'
 
-const env = process.env.NODE_ENV || 'development'
-
-// Load environment variables from .env file based on the environment
-const envFile = env === 'production' ? '.env' : `.env.${env}`
-dotenv.config({ path: path.resolve(__dirname, envFile) })
+dotenv.config({ path: path.resolve(__dirname, '.env') })
 
 export interface IConfig {
   port: number
@@ -16,10 +12,12 @@ export interface IConfig {
   jwtSecret: string | undefined
   otpLength: number
   otpExpiresIn: number
+  otpBlockDuration: number
   apiKey: string
   senderId: string
   smsUrl: string
   maximumOtpAttempts: number
+  maximumOtpRequests: number
   nodeEnv: string
   smsCharge: number
   maxForgotPasswordAttempts: number
@@ -43,11 +41,13 @@ const config: IConfig = {
   saltRounds: process.env.SALT_ROUNDS || '10',
   jwtSecret: process.env.JWT_SECRET,
   otpLength: 6,
-  otpExpiresIn: 2 * 60 * 1000, // 2 minutes
+  otpExpiresIn: 5 * 60 * 1000, // 5 minutes
+  otpBlockDuration: 60 * 1000, // 1 minute
   apiKey: 'hsYr6qwobYaKBZdh8xXJ',
   senderId: '8809617623563',
   smsUrl: 'http://bulksmsbd.net/api/smsapi',
-  maximumOtpAttempts: 2,
+  maximumOtpAttempts: 5,
+  maximumOtpRequests: 5,
   nodeEnv: process.env.NODE_ENV || 'development',
   smsCharge: 0.75,
   maxForgotPasswordAttempts: 1,

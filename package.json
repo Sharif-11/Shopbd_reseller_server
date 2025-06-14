@@ -13,7 +13,7 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "prettier": "prettier --write .",
     "prettier:check": "prettier --check .",
-    "migrate:dev": "dotenv -e .env.development prisma migrate dev",
+    "migrate:dev": " prisma migrate dev",
     "migrate:prod": "prisma migrate deploy"
   },
   "keywords": [

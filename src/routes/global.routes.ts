@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import authRoute from '../services/Auth/auth.route'
 
 class GlobalRoutes {
   private router: Router
@@ -8,7 +9,7 @@ class GlobalRoutes {
     this.router = Router()
     this.routes = [
       // { path: '/', route: usersRouter },
-      // { path: '/auth', route: authRouter },
+      { path: '/auth', route: authRoute },
       // { path: '/admin', route: adminRouter },
       // { path: '/sellers', route: sellerRouter },
       // { path: '/tracking', route: trackingRoutes },
