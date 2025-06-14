@@ -98,7 +98,9 @@ const knownRequestHandler = (error) => {
         case 'P2027':
             return 'Multiple errors occurred during query execution.';
         case 'P2028':
-            const timeout = (meta === null || meta === void 0 ? void 0 : meta.timeout) ? `${meta.timeout} ms` : 'the configured timeout';
+            const timeout = (meta === null || meta === void 0 ? void 0 : meta.timeout)
+                ? `${meta.timeout} ms`
+                : 'the configured timeout';
             return `Transaction expired after ${timeout}. Please retry or optimize the transaction.`;
         case 'P2029':
             return 'A constraint failed in the database query.';
@@ -172,7 +174,8 @@ const knownRequestHandler = (error) => {
         case 'P5002':
             return 'Prisma Studio Error: Your session has expired. Please reload.';
         default:
-            return ('An unexpected database error occurred. Please contact support with the error code: ' + code);
+            return ('An unexpected database error occurred. Please contact support with the error code: ' +
+                code);
     }
 };
 exports.knownRequestHandler = knownRequestHandler;

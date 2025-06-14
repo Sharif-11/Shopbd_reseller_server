@@ -27,7 +27,7 @@ const globalErrorHandler = (error, req, res, next) => {
         errorResponse = {
             statusCode: http_status_1.default.BAD_REQUEST,
             success: false,
-            message: (0, prismaErrorHandler_1.knownRequestHandler)(error),
+            message: 'Database error occurred',
         };
     }
     else if (error instanceof client_1.Prisma.PrismaClientValidationError) {

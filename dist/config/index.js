@@ -16,11 +16,13 @@ const config = {
     saltRounds: process.env.SALT_ROUNDS || '10',
     jwtSecret: process.env.JWT_SECRET,
     otpLength: 6,
-    otpExpiresIn: 2 * 60 * 1000, // 2 minutes
+    otpExpiresIn: 5 * 60 * 1000, // 5 minutes
+    otpBlockDuration: 60 * 1000, // 1 minute
     apiKey: 'hsYr6qwobYaKBZdh8xXJ',
     senderId: '8809617623563',
     smsUrl: 'http://bulksmsbd.net/api/smsapi',
-    maximumOtpAttempts: 2,
+    maximumOtpAttempts: 5,
+    maximumOtpRequests: 5,
     nodeEnv: process.env.NODE_ENV || 'development',
     smsCharge: 0.75,
     maxForgotPasswordAttempts: 1,

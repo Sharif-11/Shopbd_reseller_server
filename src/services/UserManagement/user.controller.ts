@@ -1,0 +1,414 @@
+import { NextFunction, Request, Response } from 'express'
+import userManagementServices from './user.services'
+
+class UserManagementController {
+  /**
+   * Create the first super admin (initial setup)
+   */
+  async createFirstSuperAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { phoneNo, name, password, email } = req.body
+      const user = await userManagementServices.createFirstSuperAdmin({
+        phoneNo,
+        name,
+        password,
+        email,
+      })
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Super Admin created successfully',
+        success: true,
+        data: user,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Create a new super admin
+   */
+  async createSuperAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const currentAdminId = req.user?.userId // Assuming user ID is in request after auth middleware
+      const { phoneNo, name, password, email } = req.body
+
+      const user = await userManagementServices.createSuperAdmin(
+        currentAdminId!,
+        {
+          phoneNo,
+          name,
+          password,
+          email,
+        }
+      )
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Super Admin created successfully',
+        success: true,
+        data: user,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Create a new admin
+   */
+  async createAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const currentAdminId = req.user?.userId
+      const { phoneNo, name, password, email } = req.body
+
+      const user = await userManagementServices.createAdmin(currentAdminId!, {
+        phoneNo,
+        name,
+        password,
+        email,
+      })
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Admin created successfully',
+        success: true,
+        data: user,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Create a new seller
+   */
+  async createSeller(req: Request, res: Response, next: NextFunction) {
+    try {
+      const {
+        phoneNo,
+        name,
+        password,
+        email,
+        zilla,
+        upazilla,
+        address,
+        shopName,
+        nomineePhone,
+        facebookProfileLink,
+        referralCode,
+      } = req.body
+
+      const user = await userManagementServices.createSeller({
+        phoneNo,
+        name,
+        password,
+        email,
+        zilla,
+        upazilla,
+        address,
+        shopName,
+        nomineePhone,
+        facebookProfileLink,
+        referralCode,
+      })
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Seller created successfully',
+        success: true,
+        data: user,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Create a new customer
+   */
+  async createCustomer(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { customerName, customerPhoneNo, sellerCode } = req.body
+
+      const customer = await userManagementServices.createCustomer({
+        customerName,
+        customerPhoneNo,
+        sellerCode,
+      })
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Customer created successfully',
+        success: true,
+        data: customer,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * User login
+   */
+  async login(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { phoneNo, password } = req.body
+
+      const { user, token } = await userManagementServices.login({
+        phoneNo,
+        password,
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Login successful',
+        success: true,
+        data: {
+          user,
+          token,
+        },
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Reset password
+   */
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { phoneNo } = req.body
+
+      const user = await userManagementServices.resetPassword(phoneNo)
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Password reset successful. New password sent to your phone',
+        success: true,
+        data: user,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Get user profile
+   */
+  async getProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+
+      const user = await userManagementServices.getProfile(userId!)
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Profile retrieved successfully',
+        success: true,
+        data: user,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const updates = req.body
+
+      const user = await userManagementServices.updateProfile(userId!, updates)
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Profile updated successfully',
+        success: true,
+        data: user,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Change password
+   */
+  async changePassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { currentPassword, newPassword } = req.body
+
+      const user = await userManagementServices.changePassword({
+        userId: userId!,
+        currentPassword,
+        newPassword,
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Password changed successfully',
+        success: true,
+        data: user,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Create a new role
+   */
+  async createRole(req: Request, res: Response, next: NextFunction) {
+    try {
+      const creatorId = req.user?.userId
+      const { roleName, description, isDefault } = req.body
+
+      const role = await userManagementServices.createRole(creatorId!, {
+        roleName,
+        description,
+        isDefault,
+      })
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Role created successfully',
+        success: true,
+        data: role,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Assign permission to role
+   */
+  async assignPermissionToRole(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const adminId = req.user?.userId
+      const { roleId, permission, actions } = req.body
+
+      const rolePermission =
+        await userManagementServices.assignPermissionToRole(adminId!, {
+          roleId,
+          permission,
+          actions,
+        })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Permission assigned to role successfully',
+        success: true,
+        data: rolePermission,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Assign role to user
+   */
+  async assignRoleToUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const adminId = req.user?.userId
+      const { userId, roleId } = req.body
+
+      const userRole = await userManagementServices.assignRoleToUser(adminId!, {
+        userId,
+        roleId,
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Role assigned to user successfully',
+        success: true,
+        data: userRole,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Block a user
+   */
+  async blockUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const adminId = req.user?.userId
+      const { userPhoneNo, reason, actionTypes, expiresAt } = req.body
+
+      const block = await userManagementServices.blockUser(adminId!, {
+        userPhoneNo,
+        reason,
+        actionTypes,
+        expiresAt,
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'User blocked successfully',
+        success: true,
+        data: block,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Unblock a user
+   */
+  async unblockUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const adminId = req.user?.userId
+      const { blockId } = req.body
+
+      const block = await userManagementServices.unblockUser(adminId!, blockId)
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'User unblocked successfully',
+        success: true,
+        data: block,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Check if user is blocked for specific action
+   */
+  async isUserBlocked(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userPhoneNo, actionType } = req.body
+
+      const isBlocked = await userManagementServices.isUserBlocked(
+        userPhoneNo,
+        actionType
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: isBlocked ? 'User is blocked' : 'User is not blocked',
+        success: true,
+        data: { isBlocked },
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+}
+
+export default new UserManagementController()
