@@ -410,5 +410,27 @@ class UserManagementController {
             }
         });
     }
+    /**
+     * Add referral code to the seller
+     */
+    addReferralCodeToSeller(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const { referralCode } = req.body;
+                const sellerId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const updatedSeller = yield user_services_1.default.addReferralCodeToSeller(sellerId, referralCode);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Referral code added successfully',
+                    success: true,
+                    data: updatedSeller,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new UserManagementController();

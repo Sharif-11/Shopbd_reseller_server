@@ -502,6 +502,30 @@ class UserManagementServices {
             });
         });
     }
+    /**
+     * Add Referral code to seller
+     */
+    addReferralCodeToSeller(sellerId, referralCode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const seller = yield prisma_1.default.user.findUnique({
+                where: { userId: sellerId, role: client_1.UserType.Seller },
+            });
+            if (!seller) {
+                throw new ApiError_1.default(404, 'Seller not found');
+            }
+            // Check if referral code already exists
+            const existingReferral = yield prisma_1.default.user.findUnique({
+                where: { referralCode },
+            });
+            if (existingReferral) {
+                throw new ApiError_1.default(400, 'রেফারেল কোড ইতোমধ্যে ব্যবহৃত, অনুগ্রহ করে অন্য একটি বেছে নিন');
+            }
+            return yield prisma_1.default.user.update({
+                where: { userId: sellerId, role: client_1.UserType.Seller },
+                data: { referralCode },
+            });
+        });
+    }
     // ==========================================
     // ROLE & PERMISSION MANAGEMENT
     // ==========================================

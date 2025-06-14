@@ -409,6 +409,34 @@ class UserManagementController {
       next(error)
     }
   }
+  /**
+   * Add referral code to the seller
+   */
+  async addReferralCodeToSeller(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { referralCode } = req.body
+      const sellerId = req.user?.userId
+
+      const updatedSeller =
+        await userManagementServices.addReferralCodeToSeller(
+          sellerId!,
+          referralCode
+        )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Referral code added successfully',
+        success: true,
+        data: updatedSeller,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new UserManagementController()

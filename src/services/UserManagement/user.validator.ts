@@ -339,6 +339,20 @@ class UserManagementValidator {
         .withMessage('অবৈধ ক্রিয়া প্রকার'),
     ]
   }
+  static addReferralCode(): RequestHandler[] {
+    return [
+      body('referralCode')
+        .notEmpty()
+        .withMessage('রেফারাল কোড প্রয়োজন')
+        .trim()
+        .matches(/^[a-zA-Z0-9-_]+$/)
+        .withMessage(
+          'রেফারাল কোডটি শুধুমাত্র অক্ষর, সংখ্যা, (-) এবং (_) থাকতে পারে।'
+        )
+        .isLength({ max: 16, min: 3 })
+        .withMessage('রেফারাল কোডটি ৩ থেকে ১৬ অক্ষরের মধ্যে হতে হবে।'),
+    ]
+  }
 }
 
 export default UserManagementValidator

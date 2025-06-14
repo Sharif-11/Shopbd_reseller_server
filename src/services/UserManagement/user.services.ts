@@ -573,6 +573,32 @@ class UserManagementServices {
       data: { password: hashedPassword },
     })
   }
+  /**
+   * Add Referral code to seller
+   */
+  async addReferralCodeToSeller(sellerId: string, referralCode: string) {
+    const seller = await prisma.user.findUnique({
+      where: { userId: sellerId, role: UserType.Seller },
+    })
+    if (!seller) {
+      throw new ApiError(404, 'Seller not found')
+    }
+    // Check if referral code already exists
+    const existingReferral = await prisma.user.findUnique({
+      where: { referralCode },
+    })
+    if (existingReferral) {
+      throw new ApiError(
+        400,
+        'রেফারেল কোড ইতোমধ্যে ব্যবহৃত, অনুগ্রহ করে অন্য একটি বেছে নিন'
+      )
+    }
+
+    return await prisma.user.update({
+      where: { userId: sellerId, role: UserType.Seller },
+      data: { referralCode },
+    })
+  }
 
   // ==========================================
   // ROLE & PERMISSION MANAGEMENT
