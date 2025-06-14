@@ -317,26 +317,31 @@ class UserManagementServices {
       })
 
       // Create the user
+      const userData = {
+        phoneNo: input.phoneNo,
+        name: input.name,
+        password: hashedPassword,
+        email: input.email,
+        role: UserType.Seller,
+        isVerified: false,
+        zilla: input.zilla,
+        upazilla: input.upazilla,
+        address: input.address,
+        shopName: input.shopName,
+        nomineePhone: input.nomineePhone,
+        facebookProfileLink: input.facebookProfileLink,
+        ...(referredByPhone
+          ? {
+              referredBy: {
+                connect: { phoneNo: referredByPhone },
+              },
+            }
+          : {}),
+      }
+
+      // Create the user
       const user = await tx.user.create({
-        data: {
-          ...input,
-          password: hashedPassword,
-          role: UserType.Seller,
-          isVerified: false,
-          // Set referredBy relation correctly if referredByPhone exists
-          ...(referredByPhone
-            ? {
-                referredBy: {
-                  connect: { phoneNo: referredByPhone },
-                },
-              }
-            : {}),
-          // Ensure these required fields are present
-          zilla: input.zilla,
-          upazilla: input.upazilla,
-          address: input.address,
-          shopName: input.shopName,
-        },
+        data: userData,
       })
 
       // Assign role to user
@@ -366,12 +371,31 @@ class UserManagementServices {
     customerPhoneNo: string
     sellerCode: string
   }) {
+    // check if the customer already exists
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { customerPhoneNo },
+    })
+    if (existingCustomer) {
+      throw new ApiError(400, 'Customer already exists with this phone number')
+    }
+    // check if the phone number is a seller already
+    const existingSeller = await prisma.user.findUnique({
+      where: { phoneNo: customerPhoneNo },
+    })
+    if (existingSeller) {
+      throw new ApiError(400, 'Phone number is already registered as a seller')
+    }
     // check seller exists with the given sellerCode
     const seller = await prisma.user.findUnique({
       where: { referralCode: sellerCode },
     })
     if (!seller) {
       throw new ApiError(404, 'Seller not found with the provided code')
+    }
+    // check if the customer phone number is verified
+    const verifiedPhoneNo = await otpServices.isVerified(customerPhoneNo)
+    if (!verifiedPhoneNo.isVerified) {
+      throw new ApiError(400, 'Customer phone number is not verified')
     }
     return await prisma.customer.create({
       data: {

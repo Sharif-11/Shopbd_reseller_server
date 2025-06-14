@@ -1,5 +1,6 @@
 // routes/auth.route.ts
 import { Router } from 'express'
+import { isAuthenticated } from '../../middlewares/auth.middlewares'
 import validateRequest from '../../middlewares/validation.middleware'
 import userManagementControllers from '../UserManagement/user.controller'
 import UserManagementValidator from '../UserManagement/user.validator'
@@ -91,9 +92,10 @@ class AuthRouter {
 
     // Password reset
     this.router.post(
-      '/reset-password',
+      '/forgot-password',
       UserManagementValidator.resetPassword(),
       validateRequest,
+      isAuthenticated,
       userManagementControllers.resetPassword
     )
 
@@ -102,6 +104,7 @@ class AuthRouter {
       '/profile',
       UserManagementValidator.getProfile(),
       validateRequest,
+      isAuthenticated,
       userManagementControllers.getProfile
     )
 
@@ -109,13 +112,15 @@ class AuthRouter {
       '/profile',
       UserManagementValidator.updateProfile(),
       validateRequest,
+      isAuthenticated,
       userManagementControllers.updateProfile
     )
 
-    this.router.post(
+    this.router.patch(
       '/change-password',
       UserManagementValidator.changePassword(),
       validateRequest,
+      isAuthenticated,
       userManagementControllers.changePassword
     )
   }

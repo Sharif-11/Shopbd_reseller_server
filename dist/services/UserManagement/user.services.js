@@ -279,16 +279,16 @@ class UserManagementServices {
                     },
                 });
                 // Create the user
+                const userData = Object.assign({ phoneNo: input.phoneNo, name: input.name, password: hashedPassword, email: input.email, role: client_1.UserType.Seller, isVerified: false, zilla: input.zilla, upazilla: input.upazilla, address: input.address, shopName: input.shopName, nomineePhone: input.nomineePhone, facebookProfileLink: input.facebookProfileLink }, (referredByPhone
+                    ? {
+                        referredBy: {
+                            connect: { phoneNo: referredByPhone },
+                        },
+                    }
+                    : {}));
+                // Create the user
                 const user = yield tx.user.create({
-                    data: Object.assign(Object.assign(Object.assign(Object.assign({}, input), { password: hashedPassword, role: client_1.UserType.Seller, isVerified: false }), (referredByPhone
-                        ? {
-                            referredBy: {
-                                connect: { phoneNo: referredByPhone },
-                            },
-                        }
-                        : {})), { 
-                        // Ensure these required fields are present
-                        zilla: input.zilla, upazilla: input.upazilla, address: input.address, shopName: input.shopName }),
+                    data: userData,
                 });
                 // Assign role to user
                 yield tx.userRole.create({
@@ -308,12 +308,31 @@ class UserManagementServices {
      */
     createCustomer(_a) {
         return __awaiter(this, arguments, void 0, function* ({ customerName, customerPhoneNo, sellerCode, }) {
+            // check if the customer already exists
+            const existingCustomer = yield prisma_1.default.customer.findUnique({
+                where: { customerPhoneNo },
+            });
+            if (existingCustomer) {
+                throw new ApiError_1.default(400, 'Customer already exists with this phone number');
+            }
+            // check if the phone number is a seller already
+            const existingSeller = yield prisma_1.default.user.findUnique({
+                where: { phoneNo: customerPhoneNo },
+            });
+            if (existingSeller) {
+                throw new ApiError_1.default(400, 'Phone number is already registered as a seller');
+            }
             // check seller exists with the given sellerCode
             const seller = yield prisma_1.default.user.findUnique({
                 where: { referralCode: sellerCode },
             });
             if (!seller) {
                 throw new ApiError_1.default(404, 'Seller not found with the provided code');
+            }
+            // check if the customer phone number is verified
+            const verifiedPhoneNo = yield otp_services_1.default.isVerified(customerPhoneNo);
+            if (!verifiedPhoneNo.isVerified) {
+                throw new ApiError_1.default(400, 'Customer phone number is not verified');
             }
             return yield prisma_1.default.customer.create({
                 data: {
