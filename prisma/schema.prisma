@@ -1,0 +1,33 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.1.x", "rhel-openssl-1.0.x", "linux-musl"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model OTP {
+  id             String    @id @default(cuid()) // Use cuid for unique id
+  phoneNo        String    @unique
+  isVerified     Boolean   @default(false)
+  isBlocked      Boolean   @default(false)
+  totalOTP       Int       @default(0)
+  otp            String // Optional
+  otpCreatedAt   DateTime // Optional, timestamp when OTP was created
+  otpExpiresAt   DateTime // Optional, timestamp when OTP expires
+  otpBlockUntil  DateTime? // Optional, timestamp until which the OTP is blocked
+  failedAttempts Int       @default(0) // Count of failed attempts
+  createdAt      DateTime  @default(now()) // Timestamp for creation
+  updatedAt      DateTime  @updatedAt // Timestamp for updates
+
+  @@index([phoneNo], name: "contactIndex")
+  @@map("otp") // Optional: Custom table name in the database
+}
