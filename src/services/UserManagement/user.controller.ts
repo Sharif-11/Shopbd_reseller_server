@@ -450,9 +450,12 @@ class UserManagementController {
   async unblockUser(req: Request, res: Response, next: NextFunction) {
     try {
       const adminId = req.user?.userId
-      const { blockId } = req.body
-
-      const block = await userManagementServices.unblockUser(adminId!, blockId)
+      const { phoneNo, actionTypes } = req.body
+      const block = await userManagementServices.unblockUser({
+        userPhoneNo: phoneNo,
+        actionTypes,
+        adminId: adminId!,
+      })
 
       res.status(200).json({
         statusCode: 200,

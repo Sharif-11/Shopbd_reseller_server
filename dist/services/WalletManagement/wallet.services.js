@@ -55,9 +55,11 @@ class WalletServices {
     createWallet(creatorId, input) {
         return __awaiter(this, void 0, void 0, function* () {
             // Check if creator is blocked
-            // await this.checkUserBlocked(creatorId, 'WALLET_ADDITION')
             const user = yield user_services_1.default.getUserById(creatorId);
-            yield user_services_1.default.isUserBlocked(user.phoneNo, client_1.BlockActionType.WALLET_ADDITION);
+            const isBlocked = yield user_services_1.default.isUserBlocked(user.phoneNo, client_1.BlockActionType.WALLET_ADDITION);
+            if (isBlocked) {
+                throw new ApiError_1.default(403, 'User is blocked from adding wallets');
+            }
             yield this.isDuplicateWallet(input.walletName, input.walletPhoneNo);
             // SYSTEM wallet specific logic
             if (input.walletType === 'SYSTEM') {

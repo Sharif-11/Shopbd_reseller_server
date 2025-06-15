@@ -783,13 +783,36 @@ class UserManagementServices {
     /**
      * Unblock a user
      */
-    unblockUser(adminId, blockId) {
-        return __awaiter(this, void 0, void 0, function* () {
+    unblockUser(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, actionTypes, userPhoneNo, }) {
             yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.BLOCK);
-            return yield prisma_1.default.block.update({
-                where: { blockId },
-                data: { isActive: false },
+            // Find all active blocks for this user
+            const blocks = yield prisma_1.default.block.findMany({
+                where: {
+                    userPhoneNo,
+                    isActive: true,
+                },
             });
+            if (!blocks.length) {
+                throw new ApiError_1.default(404, 'No active blocks found for this user');
+            }
+            // Process each block to remove the specified action types
+            const results = [];
+            for (const block of blocks) {
+                // Filter out the action types we want to remove
+                const remainingActionTypes = block.actionTypes.filter(type => !actionTypes.includes(type));
+                // If no action types left, deactivate the entire block
+                // Otherwise, just update the action types
+                const updateData = remainingActionTypes.length === 0
+                    ? { isActive: false }
+                    : { actionTypes: remainingActionTypes };
+                const result = yield prisma_1.default.block.update({
+                    where: { blockId: block.blockId },
+                    data: updateData,
+                });
+                results.push(result);
+            }
+            return results;
         });
     }
     // ==========================================

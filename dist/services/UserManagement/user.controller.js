@@ -449,8 +449,12 @@ class UserManagementController {
             var _a;
             try {
                 const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { blockId } = req.body;
-                const block = yield user_services_1.default.unblockUser(adminId, blockId);
+                const { phoneNo, actionTypes } = req.body;
+                const block = yield user_services_1.default.unblockUser({
+                    userPhoneNo: phoneNo,
+                    actionTypes,
+                    adminId: adminId,
+                });
                 res.status(200).json({
                     statusCode: 200,
                     message: 'User unblocked successfully',

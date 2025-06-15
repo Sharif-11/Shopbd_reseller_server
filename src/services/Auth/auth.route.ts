@@ -162,6 +162,16 @@ class AuthRouter {
       validateRequest,
       userManagementControllers.assignRoleToUser
     )
+    this.router.post(
+      '/block-user',
+      isAuthenticated,
+      userManagementControllers.blockUser
+    )
+    this.router.post(
+      '/unblock-user',
+      isAuthenticated,
+      userManagementControllers.unblockUser
+    )
   }
 
   public getRouter(): Router {

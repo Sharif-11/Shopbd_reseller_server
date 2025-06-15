@@ -901,17 +901,56 @@ class UserManagementServices {
   /**
    * Unblock a user
    */
-  async unblockUser(adminId: string, blockId: string) {
+  async unblockUser({
+    adminId,
+    actionTypes,
+    userPhoneNo,
+  }: {
+    adminId: string
+    actionTypes: BlockActionType[]
+    userPhoneNo: string
+  }) {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
       ActionType.BLOCK
     )
 
-    return await prisma.block.update({
-      where: { blockId },
-      data: { isActive: false },
+    // Find all active blocks for this user
+    const blocks = await prisma.block.findMany({
+      where: {
+        userPhoneNo,
+        isActive: true,
+      },
     })
+
+    if (!blocks.length) {
+      throw new ApiError(404, 'No active blocks found for this user')
+    }
+
+    // Process each block to remove the specified action types
+    const results = []
+    for (const block of blocks) {
+      // Filter out the action types we want to remove
+      const remainingActionTypes = block.actionTypes.filter(
+        type => !actionTypes.includes(type)
+      )
+
+      // If no action types left, deactivate the entire block
+      // Otherwise, just update the action types
+      const updateData =
+        remainingActionTypes.length === 0
+          ? { isActive: false }
+          : { actionTypes: remainingActionTypes }
+
+      const result = await prisma.block.update({
+        where: { blockId: block.blockId },
+        data: updateData,
+      })
+      results.push(result)
+    }
+
+    return results
   }
 
   // ==========================================

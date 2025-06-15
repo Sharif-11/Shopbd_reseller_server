@@ -57,12 +57,15 @@ class WalletServices {
     }
   ): Promise<Wallet> {
     // Check if creator is blocked
-    // await this.checkUserBlocked(creatorId, 'WALLET_ADDITION')
+
     const user = await userManagementServices.getUserById(creatorId)
-    await userManagementServices.isUserBlocked(
+    const isBlocked = await userManagementServices.isUserBlocked(
       user.phoneNo,
       BlockActionType.WALLET_ADDITION
     )
+    if (isBlocked) {
+      throw new ApiError(403, 'User is blocked from adding wallets')
+    }
     await this.isDuplicateWallet(input.walletName, input.walletPhoneNo)
 
     // SYSTEM wallet specific logic

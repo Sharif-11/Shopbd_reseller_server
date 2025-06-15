@@ -50,6 +50,8 @@ class AuthRouter {
         this.router.post('/create-role-permission', auth_middlewares_1.isAuthenticated, user_controller_1.default.assignMultiplePermissionsToRole);
         // assign role to user
         this.router.post('/assign-role', auth_middlewares_1.isAuthenticated, user_validator_1.default.assignRoleToUser(), validation_middleware_1.default, user_controller_1.default.assignRoleToUser);
+        this.router.post('/block-user', auth_middlewares_1.isAuthenticated, user_controller_1.default.blockUser);
+        this.router.post('/unblock-user', auth_middlewares_1.isAuthenticated, user_controller_1.default.unblockUser);
     }
     getRouter() {
         return this.router;
