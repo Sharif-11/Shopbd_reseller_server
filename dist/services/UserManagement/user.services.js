@@ -212,10 +212,7 @@ class UserManagementServices {
                     },
                 });
                 // Assign basic admin permissions
-                const adminPermissions = [
-                    client_1.PermissionType.PRODUCT_MANAGEMENT,
-                    client_1.PermissionType.ORDER_MANAGEMENT,
-                ];
+                const adminPermissions = config_1.default.defaultAdminPermissions;
                 for (const permission of adminPermissions) {
                     yield tx.rolePermission.create({
                         data: {
@@ -291,7 +288,7 @@ class UserManagementServices {
                     data: userData,
                 });
                 // give some default permissions to seller
-                const sellerPermissions = [client_1.PermissionType.WALLET_ADDITION];
+                const sellerPermissions = config_1.default.defaultSellerPermissions;
                 for (const permission of sellerPermissions) {
                     yield tx.rolePermission.create({
                         data: {

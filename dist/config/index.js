@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 dotenv_1.default.config({
@@ -24,15 +25,21 @@ const config = {
     maximumOtpAttempts: 5,
     maximumOtpRequests: 5,
     nodeEnv: process.env.NODE_ENV || 'development',
-    smsCharge: 0.75,
-    maxForgotPasswordAttempts: 1,
-    maximumWallets: 3,
+    smsCharge: 1,
+    maxForgotPasswordAttempts: 2,
+    maximumWallets: 2,
     maximumWithdrawAmount: 10000,
     deliveryChargeInsideDhaka: 80,
     deliveryChargeOutsideDhaka: 130,
     negativeBalanceLimit: -10,
     minimumOrderCompletedToBeVerified: 1,
     forgotPasswordRequestInterval: 5 * 60 * 1000, // 5 minutes
+    defaultSellerPermissions: [client_1.PermissionType.WALLET_ADDITION],
+    defaultAdminPermissions: [
+        client_1.PermissionType.WALLET_MANAGEMENT,
+        client_1.PermissionType.ORDER_MANAGEMENT,
+        client_1.PermissionType.PAYMENT_MANAGEMENT,
+    ],
     // cloudinaryKey: process.env.CLOUDINARY_KEY,
     // cloudinarySecret: process.env.CLOUDINARY_SECRET,
     // cloudinaryName: process.env.CLOUDINARY_NAME,

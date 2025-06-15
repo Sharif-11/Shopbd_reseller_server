@@ -1,3 +1,4 @@
+import { PermissionType } from '@prisma/client'
 import dotenv from 'dotenv'
 import path from 'path'
 dotenv.config({
@@ -29,6 +30,8 @@ export interface IConfig {
   negativeBalanceLimit: number
   minimumOrderCompletedToBeVerified: number
   forgotPasswordRequestInterval: number
+  defaultSellerPermissions: PermissionType[]
+  defaultAdminPermissions: PermissionType[]
   // cloudinaryKey?: string;
   // cloudinarySecret?: string;
   // cloudinaryName?: string;
@@ -50,15 +53,21 @@ const config: IConfig = {
   maximumOtpAttempts: 5,
   maximumOtpRequests: 5,
   nodeEnv: process.env.NODE_ENV || 'development',
-  smsCharge: 0.75,
-  maxForgotPasswordAttempts: 1,
-  maximumWallets: 3,
+  smsCharge: 1,
+  maxForgotPasswordAttempts: 2,
+  maximumWallets: 2,
   maximumWithdrawAmount: 10000,
   deliveryChargeInsideDhaka: 80,
   deliveryChargeOutsideDhaka: 130,
   negativeBalanceLimit: -10,
   minimumOrderCompletedToBeVerified: 1,
   forgotPasswordRequestInterval: 5 * 60 * 1000, // 5 minutes
+  defaultSellerPermissions: [PermissionType.WALLET_ADDITION],
+  defaultAdminPermissions: [
+    PermissionType.WALLET_MANAGEMENT,
+    PermissionType.ORDER_MANAGEMENT,
+    PermissionType.PAYMENT_MANAGEMENT,
+  ],
   // cloudinaryKey: process.env.CLOUDINARY_KEY,
   // cloudinarySecret: process.env.CLOUDINARY_SECRET,
   // cloudinaryName: process.env.CLOUDINARY_NAME,

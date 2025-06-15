@@ -47,7 +47,7 @@ class WalletServices {
                 },
             });
             if (existingWallet) {
-                throw new ApiError_1.default(400, `Wallet with name "${walletName}" and phone "${walletPhoneNo}" already exists`);
+                throw new ApiError_1.default(400, `Wallet already exists`);
             }
             return !!existingWallet;
         });

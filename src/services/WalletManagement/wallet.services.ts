@@ -43,10 +43,7 @@ class WalletServices {
       },
     })
     if (existingWallet) {
-      throw new ApiError(
-        400,
-        `Wallet with name "${walletName}" and phone "${walletPhoneNo}" already exists`
-      )
+      throw new ApiError(400, `Wallet already exists`)
     }
     return !!existingWallet
   }

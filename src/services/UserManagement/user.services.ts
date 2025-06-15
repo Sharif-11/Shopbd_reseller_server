@@ -242,10 +242,7 @@ class UserManagementServices {
       })
 
       // Assign basic admin permissions
-      const adminPermissions = [
-        PermissionType.PRODUCT_MANAGEMENT,
-        PermissionType.ORDER_MANAGEMENT,
-      ]
+      const adminPermissions = config.defaultAdminPermissions
 
       for (const permission of adminPermissions) {
         await tx.rolePermission.create({
@@ -344,7 +341,7 @@ class UserManagementServices {
         data: userData,
       })
       // give some default permissions to seller
-      const sellerPermissions = [PermissionType.WALLET_ADDITION]
+      const sellerPermissions = config.defaultSellerPermissions
       for (const permission of sellerPermissions) {
         await tx.rolePermission.create({
           data: {
