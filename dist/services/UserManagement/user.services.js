@@ -497,6 +497,30 @@ class UserManagementServices {
         });
     }
     /**
+     * Check Already Logged In User
+     */
+    checkLoggedInUser(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const user = yield prisma_1.default.user.findUnique({
+                where: { userId },
+                include: {
+                    userRoles: {
+                        include: {
+                            role: true,
+                        },
+                    },
+                    referredBy: true,
+                },
+            });
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            // Exclude password from the returned user object
+            const { password } = user, userWithoutPassword = __rest(user, ["password"]);
+            return userWithoutPassword;
+        });
+    }
+    /**
      * Reset password (forgot password flow)
      */
     resetPassword(phoneNo) {
@@ -874,7 +898,7 @@ class UserManagementServices {
                     }
                 }
             }
-            throw new ApiError_1.default(403, 'Insufficient permissions');
+            throw new ApiError_1.default(403, 'permission denied');
         });
     }
     //add another helper method to test if a user is blocked for some action
@@ -901,6 +925,55 @@ class UserManagementServices {
                 },
             });
             return !!block;
+        });
+    }
+    // Fetching all users with pagination, filtering by role, phone number, name along with all roles, permissions and wallets
+    getAllUsers(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, page = 1, limit = 10, role, phoneNo, name, }) {
+            // check permissions
+            yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.READ);
+            const skip = (page - 1) * limit;
+            const where = Object.assign(Object.assign(Object.assign({}, (role ? { role: role } : {})), (phoneNo
+                ? {
+                    phoneNo: {
+                        contains: phoneNo,
+                        mode: 'insensitive',
+                    },
+                }
+                : {})), (name
+                ? {
+                    name: {
+                        contains: name,
+                        mode: 'insensitive',
+                    },
+                }
+                : {}));
+            const [users, totalCount] = yield prisma_1.default.$transaction([
+                prisma_1.default.user.findMany({
+                    where,
+                    skip,
+                    take: limit,
+                    include: {
+                        userRoles: {
+                            include: {
+                                role: {
+                                    include: {
+                                        permissions: true,
+                                    },
+                                },
+                            },
+                        },
+                        Wallet: true,
+                    },
+                }),
+                prisma_1.default.user.count({ where }),
+            ]);
+            return {
+                users,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page,
+            };
         });
     }
 }

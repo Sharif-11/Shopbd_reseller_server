@@ -52,6 +52,10 @@ class AuthRouter {
         this.router.post('/assign-role', auth_middlewares_1.isAuthenticated, user_validator_1.default.assignRoleToUser(), validation_middleware_1.default, user_controller_1.default.assignRoleToUser);
         this.router.post('/block-user', auth_middlewares_1.isAuthenticated, user_controller_1.default.blockUser);
         this.router.post('/unblock-user', auth_middlewares_1.isAuthenticated, user_controller_1.default.unblockUser);
+        this.router.get('/get-all-users', auth_middlewares_1.isAuthenticated, user_controller_1.default.getAllUsers);
+        // route for logout and verify already logged in user
+        this.router.post('/logout', auth_middlewares_1.isAuthenticated, user_controller_1.default.logout);
+        this.router.get('/verify-login', auth_middlewares_1.isAuthenticated, user_controller_1.default.checkLoggedInUser);
     }
     getRouter() {
         return this.router;

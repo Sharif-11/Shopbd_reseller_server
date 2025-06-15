@@ -204,6 +204,11 @@ class UserManagementController {
                     phoneNo,
                     password,
                 });
+                // set token in cookie with secure and httpOnly flags
+                res.cookie('token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+                });
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Login successful',
@@ -212,6 +217,46 @@ class UserManagementController {
                         user,
                         token,
                     },
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    /**
+     * User logout
+     */
+    logout(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                // Clear the cookie
+                res.clearCookie('token');
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Logout successful',
+                    success: true,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    /**
+     *  check already logged in user
+     */
+    checkLoggedInUser(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const user = yield user_services_1.default.checkLoggedInUser(userId);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'User is logged in',
+                    success: true,
+                    data: user,
                 });
             }
             catch (error) {
@@ -502,6 +547,26 @@ class UserManagementController {
                     message: 'Referral code added successfully',
                     success: true,
                     data: updatedSeller,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    getAllUsers(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const currentAdminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId; // Assuming user ID is in request
+                //after auth middleware
+                const { page = 1, limit = 10, role, name, phoneNo } = req.query;
+                const users = yield user_services_1.default.getAllUsers(Object.assign({ adminId: currentAdminId }, req.query));
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Users retrieved successfully',
+                    success: true,
+                    data: users,
                 });
             }
             catch (error) {

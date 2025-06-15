@@ -206,6 +206,11 @@ class UserManagementController {
         phoneNo,
         password,
       })
+      // set token in cookie with secure and httpOnly flags
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+      })
 
       res.status(200).json({
         statusCode: 200,
@@ -215,6 +220,43 @@ class UserManagementController {
           user,
           token,
         },
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * User logout
+   */
+  async logout(req: Request, res: Response, next: NextFunction) {
+    try {
+      // Clear the cookie
+      res.clearCookie('token')
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Logout successful',
+        success: true,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  /**
+   *  check already logged in user
+   */
+  async checkLoggedInUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+
+      const user = await userManagementServices.checkLoggedInUser(userId!)
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'User is logged in',
+        success: true,
+        data: user,
       })
     } catch (error) {
       next(error)
@@ -513,6 +555,26 @@ class UserManagementController {
         message: 'Referral code added successfully',
         success: true,
         data: updatedSeller,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async getAllUsers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const currentAdminId = req.user?.userId // Assuming user ID is in request
+      //after auth middleware
+      const { page = 1, limit = 10, role, name, phoneNo } = req.query
+      const users = await userManagementServices.getAllUsers({
+        adminId: currentAdminId!,
+        ...req.query,
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Users retrieved successfully',
+        success: true,
+        data: users,
       })
     } catch (error) {
       next(error)

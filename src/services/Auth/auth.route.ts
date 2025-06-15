@@ -172,6 +172,22 @@ class AuthRouter {
       isAuthenticated,
       userManagementControllers.unblockUser
     )
+    this.router.get(
+      '/get-all-users',
+      isAuthenticated,
+      userManagementControllers.getAllUsers
+    )
+    // route for logout and verify already logged in user
+    this.router.post(
+      '/logout',
+      isAuthenticated,
+      userManagementControllers.logout
+    )
+    this.router.get(
+      '/verify-login',
+      isAuthenticated,
+      userManagementControllers.checkLoggedInUser
+    )
   }
 
   public getRouter(): Router {

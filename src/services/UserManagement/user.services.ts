@@ -575,6 +575,29 @@ class UserManagementServices {
       token,
     }
   }
+  /**
+   * Check Already Logged In User
+   */
+  async checkLoggedInUser(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { userId },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+        referredBy: true,
+      },
+    })
+
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    // Exclude password from the returned user object
+    const { password, ...userWithoutPassword } = user
+    return userWithoutPassword
+  }
 
   /**
    * Reset password (forgot password flow)
@@ -1029,7 +1052,7 @@ class UserManagementServices {
       }
     }
 
-    throw new ApiError(403, 'Insufficient permissions')
+    throw new ApiError(403, 'permission denied')
   }
   //add another helper method to test if a user is blocked for some action
   async isUserBlocked(
@@ -1057,6 +1080,78 @@ class UserManagementServices {
       },
     })
     return !!block
+  }
+  // Fetching all users with pagination, filtering by role, phone number, name along with all roles, permissions and wallets
+  async getAllUsers({
+    adminId,
+    page = 1,
+    limit = 10,
+    role,
+    phoneNo,
+    name,
+  }: {
+    adminId: string
+    page?: number
+    limit?: number
+    role?: UserType
+    phoneNo?: string
+    name?: string
+  }) {
+    // check permissions
+    await this.verifyUserPermission(
+      adminId,
+      PermissionType.USER_MANAGEMENT,
+      ActionType.READ
+    )
+    const skip = (page - 1) * limit
+
+    const where: Prisma.UserWhereInput = {
+      ...(role ? { role: role } : {}),
+      ...(phoneNo
+        ? {
+            phoneNo: {
+              contains: phoneNo,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
+      ...(name
+        ? {
+            name: {
+              contains: name,
+              mode: 'insensitive',
+            },
+          }
+        : {}),
+    }
+
+    const [users, totalCount] = await prisma.$transaction([
+      prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          userRoles: {
+            include: {
+              role: {
+                include: {
+                  permissions: true,
+                },
+              },
+            },
+          },
+          Wallet: true,
+        },
+      }),
+      prisma.user.count({ where }),
+    ])
+
+    return {
+      users,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page,
+    }
   }
 }
 
