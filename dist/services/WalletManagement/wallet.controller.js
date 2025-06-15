@@ -21,7 +21,7 @@ class WalletController {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             try {
-                const { walletName, walletPhoneNo, walletType } = req.body;
+                const { walletName, walletPhoneNo, walletType = 'SELLER' } = req.body;
                 const creatorId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId; // From auth middleware
                 const wallet = yield wallet_services_1.default.createWallet(creatorId, {
                     walletName,
@@ -158,8 +158,8 @@ class WalletController {
             var _a;
             try {
                 const requesterId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { walletId } = req.params;
-                const result = yield wallet_services_1.default.initiateVerification(requesterId, parseInt(walletId));
+                const { walletPhoneNo } = req.body;
+                const result = yield wallet_services_1.default.initiateVerification(requesterId, walletPhoneNo);
                 res.status(200).json({
                     statusCode: 200,
                     message: result.sendOTP
@@ -182,14 +182,32 @@ class WalletController {
             var _a;
             try {
                 const requesterId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { walletId } = req.params;
-                const { otp } = req.body;
-                const result = yield wallet_services_1.default.verifyWallet(requesterId, parseInt(walletId), otp);
+                const { walletPhoneNo, otp } = req.body;
+                const result = yield wallet_services_1.default.verifyWallet(requesterId, walletPhoneNo, otp);
                 res.status(200).json({
                     statusCode: 200,
-                    message: result.isVerified
+                    message: result.isVerified || result.alreadyVerified
                         ? 'Wallet verified successfully'
                         : 'Verification failed',
+                    success: true,
+                    data: result,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    resetWalletVerification(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const requesterId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { walletPhoneNo } = req.params;
+                const result = yield wallet_services_1.default.resetWalletVerification(requesterId, walletPhoneNo);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Wallet verification reset successfully',
                     success: true,
                     data: result,
                 });

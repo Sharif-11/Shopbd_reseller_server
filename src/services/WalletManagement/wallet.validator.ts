@@ -3,6 +3,44 @@ import { body, param } from 'express-validator'
 
 class WalletValidator {
   /**
+   * Validation rules for sending OTP
+   */
+  static sendOtp() {
+    return [
+      body('walletPhoneNo')
+        .notEmpty()
+        .withMessage('ফোন নম্বর প্রয়োজন')
+        .isMobilePhone('bn-BD')
+        .withMessage('সঠিক বাংলাদেশী ফোন নম্বর প্রদান করুন')
+        .isLength({ min: 11, max: 11 })
+        .withMessage('ফোন নম্বরটি অবশ্যই ১১ ডিজিটের হতে হবে'),
+    ]
+  }
+  /**
+   * Validation rules for verifying OTP
+   */
+  static verifyOtp() {
+    return [
+      body('otp')
+        .notEmpty()
+        .withMessage('OTP প্রয়োজন')
+        .isString()
+        .withMessage('OTP অবশ্যই স্ট্রিং হতে হবে')
+        .isLength({ min: 6, max: 6 })
+        .withMessage('OTP অবশ্যই ৬ ডিজিটের হতে হবে')
+        .isNumeric()
+        .withMessage('OTP অবশ্যই সংখ্যা হতে হবে'),
+      body('walletPhoneNo')
+        .notEmpty()
+        .withMessage('ফোন নম্বর প্রয়োজন')
+        .isMobilePhone('bn-BD')
+        .withMessage('সঠিক বাংলাদেশী ফোন নম্বর প্রদান করুন')
+        .isLength({ min: 11, max: 11 })
+        .withMessage('ফোন নম্বরটি অবশ্যই ১১ ডিজিটের হতে হবে'),
+    ]
+  }
+
+  /**
    * Validation rules for creating a wallet
    */
   static createWallet() {
@@ -27,7 +65,7 @@ class WalletValidator {
       body('walletType')
         .optional()
         .isIn(Object.values(WalletType))
-        .withMessage('অবৈধ ওয়ালেট প্রকার'),
+        .withMessage('ওয়ালেটের ধরন সঠিক নয়'),
     ]
   }
 

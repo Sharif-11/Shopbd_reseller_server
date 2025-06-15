@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import authRoute from '../services/Auth/auth.route'
+import walletRoutes from '../services/WalletManagement/wallet.routes'
 
 class GlobalRoutes {
   private router: Router
@@ -10,6 +11,7 @@ class GlobalRoutes {
     this.routes = [
       // { path: '/', route: usersRouter },
       { path: '/auth', route: authRoute },
+      { path: '/wallets', route: walletRoutes },
       // { path: '/admin', route: adminRouter },
       // { path: '/sellers', route: sellerRouter },
       // { path: '/tracking', route: trackingRoutes },

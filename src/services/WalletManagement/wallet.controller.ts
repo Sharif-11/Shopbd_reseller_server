@@ -7,7 +7,7 @@ class WalletController {
    */
   async createWallet(req: Request, res: Response, next: NextFunction) {
     try {
-      const { walletName, walletPhoneNo, walletType } = req.body
+      const { walletName, walletPhoneNo, walletType = 'SELLER' } = req.body
       const creatorId = req.user?.userId // From auth middleware
 
       const wallet = await walletServices.createWallet(creatorId!, {
@@ -150,11 +150,11 @@ class WalletController {
   async initiateVerification(req: Request, res: Response, next: NextFunction) {
     try {
       const requesterId = req.user?.userId
-      const { walletId } = req.params
+      const { walletPhoneNo } = req.body
 
       const result = await walletServices.initiateVerification(
         requesterId!,
-        parseInt(walletId)
+        walletPhoneNo
       )
 
       res.status(200).json({
@@ -176,20 +176,44 @@ class WalletController {
   async verifyWallet(req: Request, res: Response, next: NextFunction) {
     try {
       const requesterId = req.user?.userId
-      const { walletId } = req.params
-      const { otp } = req.body
+      const { walletPhoneNo, otp } = req.body
 
       const result = await walletServices.verifyWallet(
         requesterId!,
-        parseInt(walletId),
+        walletPhoneNo,
         otp
       )
 
       res.status(200).json({
         statusCode: 200,
-        message: result.isVerified
-          ? 'Wallet verified successfully'
-          : 'Verification failed',
+        message:
+          result.isVerified || result.alreadyVerified
+            ? 'Wallet verified successfully'
+            : 'Verification failed',
+        success: true,
+        data: result,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async resetWalletVerification(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const requesterId = req.user?.userId
+      const { walletPhoneNo } = req.params
+
+      const result = await walletServices.resetWalletVerification(
+        requesterId!,
+        walletPhoneNo
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Wallet verification reset successfully',
         success: true,
         data: result,
       })

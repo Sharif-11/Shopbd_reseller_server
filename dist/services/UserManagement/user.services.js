@@ -290,6 +290,17 @@ class UserManagementServices {
                 const user = yield tx.user.create({
                     data: userData,
                 });
+                // give some default permissions to seller
+                const sellerPermissions = [client_1.PermissionType.WALLET_ADDITION];
+                for (const permission of sellerPermissions) {
+                    yield tx.rolePermission.create({
+                        data: {
+                            roleId: sellerRole.roleId,
+                            permission,
+                            actions: [client_1.ActionType.CREATE, client_1.ActionType.READ, client_1.ActionType.UPDATE],
+                        },
+                    });
+                }
                 // Assign role to user
                 yield tx.userRole.create({
                     data: {

@@ -343,6 +343,17 @@ class UserManagementServices {
       const user = await tx.user.create({
         data: userData,
       })
+      // give some default permissions to seller
+      const sellerPermissions = [PermissionType.WALLET_ADDITION]
+      for (const permission of sellerPermissions) {
+        await tx.rolePermission.create({
+          data: {
+            roleId: sellerRole.roleId,
+            permission,
+            actions: [ActionType.CREATE, ActionType.READ, ActionType.UPDATE],
+          },
+        })
+      }
 
       // Assign role to user
       await tx.userRole.create({

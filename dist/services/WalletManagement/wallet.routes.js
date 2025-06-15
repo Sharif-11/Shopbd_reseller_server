@@ -22,8 +22,8 @@ class WalletRouter {
         this.router.patch('/:walletId', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.updateWallet(), validation_middleware_1.default, wallet_controller_1.default.updateWallet);
         this.router.delete('/:walletId', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.walletIdParam(), validation_middleware_1.default, wallet_controller_1.default.deleteWallet);
         // Wallet verification routes
-        this.router.post('/:walletId/verify', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.walletIdParam(), validation_middleware_1.default, wallet_controller_1.default.initiateVerification);
-        this.router.post('/:walletId/verify/confirm', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.verifyWallet(), validation_middleware_1.default, wallet_controller_1.default.verifyWallet);
+        this.router.post('/send-otp', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.sendOtp(), validation_middleware_1.default, wallet_controller_1.default.initiateVerification);
+        this.router.post('/verify-otp', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.verifyOtp(), validation_middleware_1.default, wallet_controller_1.default.verifyWallet);
     }
     getRouter() {
         return this.router;

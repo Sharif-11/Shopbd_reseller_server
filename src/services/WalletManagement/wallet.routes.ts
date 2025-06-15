@@ -62,17 +62,17 @@ class WalletRouter {
 
     // Wallet verification routes
     this.router.post(
-      '/:walletId/verify',
+      '/send-otp',
       isAuthenticated,
-      WalletValidator.walletIdParam(),
+      WalletValidator.sendOtp(),
       validateRequest,
       walletControllers.initiateVerification
     )
 
     this.router.post(
-      '/:walletId/verify/confirm',
+      '/verify-otp',
       isAuthenticated,
-      WalletValidator.verifyWallet(),
+      WalletValidator.verifyOtp(),
       validateRequest,
       walletControllers.verifyWallet
     )

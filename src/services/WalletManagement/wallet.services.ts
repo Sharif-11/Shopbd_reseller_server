@@ -105,7 +105,18 @@ class WalletServices {
       )
     }
 
-    // Check for duplicate wallet name or phone combination
+    // Check verification status of wallet phone number
+    if (user.phoneNo !== input.walletPhoneNo) {
+      const walletOtp = await prisma.walletOtp.findUnique({
+        where: { phoneNo: input.walletPhoneNo },
+      })
+      if (!walletOtp || !walletOtp.isVerified) {
+        throw new ApiError(
+          400,
+          'Wallet phone number must be verified before creating a wallet'
+        )
+      }
+    }
 
     return await prisma.wallet.create({
       data: {
@@ -264,20 +275,22 @@ class WalletServices {
   /**
    * Initiate OTP verification for seller wallet
    */
-  async initiateVerification(requesterId: string, walletId: number) {
-    const wallet = await this.getWalletById(requesterId, walletId)
+  async initiateVerification(requesterId: string, walletPhoneNo: string) {
+    // check is there any existing wallet with this phone number
 
-    if (wallet.walletType === 'SYSTEM') {
-      throw new ApiError(400, 'System wallets do not require verification')
-    }
-
-    // Check if wallet is already verified
     const otpRecord = await prisma.walletOtp.findUnique({
-      where: { phoneNo: wallet.walletPhoneNo },
+      where: { phoneNo: walletPhoneNo },
     })
-    if (otpRecord?.isVerified) {
+    if (otpRecord && otpRecord.isVerified) {
       return { alreadyVerified: true }
     }
+    // Check if requester is alowed to create wallets
+    await userManagementServices.verifyUserPermission(
+      requesterId,
+      'WALLET_ADDITION',
+      'CREATE'
+    )
+
     // check if otp already exists and valid
     if (otpRecord && otpRecord.otpExpiresAt > new Date()) {
       return {
@@ -294,22 +307,22 @@ class WalletServices {
 
     // Generate and send OTP
     const otp = this.generateRandomOtp()
+    const otpExpiresAt = new Date(Date.now() + config.otpExpiresIn)
+    const newOtpRecord = {
+      phoneNo: walletPhoneNo,
+      otp,
+      otpExpiresAt,
+      otpCreatedAt: new Date(), // Add the required otpCreatedAt field
+      totalOTP: (otpRecord?.totalOTP || 0) + 1,
+      failedAttempts: 0,
+      isBlocked: false,
+      isVerified: false,
+    }
+    // Create or update OTP record
     await prisma.walletOtp.upsert({
-      where: { phoneNo: wallet.walletPhoneNo },
-      update: {
-        otp,
-        otpCreatedAt: new Date(),
-        otpExpiresAt: new Date(Date.now() + config.otpExpiresIn),
-        totalOTP: { increment: 1 },
-        isBlocked: false,
-      },
-      create: {
-        phoneNo: wallet.walletPhoneNo,
-        otp,
-        otpCreatedAt: new Date(),
-        otpExpiresAt: new Date(Date.now() + config.otpExpiresIn),
-        totalOTP: 1,
-      },
+      where: { phoneNo: walletPhoneNo },
+      update: newOtpRecord,
+      create: newOtpRecord,
     })
 
     // await SmsServices.sendOtp(wallet.walletPhoneNo, otp)
@@ -324,15 +337,9 @@ class WalletServices {
   /**
    * Verify OTP for seller wallet
    */
-  async verifyWallet(requesterId: string, walletId: number, otp: string) {
-    const wallet = await this.getWalletById(requesterId, walletId)
-
-    if (wallet.walletType === 'SYSTEM') {
-      throw new ApiError(400, 'System wallets do not require verification')
-    }
-
+  async verifyWallet(requesterId: string, walletPhoneNo: string, otp: string) {
     const otpRecord = await prisma.walletOtp.findUnique({
-      where: { phoneNo: wallet.walletPhoneNo },
+      where: { phoneNo: walletPhoneNo },
     })
 
     if (!otpRecord) {
@@ -363,7 +370,7 @@ class WalletServices {
     if (otpRecord.otp !== otp) {
       // Increment failed attempts and block if too many
       const updatedRecord = await prisma.walletOtp.update({
-        where: { phoneNo: wallet.walletPhoneNo },
+        where: { phoneNo: walletPhoneNo },
         data: {
           failedAttempts: { increment: 1 },
           isBlocked: otpRecord.failedAttempts + 1 >= config.maximumOtpAttempts,
@@ -381,11 +388,42 @@ class WalletServices {
 
     // Mark as verified
     await prisma.walletOtp.update({
-      where: { phoneNo: wallet.walletPhoneNo },
+      where: { phoneNo: walletPhoneNo },
       data: { isVerified: true },
     })
 
     return { isVerified: true, message: 'Wallet verified successfully' }
+  }
+  /**
+   * Reset Seller Wallet Verification by Admin
+   * @param adminId - ID of the admin performing the reset
+   * @param walletId - ID of the wallet to reset
+   */
+  async resetWalletVerification(adminId: string, walletPhoneNo: string) {
+    // Verify admin role
+    await userManagementServices.verifyUserRole(
+      adminId,
+      UserType.Admin || UserType.SuperAdmin
+    )
+    // verify permission
+    await userManagementServices.verifyUserPermission(
+      adminId,
+      'WALLET_MANAGEMENT',
+      'UPDATE'
+    )
+
+    // Reset wallet verification
+    await prisma.walletOtp.update({
+      where: { phoneNo: walletPhoneNo },
+      data: {
+        isVerified: false,
+        failedAttempts: 0,
+        totalOTP: 0,
+        isBlocked: false,
+      },
+    })
+
+    return { message: 'Wallet verification reset successfully' }
   }
 }
 
