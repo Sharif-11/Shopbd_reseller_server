@@ -148,6 +148,52 @@ class UserManagementController {
       next(error)
     }
   }
+  /**
+   * Demote a super admin to admin
+   */
+  async demoteSuperAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const currentAdminId = req.user?.userId
+      const { superAdminId } = req.body
+
+      const user = await userManagementServices.demoteSuperAdminToAdmin(
+        currentAdminId!,
+        superAdminId
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Super Admin demoted to Admin successfully',
+        success: true,
+        data: user,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  /**
+   * Promote an admin to super admin
+   */
+  async promoteAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const currentAdminId = req.user?.userId
+      const { adminId } = req.body
+
+      const user = await userManagementServices.promoteAdminToSuperAdmin(
+        currentAdminId!,
+        adminId
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Admin promoted to Super Admin successfully',
+        success: true,
+        data: user,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 
   /**
    * User login

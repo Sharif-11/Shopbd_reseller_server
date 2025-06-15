@@ -27,13 +27,16 @@ class AuthRouter {
     }
     initializeUserManagementRoutes() {
         // Super Admin routes
-        this.router.post('/super-admin', user_validator_1.default.createFirstSuperAdmin(), validation_middleware_1.default, user_controller_1.default.createFirstSuperAdmin);
+        this.router.post('/first-super-admin', user_validator_1.default.createFirstSuperAdmin(), validation_middleware_1.default, user_controller_1.default.createFirstSuperAdmin);
+        this.router.post('/super-admin', user_validator_1.default.createSuperAdmin(), validation_middleware_1.default, user_controller_1.default.createSuperAdmin);
         // Admin routes (require authentication)
         this.router.post('/admin', user_validator_1.default.createAdmin(), validation_middleware_1.default, user_controller_1.default.createAdmin);
         // Seller routes
         this.router.post('/seller', user_validator_1.default.createSeller(), validation_middleware_1.default, user_controller_1.default.createSeller);
         // Customer routes
         this.router.post('/customer', user_validator_1.default.createCustomer(), validation_middleware_1.default, user_controller_1.default.createCustomer);
+        this.router.patch('/demote-super-admin', user_validator_1.default.demoteSuperAdmin(), validation_middleware_1.default, user_controller_1.default.demoteSuperAdmin);
+        this.router.patch('/promote-admin', user_validator_1.default.promoteAdmin(), validation_middleware_1.default, user_controller_1.default.promoteAdmin);
         // Login route
         this.router.post('/login', user_validator_1.default.login(), validation_middleware_1.default, user_controller_1.default.login);
         // Password reset

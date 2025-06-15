@@ -409,6 +409,105 @@ class UserManagementServices {
       },
     })
   }
+  /**
+   * Make Super Admin a normal admin
+   */
+  async demoteSuperAdminToAdmin(currentAdminId: string, superAdminId: string) {
+    // Verify current user is super admin
+    await this.verifyUserRole(currentAdminId, UserType.SuperAdmin)
+
+    // Check if the super admin exists
+    const superAdmin = await prisma.user.findUnique({
+      where: { userId: superAdminId, role: UserType.SuperAdmin },
+      include: { userRoles: true },
+    })
+
+    if (!superAdmin) {
+      throw new ApiError(404, 'Super Admin not found')
+    }
+    if (superAdmin.userId === currentAdminId) {
+      throw new ApiError(400, 'You cannot demote yourself')
+    }
+
+    return await prisma.$transaction(async tx => {
+      // Get admin role
+      const adminRole = await tx.role.findUnique({
+        where: { roleName: 'Admin' },
+      })
+
+      if (!adminRole) {
+        throw new ApiError(404, 'Admin role not found')
+      }
+
+      // Remove all existing role assignments
+      await tx.userRole.deleteMany({
+        where: { userId: superAdminId },
+      })
+
+      // Assign admin role
+      await tx.userRole.create({
+        data: {
+          userId: superAdminId,
+          roleId: adminRole.roleId,
+        },
+      })
+
+      // Update the user role to Admin
+      const updatedUser = await tx.user.update({
+        where: { userId: superAdminId },
+        data: { role: UserType.Admin },
+      })
+
+      return updatedUser
+    })
+  }
+
+  async promoteAdminToSuperAdmin(currentAdminId: string, adminId: string) {
+    // Verify current user is super admin
+    await this.verifyUserRole(currentAdminId, UserType.SuperAdmin)
+
+    // Check if the admin exists
+    const admin = await prisma.user.findUnique({
+      where: { userId: adminId, role: UserType.Admin },
+      include: { userRoles: true },
+    })
+
+    if (!admin) {
+      throw new ApiError(404, 'Admin not found')
+    }
+
+    return await prisma.$transaction(async tx => {
+      // Get super admin role
+      const superAdminRole = await tx.role.findUnique({
+        where: { roleName: 'SuperAdmin' },
+      })
+
+      if (!superAdminRole) {
+        throw new ApiError(404, 'Super Admin role not found')
+      }
+
+      // Remove all existing role assignments
+      await tx.userRole.deleteMany({
+        where: { userId: adminId },
+      })
+
+      // Assign super admin role
+      await tx.userRole.create({
+        data: {
+          userId: adminId,
+          roleId: superAdminRole.roleId,
+        },
+      })
+
+      // Update the user role to Super Admin
+      const updatedUser = await tx.user.update({
+        where: { userId: adminId },
+        data: { role: UserType.SuperAdmin },
+      })
+
+      return updatedUser
+    })
+  }
 
   // ==========================================
   // AUTHENTICATION METHODS
@@ -525,6 +624,48 @@ class UserManagementServices {
           },
         },
         referredBy: true,
+      },
+    })
+
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    // Exclude password from the returned user object
+    const { password, ...userWithoutPassword } = user
+    return userWithoutPassword
+  }
+  async getUserById(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { userId },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+        referredBy: true,
+        Wallet: true,
+      },
+    })
+
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    // Exclude password from the returned user object
+    const { password, ...userWithoutPassword } = user
+    return userWithoutPassword
+  }
+  async getUserByPhoneNo(phoneNo: string) {
+    const user = await prisma.user.findUnique({
+      where: { phoneNo },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+        referredBy: true,
+        Wallet: true,
       },
     })
 
@@ -725,7 +866,7 @@ class UserManagementServices {
   /**
    * Verify user has specific role
    */
-  private async verifyUserRole(
+  public async verifyUserRole(
     userId: string,
     requiredRole: UserType
   ): Promise<User> {
@@ -748,7 +889,7 @@ class UserManagementServices {
   /**
    * Verify user has specific permission
    */
-  private async verifyUserPermission(
+  public async verifyUserPermission(
     userId: string,
     permission: PermissionType,
     action: ActionType

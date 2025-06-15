@@ -32,7 +32,6 @@ model Otp {
   @@map("otp") // Optional: Custom table name in the database
 }
 
-
 // User Management Schema
 
 // ======================
@@ -42,18 +41,24 @@ model Otp {
 enum UserType {
   Seller
   Admin
-  SuperAdmin  // Changed from Super_Admin
+  SuperAdmin // Changed from Super_Admin
 }
 
 enum PermissionType {
   USER_MANAGEMENT
+  CUSTOMER_MANAGEMENT
+  SELLER_MANAGEMENT
+  ADMIN_MANAGEMENT
   PRODUCT_MANAGEMENT
   ORDER_MANAGEMENT
   WITHDRAWAL_MANAGEMENT
   PAYMENT_MANAGEMENT
-  REPORT_VIEW
+  DASHBOARD_ACCESS
   SETTINGS_MANAGEMENT
   CONTENT_MANAGEMENT
+  WALLET_ADDITION
+  WALLET_MANAGEMENT
+  REPORT_VIEW
   ALL
 }
 
@@ -77,55 +82,54 @@ enum BlockActionType {
   ALL
 }
 
-
-
 // ======================
 // MODELS
 // ======================
 
 model User {
-  userId             String     @id @default(cuid())
-  phoneNo            String     @unique
-  name               String
-  password           String
-  passwordSendsAt    DateTime?
-  totalPasswordResetRequests Int @default(0)
-  
-  role              UserType   @default(Seller)
+  userId                     String    @id @default(cuid())
+  phoneNo                    String    @unique
+  name                       String
+  password                   String
+  passwordSendsAt            DateTime?
+  totalPasswordResetRequests Int       @default(0)
 
-  zilla              String?
-  upazilla           String?
-  address            String?
-  referralCode       String?    @unique
-  referredBy         User?      @relation("UserReferredBy", fields: [referredByPhone], references: [phoneNo], onDelete: NoAction, onUpdate: Cascade)
-  referredByPhone    String?
-  referrals          User[]     @relation("UserReferredBy")
-  email              String?    @unique
-  isVerified         Boolean?   @default(false)
-  balance            Decimal?   @default(0.0) @db.Decimal(15, 2)
-  shopName           String?
-  nomineePhone       String?
+  role UserType @default(Seller)
+
+  zilla               String?
+  upazilla            String?
+  address             String?
+  referralCode        String?    @unique
+  referredBy          User?      @relation("UserReferredBy", fields: [referredByPhone], references: [phoneNo], onDelete: NoAction, onUpdate: Cascade)
+  referredByPhone     String?
+  referrals           User[]     @relation("UserReferredBy")
+  email               String?    @unique
+  isVerified          Boolean?   @default(false)
+  balance             Decimal?   @default(0.0) @db.Decimal(15, 2)
+  shopName            String?
+  nomineePhone        String?
   facebookProfileLink String?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
-  version            Int        @default(1)
-  userRoles          UserRole[]
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  version             Int        @default(1)
+  userRoles           UserRole[]
+  Wallet              Wallet[]
 
   @@index([phoneNo], name: "userIndex")
   @@map("users")
 }
 
 model Customer {
-  customerId      String       @id @default(cuid())
+  customerId      String   @id @default(cuid())
   customerName    String
-  customerPhoneNo String       @unique
-  role            String       @default("Customer")  // Constant string value
+  customerPhoneNo String   @unique
+  role            String   @default("Customer") // Constant string value
   sellerId        String
   sellerCode      String
   sellerName      String
   sellerPhone     String
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([customerPhoneNo], name: "customerPhoneIndex")
   @@map("customers")
@@ -189,3 +193,45 @@ model Block {
 // Role ↔ RolePermission
 // User → User (self-referential for referrals)
 // Block → User/Customer (via userPhoneNo)
+
+// ======================
+// WALLET MANAGEMENT
+// ======================
+model Wallet {
+  walletId      Int        @id @default(autoincrement()) // Primary key, auto-incremented
+  walletName    String // Name of the wallet
+  walletPhoneNo String // Associated phone number
+  walletType    WalletType @default(SELLER) // Type of wallet, defaulting to SELLER
+
+  user   User?   @relation(fields: [userId], references: [userId])
+  userId String?
+
+  createdAt DateTime @default(now()) // Timestamp for creation
+  updatedAt DateTime @updatedAt // Timestamp for updates
+
+  @@unique([walletName, walletPhoneNo]) // Composite unique constraint
+  @@map("wallets") // Optional: Custom table name in the database
+}
+
+model WalletOtp {
+  id             String    @id @default(cuid()) // Use cuid for unique id
+  phoneNo        String    @unique
+  isVerified     Boolean   @default(false)
+  isBlocked      Boolean   @default(false)
+  totalOTP       Int       @default(0)
+  otp            String // Optional
+  otpCreatedAt   DateTime // Optional, timestamp when OTP was created
+  otpExpiresAt   DateTime // Optional, timestamp when OTP expires
+  otpBlockUntil  DateTime? // Optional, timestamp until which the OTP is blocked
+  failedAttempts Int       @default(0) // Count of failed attempts
+  createdAt      DateTime  @default(now()) // Timestamp for creation
+  updatedAt      DateTime  @updatedAt // Timestamp for updates
+
+  @@index([phoneNo], name: "walletOtpIndex") // Index for phoneNo
+  @@map("wallet_otp") // Optional: Custom table name in the database
+}
+
+enum WalletType {
+  SELLER
+  SYSTEM
+}

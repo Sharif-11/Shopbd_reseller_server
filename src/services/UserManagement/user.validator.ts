@@ -353,6 +353,24 @@ class UserManagementValidator {
         .withMessage('রেফারাল কোডটি ৩ থেকে ১৬ অক্ষরের মধ্যে হতে হবে।'),
     ]
   }
+  static promoteAdmin(): RequestHandler[] {
+    return [
+      body('adminId')
+        .notEmpty()
+        .withMessage('অ্যাডমিন আইডি প্রয়োজন')
+        .isString()
+        .withMessage('অ্যাডমিন আইডি অবশ্যই স্ট্রিং হতে হবে'),
+    ]
+  }
+  static demoteSuperAdmin(): RequestHandler[] {
+    return [
+      body('superAdminId')
+        .notEmpty()
+        .withMessage('সুপার অ্যাডমিন আইডি প্রয়োজন')
+        .isString()
+        .withMessage('সুপার অ্যাডমিন আইডি অবশ্যই স্ট্রিং হতে হবে'),
+    ]
+  }
 }
 
 export default UserManagementValidator

@@ -347,6 +347,92 @@ class UserManagementServices {
             });
         });
     }
+    /**
+     * Make Super Admin a normal admin
+     */
+    demoteSuperAdminToAdmin(currentAdminId, superAdminId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Verify current user is super admin
+            yield this.verifyUserRole(currentAdminId, client_1.UserType.SuperAdmin);
+            // Check if the super admin exists
+            const superAdmin = yield prisma_1.default.user.findUnique({
+                where: { userId: superAdminId, role: client_1.UserType.SuperAdmin },
+                include: { userRoles: true },
+            });
+            if (!superAdmin) {
+                throw new ApiError_1.default(404, 'Super Admin not found');
+            }
+            if (superAdmin.userId === currentAdminId) {
+                throw new ApiError_1.default(400, 'You cannot demote yourself');
+            }
+            return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                // Get admin role
+                const adminRole = yield tx.role.findUnique({
+                    where: { roleName: 'Admin' },
+                });
+                if (!adminRole) {
+                    throw new ApiError_1.default(404, 'Admin role not found');
+                }
+                // Remove all existing role assignments
+                yield tx.userRole.deleteMany({
+                    where: { userId: superAdminId },
+                });
+                // Assign admin role
+                yield tx.userRole.create({
+                    data: {
+                        userId: superAdminId,
+                        roleId: adminRole.roleId,
+                    },
+                });
+                // Update the user role to Admin
+                const updatedUser = yield tx.user.update({
+                    where: { userId: superAdminId },
+                    data: { role: client_1.UserType.Admin },
+                });
+                return updatedUser;
+            }));
+        });
+    }
+    promoteAdminToSuperAdmin(currentAdminId, adminId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Verify current user is super admin
+            yield this.verifyUserRole(currentAdminId, client_1.UserType.SuperAdmin);
+            // Check if the admin exists
+            const admin = yield prisma_1.default.user.findUnique({
+                where: { userId: adminId, role: client_1.UserType.Admin },
+                include: { userRoles: true },
+            });
+            if (!admin) {
+                throw new ApiError_1.default(404, 'Admin not found');
+            }
+            return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                // Get super admin role
+                const superAdminRole = yield tx.role.findUnique({
+                    where: { roleName: 'SuperAdmin' },
+                });
+                if (!superAdminRole) {
+                    throw new ApiError_1.default(404, 'Super Admin role not found');
+                }
+                // Remove all existing role assignments
+                yield tx.userRole.deleteMany({
+                    where: { userId: adminId },
+                });
+                // Assign super admin role
+                yield tx.userRole.create({
+                    data: {
+                        userId: adminId,
+                        roleId: superAdminRole.roleId,
+                    },
+                });
+                // Update the user role to Super Admin
+                const updatedUser = yield tx.user.update({
+                    where: { userId: adminId },
+                    data: { role: client_1.UserType.SuperAdmin },
+                });
+                return updatedUser;
+            }));
+        });
+    }
     // ==========================================
     // AUTHENTICATION METHODS
     // ==========================================
@@ -455,6 +541,50 @@ class UserManagementServices {
                         },
                     },
                     referredBy: true,
+                },
+            });
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            // Exclude password from the returned user object
+            const { password } = user, userWithoutPassword = __rest(user, ["password"]);
+            return userWithoutPassword;
+        });
+    }
+    getUserById(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const user = yield prisma_1.default.user.findUnique({
+                where: { userId },
+                include: {
+                    userRoles: {
+                        include: {
+                            role: true,
+                        },
+                    },
+                    referredBy: true,
+                    Wallet: true,
+                },
+            });
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            // Exclude password from the returned user object
+            const { password } = user, userWithoutPassword = __rest(user, ["password"]);
+            return userWithoutPassword;
+        });
+    }
+    getUserByPhoneNo(phoneNo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const user = yield prisma_1.default.user.findUnique({
+                where: { phoneNo },
+                include: {
+                    userRoles: {
+                        include: {
+                            role: true,
+                        },
+                    },
+                    referredBy: true,
+                    Wallet: true,
                 },
             });
             if (!user) {

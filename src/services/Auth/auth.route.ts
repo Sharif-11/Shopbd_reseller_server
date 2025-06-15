@@ -52,10 +52,16 @@ class AuthRouter {
   protected initializeUserManagementRoutes(): void {
     // Super Admin routes
     this.router.post(
-      '/super-admin',
+      '/first-super-admin',
       UserManagementValidator.createFirstSuperAdmin(),
       validateRequest,
       userManagementControllers.createFirstSuperAdmin
+    )
+    this.router.post(
+      '/super-admin',
+      UserManagementValidator.createSuperAdmin(),
+      validateRequest,
+      userManagementControllers.createSuperAdmin
     )
 
     // Admin routes (require authentication)
@@ -80,6 +86,18 @@ class AuthRouter {
       UserManagementValidator.createCustomer(),
       validateRequest,
       userManagementControllers.createCustomer
+    )
+    this.router.patch(
+      '/demote-super-admin',
+      UserManagementValidator.demoteSuperAdmin(),
+      validateRequest,
+      userManagementControllers.demoteSuperAdmin
+    )
+    this.router.patch(
+      '/promote-admin',
+      UserManagementValidator.promoteAdmin(),
+      validateRequest,
+      userManagementControllers.promoteAdmin
     )
 
     // Login route

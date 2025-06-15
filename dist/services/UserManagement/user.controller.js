@@ -150,6 +150,50 @@ class UserManagementController {
         });
     }
     /**
+     * Demote a super admin to admin
+     */
+    demoteSuperAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const currentAdminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { superAdminId } = req.body;
+                const user = yield user_services_1.default.demoteSuperAdminToAdmin(currentAdminId, superAdminId);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Super Admin demoted to Admin successfully',
+                    success: true,
+                    data: user,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    /**
+     * Promote an admin to super admin
+     */
+    promoteAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const currentAdminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { adminId } = req.body;
+                const user = yield user_services_1.default.promoteAdminToSuperAdmin(currentAdminId, adminId);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Admin promoted to Super Admin successfully',
+                    success: true,
+                    data: user,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    /**
      * User login
      */
     login(req, res, next) {
