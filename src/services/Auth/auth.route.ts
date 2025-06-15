@@ -141,6 +141,27 @@ class AuthRouter {
       isAuthenticated,
       userManagementControllers.changePassword
     )
+    this.router.post(
+      '/create-role',
+      isAuthenticated,
+      UserManagementValidator.createRole(),
+      validateRequest,
+      userManagementControllers.createRole
+    )
+    // role-permissions
+    this.router.post(
+      '/create-role-permission',
+      isAuthenticated,
+      userManagementControllers.assignMultiplePermissionsToRole
+    )
+    // assign role to user
+    this.router.post(
+      '/assign-role',
+      isAuthenticated,
+      UserManagementValidator.assignRoleToUser(),
+      validateRequest,
+      userManagementControllers.assignRoleToUser
+    )
   }
 
   public getRouter(): Router {

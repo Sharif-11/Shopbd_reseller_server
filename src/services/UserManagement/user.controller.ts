@@ -343,6 +343,12 @@ class UserManagementController {
     try {
       const adminId = req.user?.userId
       const { roleId, permission, actions } = req.body
+      console.log('Assigning permission to role:', {
+        adminId,
+        roleId,
+        permission,
+        actions,
+      })
 
       const rolePermission =
         await userManagementServices.assignPermissionToRole(adminId!, {
@@ -356,6 +362,32 @@ class UserManagementController {
         message: 'Permission assigned to role successfully',
         success: true,
         data: rolePermission,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async assignMultiplePermissionsToRole(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const adminId = req.user?.userId
+      const { roleId, permissions, actions } = req.body
+
+      const rolePermissions =
+        await userManagementServices.assignMultiplePermissionsToRole(adminId!, {
+          roleId,
+          permissions,
+          actions,
+        })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Permissions assigned to role successfully',
+        success: true,
+        data: rolePermissions,
       })
     } catch (error) {
       next(error)

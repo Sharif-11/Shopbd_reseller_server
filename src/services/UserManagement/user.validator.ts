@@ -227,7 +227,8 @@ class UserManagementValidator {
         .notEmpty()
         .withMessage('রোলের নাম প্রয়োজন')
         .isString()
-        .withMessage('রোলের নাম অবশ্যই স্ট্রিং হতে হবে'),
+        .withMessage('রোলের নাম অবশ্যই স্ট্রিং হতে হবে')
+        .trim(),
       body('description')
         .optional()
         .isString()
@@ -242,29 +243,35 @@ class UserManagementValidator {
   /**
    * Validation rules for assigning permission to role
    */
-  static assignPermissionToRole(): RequestHandler[] {
+  static assignMultiplePermissionToRole(): RequestHandler[] {
     return [
       body('roleId')
         .notEmpty()
         .withMessage('রোল আইডি প্রয়োজন')
         .isString()
         .withMessage('রোল আইডি অবশ্যই স্ট্রিং হতে হবে'),
-      body('permission')
+      body('permissions')
         .notEmpty()
-        .withMessage('অনুমতি প্রয়োজন')
-        .isIn(Object.values(PermissionType))
-        .withMessage('অবৈধ অনুমতি প্রকার'),
+        .withMessage('পারমিশন  প্রয়োজন')
+        .isArray()
+        .withMessage('পারমিশন অবশ্যই অ্যারে হতে হবে')
+        .custom((permissions: PermissionType[]) =>
+          permissions.every((permission: PermissionType) =>
+            Object.values(PermissionType).includes(permission)
+          )
+        )
+        .withMessage('পারমিশন সঠিক নয়'),
       body('actions')
         .notEmpty()
-        .withMessage('ক্রিয়া প্রয়োজন')
+        .withMessage(' অ্যাকশনস প্রয়োজন')
         .isArray()
-        .withMessage('ক্রিয়াগুলি অবশ্যই অ্যারে হতে হবে')
+        .withMessage('অ্যাকশনস অবশ্যই অ্যারে হতে হবে')
         .custom((actions: ActionType[]) =>
           actions.every((action: ActionType) =>
             Object.values(ActionType).includes(action)
           )
         )
-        .withMessage('অবৈধ ক্রিয়া প্রকার'),
+        .withMessage(' অ্যাকশন সঠিক নয়'),
     ]
   }
 

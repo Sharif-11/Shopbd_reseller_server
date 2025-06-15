@@ -688,6 +688,7 @@ class UserManagementServices {
     assignPermissionToRole(adminId, input) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.UPDATE);
+            console.log('assignPermissionToRole input:', input);
             return yield prisma_1.default.rolePermission.upsert({
                 where: {
                     roleId_permission: {
@@ -704,6 +705,38 @@ class UserManagementServices {
                     actions: input.actions,
                 },
             });
+        });
+    }
+    /**
+     * assign multiple permissions to a role
+     */
+    assignMultiplePermissionsToRole(adminId, input) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.UPDATE);
+            // Ensure actions is always an array
+            const actions = Array.isArray(input.actions)
+                ? input.actions
+                : [input.actions];
+            // Process each permission in the array
+            const results = yield prisma_1.default.$transaction(input.permissions.map(permission => {
+                return prisma_1.default.rolePermission.upsert({
+                    where: {
+                        roleId_permission: {
+                            roleId: input.roleId,
+                            permission,
+                        },
+                    },
+                    update: {
+                        actions,
+                    },
+                    create: {
+                        roleId: input.roleId,
+                        permission,
+                        actions,
+                    },
+                });
+            }));
+            return results;
         });
     }
     /**

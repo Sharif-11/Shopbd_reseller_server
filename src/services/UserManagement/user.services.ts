@@ -781,7 +781,7 @@ class UserManagementServices {
       PermissionType.USER_MANAGEMENT,
       ActionType.UPDATE
     )
-
+    console.log('assignPermissionToRole input:', input)
     return await prisma.rolePermission.upsert({
       where: {
         roleId_permission: {
@@ -798,6 +798,53 @@ class UserManagementServices {
         actions: input.actions,
       },
     })
+  }
+
+  /**
+   * assign multiple permissions to a role
+   */
+  async assignMultiplePermissionsToRole(
+    adminId: string,
+    input: {
+      roleId: string
+      permissions: PermissionType[] // Changed from permission to permissions (array)
+      actions: ActionType[]
+    }
+  ) {
+    await this.verifyUserPermission(
+      adminId,
+      PermissionType.USER_MANAGEMENT,
+      ActionType.UPDATE
+    )
+
+    // Ensure actions is always an array
+    const actions = Array.isArray(input.actions)
+      ? input.actions
+      : [input.actions]
+
+    // Process each permission in the array
+    const results = await prisma.$transaction(
+      input.permissions.map(permission => {
+        return prisma.rolePermission.upsert({
+          where: {
+            roleId_permission: {
+              roleId: input.roleId,
+              permission,
+            },
+          },
+          update: {
+            actions,
+          },
+          create: {
+            roleId: input.roleId,
+            permission,
+            actions,
+          },
+        })
+      })
+    )
+
+    return results
   }
 
   /**

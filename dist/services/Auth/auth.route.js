@@ -45,6 +45,11 @@ class AuthRouter {
         this.router.get('/profile', user_validator_1.default.getProfile(), validation_middleware_1.default, auth_middlewares_1.isAuthenticated, user_controller_1.default.getProfile);
         this.router.patch('/profile', user_validator_1.default.updateProfile(), validation_middleware_1.default, auth_middlewares_1.isAuthenticated, user_controller_1.default.updateProfile);
         this.router.patch('/change-password', user_validator_1.default.changePassword(), validation_middleware_1.default, auth_middlewares_1.isAuthenticated, user_controller_1.default.changePassword);
+        this.router.post('/create-role', auth_middlewares_1.isAuthenticated, user_validator_1.default.createRole(), validation_middleware_1.default, user_controller_1.default.createRole);
+        // role-permissions
+        this.router.post('/create-role-permission', auth_middlewares_1.isAuthenticated, user_controller_1.default.assignMultiplePermissionsToRole);
+        // assign role to user
+        this.router.post('/assign-role', auth_middlewares_1.isAuthenticated, user_validator_1.default.assignRoleToUser(), validation_middleware_1.default, user_controller_1.default.assignRoleToUser);
     }
     getRouter() {
         return this.router;

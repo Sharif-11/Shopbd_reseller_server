@@ -343,6 +343,12 @@ class UserManagementController {
             try {
                 const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { roleId, permission, actions } = req.body;
+                console.log('Assigning permission to role:', {
+                    adminId,
+                    roleId,
+                    permission,
+                    actions,
+                });
                 const rolePermission = yield user_services_1.default.assignPermissionToRole(adminId, {
                     roleId,
                     permission,
@@ -353,6 +359,29 @@ class UserManagementController {
                     message: 'Permission assigned to role successfully',
                     success: true,
                     data: rolePermission,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    assignMultiplePermissionsToRole(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { roleId, permissions, actions } = req.body;
+                const rolePermissions = yield user_services_1.default.assignMultiplePermissionsToRole(adminId, {
+                    roleId,
+                    permissions,
+                    actions,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Permissions assigned to role successfully',
+                    success: true,
+                    data: rolePermissions,
                 });
             }
             catch (error) {
