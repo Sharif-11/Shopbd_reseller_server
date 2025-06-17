@@ -7,11 +7,13 @@
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-1.1.x", "rhel-openssl-1.0.x", "linux-musl"]
+  // previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // extensions = [vector]
 }
 
 model Otp {
@@ -235,3 +237,106 @@ enum WalletType {
   SELLER
   SYSTEM
 }
+
+// ======================
+// PRODUCT MANAGEMENT
+// ======================
+
+model Shop {
+  shopId                Int         @id  @default(autoincrement())
+  shopName              String
+  shopLocation          String
+  shopIcon              String? // New optional field for shop icon
+  deliveryChargeInside  Decimal        @db.Decimal(10, 2)
+  deliveryChargeOutside Decimal        @db.Decimal(10, 2)
+  shopDescription       String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  isActive              Boolean        @default(true)
+  Product               Product[]
+  shopCategories        ShopCategory[]
+
+  @@map("shops")
+}
+
+// All other models remain exactly the same as in your previous schema
+model Category {
+  categoryId     Int            @id @default(autoincrement())
+  name           String
+  categoryIcon   String?
+  description    String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  Product        Product[]
+  shopCategories ShopCategory[]
+
+  @@map("categories")
+}
+
+model ShopCategory {
+  shopCategoryId Int      @id @default(autoincrement())
+  shopId         Int
+  categoryId     Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  shop     Shop     @relation(fields: [shopId], references: [shopId])
+  category Category @relation(fields: [categoryId], references: [categoryId])
+
+  @@unique([shopId, categoryId], name: "uniqueShopCategory")
+  @@map("shop_categories")
+}
+
+model Product {
+  productId         Int      @id @default(autoincrement())
+  categoryId        Int
+  shopId            Int
+  name              String
+  description       String
+  published         Boolean  @default(false)
+  videoUrl          String?
+  basePrice         Decimal  @db.Decimal(15, 2)
+  suggestedMaxPrice Decimal  @db.Decimal(15, 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  category       Category         @relation(fields: [categoryId], references: [categoryId])
+  shop           Shop             @relation(fields: [shopId], references: [shopId])
+  ProductImage   ProductImage[]
+  ProductVariant ProductVariant[]
+
+  @@map("products")
+}
+
+model ProductImage {
+  imageId       Int      @id @default(autoincrement())
+  productId     Int
+  imageUrl      String
+  isPrimary     Boolean  @default(false)
+  hidden        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  featureVector Json?
+
+  product Product @relation(fields: [productId], references: [productId])
+
+  @@index([productId], name: "productImageIndex")
+  @@map("product_images")
+}
+
+model ProductVariant {
+  variantId Int      @id @default(autoincrement())
+  productId Int
+  name      String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [productId])
+
+  @@unique([productId, name, value], name: "uniqueProductVariant")
+  @@index([productId, name], name: "productVariantIndex")
+  @@map("product_variants")
+}
+
+// ======================

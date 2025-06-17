@@ -1,0 +1,318 @@
+import { NextFunction, Request, Response } from 'express'
+import shopCategoryServices from './shopCategory.services'
+
+class ShopCategoryController {
+  // ==========================================
+  // SHOP MANAGEMENT
+  // ==========================================
+
+  async createShop(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const {
+        shopName,
+        shopLocation,
+        deliveryChargeInside,
+        deliveryChargeOutside,
+        shopDescription,
+        shopIcon,
+      } = req.body
+
+      const shop = await shopCategoryServices.createShop(userId!, {
+        shopName,
+        shopLocation,
+        deliveryChargeInside,
+        deliveryChargeOutside,
+        shopDescription,
+        shopIcon,
+      })
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Shop created successfully',
+        success: true,
+        data: shop,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async getShop(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { shopId } = req.params
+      const shop = await shopCategoryServices.getShop(Number(shopId))
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Shop retrieved successfully',
+        success: true,
+        data: shop,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async getAllShops(req: Request, res: Response, next: NextFunction) {
+    try {
+      const shops = await shopCategoryServices.getAllShops()
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Shops retrieved successfully',
+        success: true,
+        data: shops,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async getAllShopsForAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const shops = await shopCategoryServices.getAllShopsForAdmin(userId!)
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Shops retrieved successfully',
+        success: true,
+        data: shops,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async updateShop(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { shopId } = req.params
+      const {
+        shopName,
+        shopLocation,
+        deliveryChargeInside,
+        deliveryChargeOutside,
+        shopDescription,
+        shopIcon,
+        isActive,
+      } = req.body
+
+      const shop = await shopCategoryServices.updateShop(
+        userId!,
+        Number(shopId),
+        {
+          shopName,
+          shopLocation,
+          deliveryChargeInside,
+          deliveryChargeOutside,
+          shopDescription,
+          shopIcon,
+          isActive,
+        }
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Shop updated successfully',
+        success: true,
+        data: shop,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  // ==========================================
+  // CATEGORY MANAGEMENT
+  // ==========================================
+
+  async createCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { name, description, categoryIcon } = req.body
+
+      const category = await shopCategoryServices.createCategory(userId!, {
+        name,
+        description,
+        categoryIcon,
+      })
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Category created successfully',
+        success: true,
+        data: category,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async getCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { categoryId } = req.params
+      const category = await shopCategoryServices.getCategory(
+        Number(categoryId)
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Category retrieved successfully',
+        success: true,
+        data: category,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async getAllCategories(req: Request, res: Response, next: NextFunction) {
+    try {
+      const categories = await shopCategoryServices.getAllCategories()
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Categories retrieved successfully',
+        success: true,
+        data: categories,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async updateCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { categoryId } = req.params
+      const { name, description, categoryIcon } = req.body
+
+      const category = await shopCategoryServices.updateCategory(
+        userId!,
+        Number(categoryId),
+        {
+          name,
+          description,
+          categoryIcon,
+        }
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Category updated successfully',
+        success: true,
+        data: category,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async deleteCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { categoryId } = req.params
+
+      await shopCategoryServices.deleteCategory(userId!, Number(categoryId))
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Category deleted successfully',
+        success: true,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  // ==========================================
+  // SHOP-CATEGORY ASSIGNMENT
+  // ==========================================
+
+  async assignCategoryToShop(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { shopId, categoryId } = req.body
+
+      const shopCategory = await shopCategoryServices.assignCategoryToShop(
+        userId!,
+        Number(shopId),
+        Number(categoryId)
+      )
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Category assigned to shop successfully',
+        success: true,
+        data: shopCategory,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async removeCategoryFromShop(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const userId = req.user?.userId
+      const { shopId, categoryId } = req.params
+
+      await shopCategoryServices.removeCategoryFromShop(
+        userId!,
+        Number(shopId),
+        Number(categoryId)
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Category removed from shop successfully',
+        success: true,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async getShopCategories(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { shopId } = req.params
+      const categories = await shopCategoryServices.getShopCategories(
+        Number(shopId)
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Shop categories retrieved successfully',
+        success: true,
+        data: categories,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async getShopsByCategory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { categoryId } = req.params
+      const shops = await shopCategoryServices.getShopsByCategory(
+        Number(categoryId)
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Shops by category retrieved successfully',
+        success: true,
+        data: shops,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+}
+
+export default new ShopCategoryController()
