@@ -158,8 +158,26 @@ class ShopCategoryServices {
         });
     }
     getAllCategories() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return prisma_1.default.category.findMany();
+        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, name) {
+            const skip = (page - 1) * limit;
+            const where = Object.assign({}, (name && {
+                name: { contains: name, mode: 'insensitive' },
+            }));
+            const [categories, total] = yield Promise.all([
+                prisma_1.default.category.findMany({
+                    where,
+                    skip,
+                    take: limit,
+                    orderBy: { name: 'asc' },
+                }),
+                prisma_1.default.category.count({ where }),
+            ]);
+            return {
+                categories,
+                total,
+                page,
+                totalPages: Math.ceil(total / limit),
+            };
         });
     }
     updateCategory(userId, categoryId, data) {

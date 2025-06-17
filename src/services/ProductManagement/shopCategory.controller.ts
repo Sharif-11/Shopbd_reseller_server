@@ -56,11 +56,12 @@ class ShopCategoryController {
 
   async getAllShops(req: Request, res: Response, next: NextFunction) {
     try {
-      const { page = 1, limit = 10 } = req.query
+      const { page = 1, limit = 10, shopName = '' } = req.query
       const pageNumber = Number(page)
       const shops = await shopCategoryServices.getAllShops(
         pageNumber,
-        Number(limit)
+        Number(limit),
+        String(shopName)
       )
 
       res.status(200).json({
@@ -77,12 +78,13 @@ class ShopCategoryController {
   async getAllShopsForAdmin(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.userId
-      const { page = 1, limit = 10 } = req.query
+      const { page = 1, limit = 10, shopName = '' } = req.query
       const pageNumber = Number(page)
       const shops = await shopCategoryServices.getAllShopsForAdmin(
         userId!,
         pageNumber,
-        Number(limit)
+        Number(limit),
+        String(shopName)
       )
 
       res.status(200).json({
@@ -205,7 +207,13 @@ class ShopCategoryController {
 
   async getAllCategories(req: Request, res: Response, next: NextFunction) {
     try {
-      const categories = await shopCategoryServices.getAllCategories()
+      const { page = 1, limit = 10, name = '' } = req.query
+      console.log({ page, limit, name })
+      const categories = await shopCategoryServices.getAllCategories(
+        Number(page),
+        Number(limit),
+        String(name)
+      )
 
       res.status(200).json({
         statusCode: 200,

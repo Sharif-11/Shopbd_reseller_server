@@ -238,8 +238,40 @@ class ShopCategoryServices {
     }
   }
 
-  async getAllCategories(): Promise<Category[]> {
-    return prisma.category.findMany()
+  async getAllCategories(
+    page = 1,
+    limit = 10,
+    name?: string
+  ): Promise<{
+    categories: Category[]
+    total: number
+    page: number
+    totalPages: number
+  }> {
+    const skip = (page - 1) * limit
+
+    const where: Prisma.CategoryWhereInput = {
+      ...(name && {
+        name: { contains: name, mode: 'insensitive' },
+      }),
+    }
+
+    const [categories, total] = await Promise.all([
+      prisma.category.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+      }),
+      prisma.category.count({ where }),
+    ])
+
+    return {
+      categories,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    }
   }
 
   async updateCategory(

@@ -63,9 +63,9 @@ class ShopCategoryController {
     getAllShops(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { page = 1, limit = 10 } = req.query;
+                const { page = 1, limit = 10, shopName = '' } = req.query;
                 const pageNumber = Number(page);
-                const shops = yield shopCategory_services_1.default.getAllShops(pageNumber, Number(limit));
+                const shops = yield shopCategory_services_1.default.getAllShops(pageNumber, Number(limit), String(shopName));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Shops retrieved successfully',
@@ -83,9 +83,9 @@ class ShopCategoryController {
             var _a;
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { page = 1, limit = 10 } = req.query;
+                const { page = 1, limit = 10, shopName = '' } = req.query;
                 const pageNumber = Number(page);
-                const shops = yield shopCategory_services_1.default.getAllShopsForAdmin(userId, pageNumber, Number(limit));
+                const shops = yield shopCategory_services_1.default.getAllShopsForAdmin(userId, pageNumber, Number(limit), String(shopName));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Shops retrieved successfully',
@@ -193,7 +193,9 @@ class ShopCategoryController {
     getAllCategories(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const categories = yield shopCategory_services_1.default.getAllCategories();
+                const { page = 1, limit = 10, name = '' } = req.query;
+                console.log({ page, limit, name });
+                const categories = yield shopCategory_services_1.default.getAllCategories(Number(page), Number(limit), String(name));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Categories retrieved successfully',
