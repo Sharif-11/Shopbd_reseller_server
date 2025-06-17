@@ -60,7 +60,7 @@ const globalErrorHandler = (error, req, res, next) => {
         }
     }
     // Log the error for server-side inspection
-    console.error(error);
+    // console.error(error)
     // Send response
     res.status(errorResponse.statusCode).json(errorResponse);
 };

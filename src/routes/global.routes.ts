@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import authRoute from '../services/Auth/auth.route'
+import productRoutes from '../services/ProductManagement/product.routes'
 import {
   categoryRouter,
   shopCategoryAssignmentRouter,
@@ -20,6 +21,10 @@ class GlobalRoutes {
       { path: '/shops', route: shopRouter },
       { path: '/categories', route: categoryRouter },
       { path: '/shop-categories', route: shopCategoryAssignmentRouter },
+      {
+        path: '/products',
+        route: productRoutes,
+      },
       // { path: '/admin', route: adminRouter },
       // { path: '/sellers', route: sellerRouter },
       // { path: '/tracking', route: trackingRoutes },
