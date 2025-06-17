@@ -40,11 +40,11 @@ class AuthRouter {
         // Login route
         this.router.post('/login', user_validator_1.default.login(), validation_middleware_1.default, user_controller_1.default.login);
         // Password reset
-        this.router.post('/forgot-password', user_validator_1.default.resetPassword(), validation_middleware_1.default, auth_middlewares_1.isAuthenticated, user_controller_1.default.resetPassword);
+        this.router.post('/forgot-password', user_validator_1.default.resetPassword(), validation_middleware_1.default, user_controller_1.default.resetPassword);
         // Profile management (require authentication)
-        this.router.get('/profile', user_validator_1.default.getProfile(), validation_middleware_1.default, auth_middlewares_1.isAuthenticated, user_controller_1.default.getProfile);
-        this.router.patch('/profile', user_validator_1.default.updateProfile(), validation_middleware_1.default, auth_middlewares_1.isAuthenticated, user_controller_1.default.updateProfile);
-        this.router.patch('/change-password', user_validator_1.default.changePassword(), validation_middleware_1.default, auth_middlewares_1.isAuthenticated, user_controller_1.default.changePassword);
+        this.router.get('/profile', auth_middlewares_1.isAuthenticated, user_validator_1.default.getProfile(), validation_middleware_1.default, user_controller_1.default.getProfile);
+        this.router.patch('/profile', auth_middlewares_1.isAuthenticated, user_validator_1.default.updateProfile(), validation_middleware_1.default, user_controller_1.default.updateProfile);
+        this.router.patch('/change-password', auth_middlewares_1.isAuthenticated, user_validator_1.default.changePassword(), validation_middleware_1.default, user_controller_1.default.changePassword);
         this.router.post('/create-role', auth_middlewares_1.isAuthenticated, user_validator_1.default.createRole(), validation_middleware_1.default, user_controller_1.default.createRole);
         // role-permissions
         this.router.post('/create-role-permission', auth_middlewares_1.isAuthenticated, user_controller_1.default.assignMultiplePermissionsToRole);

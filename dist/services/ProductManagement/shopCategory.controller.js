@@ -63,7 +63,9 @@ class ShopCategoryController {
     getAllShops(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const shops = yield shopCategory_services_1.default.getAllShops();
+                const { page = 1, limit = 10 } = req.query;
+                const pageNumber = Number(page);
+                const shops = yield shopCategory_services_1.default.getAllShops(pageNumber, Number(limit));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Shops retrieved successfully',
@@ -81,7 +83,9 @@ class ShopCategoryController {
             var _a;
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const shops = yield shopCategory_services_1.default.getAllShopsForAdmin(userId);
+                const { page = 1, limit = 10 } = req.query;
+                const pageNumber = Number(page);
+                const shops = yield shopCategory_services_1.default.getAllShopsForAdmin(userId, pageNumber, Number(limit));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Shops retrieved successfully',
@@ -113,6 +117,27 @@ class ShopCategoryController {
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Shop updated successfully',
+                    success: true,
+                    data: shop,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    openOrCloseShop(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { shopId } = req.params;
+                const { isActive } = req.body;
+                console.log({ userId, shopId, isActive });
+                const shop = yield shopCategory_services_1.default.openOrCloseShop(userId, Number(shopId), isActive);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: `Shop ${isActive ? 'opened' : 'closed'} successfully`,
                     success: true,
                     data: shop,
                 });

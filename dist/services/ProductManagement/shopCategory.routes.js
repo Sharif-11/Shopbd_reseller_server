@@ -24,6 +24,7 @@ class ShopRouter {
         this.router.get('/', shopCategory_controller_1.default.getAllShops);
         this.router.put('/:shopId', auth_middlewares_1.isAuthenticated, shopCategory_validator_1.default.updateShop(), validation_middleware_1.default, shopCategory_controller_1.default.updateShop);
         this.router.get('/:shopId/categories', shopCategory_validator_1.default.getShopCategories(), validation_middleware_1.default, shopCategory_controller_1.default.getShopCategories);
+        this.router.patch('/:shopId/status', auth_middlewares_1.isAuthenticated, shopCategory_validator_1.default.openOrCloseShop(), validation_middleware_1.default, shopCategory_controller_1.default.openOrCloseShop);
         // ==========================================
         // CATEGORY MANAGEMENT ROUTES
         // ==========================================

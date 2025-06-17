@@ -50,25 +50,58 @@ class ShopCategoryServices {
         });
     }
     getAllShops() {
-        return __awaiter(this, void 0, void 0, function* () {
-            return prisma_1.default.shop.findMany({
-                where: { isActive: true },
-            });
+        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, shopName) {
+            const skip = (page - 1) * limit;
+            const where = Object.assign({ isActive: true }, (shopName && {
+                shopName: { contains: shopName, mode: 'insensitive' },
+            }));
+            const [shops, total] = yield Promise.all([
+                prisma_1.default.shop.findMany({
+                    where,
+                    skip,
+                    take: limit,
+                    orderBy: { shopName: 'asc' },
+                }),
+                prisma_1.default.shop.count({ where }),
+            ]);
+            return {
+                shops,
+                total,
+                page,
+                totalPages: Math.ceil(total / limit),
+            };
         });
     }
-    getAllShopsForAdmin(userId) {
-        return __awaiter(this, void 0, void 0, function* () {
+    getAllShopsForAdmin(userId_1) {
+        return __awaiter(this, arguments, void 0, function* (userId, page = 1, limit = 10, shopName) {
             // check permissions for admin
             yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.READ);
-            return prisma_1.default.shop.findMany({
-                include: {
-                    shopCategories: {
-                        include: {
-                            category: true,
+            const skip = (page - 1) * limit;
+            const where = Object.assign({}, (shopName && {
+                shopName: { contains: shopName, mode: 'insensitive' },
+            }));
+            const [shops, total] = yield Promise.all([
+                prisma_1.default.shop.findMany({
+                    where,
+                    skip,
+                    take: limit,
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        shopCategories: {
+                            include: {
+                                category: true,
+                            },
                         },
                     },
-                },
-            });
+                }),
+                prisma_1.default.shop.count({ where }),
+            ]);
+            return {
+                shops,
+                total,
+                page,
+                totalPages: Math.ceil(total / limit),
+            };
         });
     }
     updateShop(userId, shopId, data) {
@@ -81,6 +114,20 @@ class ShopCategoryServices {
             return prisma_1.default.shop.update({
                 where: { shopId },
                 data,
+            });
+        });
+    }
+    openOrCloseShop(userId, shopId, isActive) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log(`Opening/Closing shop ${shopId} with status ${isActive}`);
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            // Verify shop exists
+            const shopExists = yield prisma_1.default.shop.findUnique({ where: { shopId } });
+            if (!shopExists)
+                throw new ApiError_1.default(404, 'Shop not found');
+            return prisma_1.default.shop.update({
+                where: { shopId },
+                data: { isActive },
             });
         });
     }

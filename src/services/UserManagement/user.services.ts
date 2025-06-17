@@ -621,6 +621,7 @@ class UserManagementServices {
       }
     }
     const newPassword = this.generateRandomPassword()
+    console.log('Generated new password:', newPassword)
 
     const hashedPassword = await this.hashPassword(newPassword)
 

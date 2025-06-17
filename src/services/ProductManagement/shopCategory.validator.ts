@@ -136,6 +136,22 @@ class ShopCategoryValidator {
         .toBoolean(),
     ]
   }
+  static openOrCloseShop(): RequestHandler[] {
+    return [
+      param('shopId')
+        .notEmpty()
+        .withMessage('দোকান আইডি প্রয়োজন')
+        .isInt()
+        .withMessage('দোকান আইডি অবশ্যই সংখ্যা হতে হবে'),
+
+      body('isActive')
+        .notEmpty()
+        .withMessage('সক্রিয় অবস্থা প্রয়োজন')
+        .isBoolean()
+        .withMessage('সক্রিয় অবস্থা অবশ্যই বুলিয়ান হতে হবে')
+        .toBoolean(),
+    ]
+  }
 
   // ==========================================
   // CATEGORY MANAGEMENT VALIDATORS

@@ -542,6 +542,7 @@ class UserManagementServices {
                 }
             }
             const newPassword = this.generateRandomPassword();
+            console.log('Generated new password:', newPassword);
             const hashedPassword = yield this.hashPassword(newPassword);
             // await smsServices.sendSms({ phoneNo: user.phoneNo, message: `Your new password is: ${newPassword}` })
             const updatedUser = yield prisma_1.default.user.update({

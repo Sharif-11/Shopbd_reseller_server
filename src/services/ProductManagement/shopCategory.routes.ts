@@ -51,6 +51,13 @@ class ShopRouter {
       validateRequest,
       shopCategoryControllers.getShopCategories
     )
+    this.router.patch(
+      '/:shopId/status',
+      isAuthenticated,
+      ShopCategoryValidator.openOrCloseShop(),
+      validateRequest,
+      shopCategoryControllers.openOrCloseShop
+    )
 
     // ==========================================
     // CATEGORY MANAGEMENT ROUTES

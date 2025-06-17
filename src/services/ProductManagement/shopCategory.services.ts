@@ -59,12 +59,54 @@ class ShopCategoryServices {
     }
   }
 
-  async getAllShops(): Promise<Shop[]> {
-    return prisma.shop.findMany({
-      where: { isActive: true },
-    })
+  async getAllShops(
+    page = 1,
+    limit = 10,
+    shopName?: string
+  ): Promise<{
+    shops: Shop[]
+    total: number
+    page: number
+    totalPages: number
+  }> {
+    const skip = (page - 1) * limit
+
+    const where: Prisma.ShopWhereInput = {
+      isActive: true,
+      ...(shopName && {
+        shopName: { contains: shopName, mode: 'insensitive' },
+      }),
+    }
+
+    const [shops, total] = await Promise.all([
+      prisma.shop.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { shopName: 'asc' },
+      }),
+      prisma.shop.count({ where }),
+    ])
+
+    return {
+      shops,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    }
   }
-  async getAllShopsForAdmin(userId: string): Promise<Shop[]> {
+
+  async getAllShopsForAdmin(
+    userId: string,
+    page = 1,
+    limit = 10,
+    shopName?: string
+  ): Promise<{
+    shops: Shop[]
+    total: number
+    page: number
+    totalPages: number
+  }> {
     // check permissions for admin
     await userManagementService.verifyUserPermission(
       userId,
@@ -72,15 +114,37 @@ class ShopCategoryServices {
       ActionType.READ
     )
 
-    return prisma.shop.findMany({
-      include: {
-        shopCategories: {
-          include: {
-            category: true,
+    const skip = (page - 1) * limit
+
+    const where: Prisma.ShopWhereInput = {
+      ...(shopName && {
+        shopName: { contains: shopName, mode: 'insensitive' },
+      }),
+    }
+
+    const [shops, total] = await Promise.all([
+      prisma.shop.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          shopCategories: {
+            include: {
+              category: true,
+            },
           },
         },
-      },
-    })
+      }),
+      prisma.shop.count({ where }),
+    ])
+
+    return {
+      shops,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    }
   }
 
   async updateShop(
@@ -109,6 +173,27 @@ class ShopCategoryServices {
     return prisma.shop.update({
       where: { shopId },
       data,
+    })
+  }
+  async openOrCloseShop(
+    userId: string,
+    shopId: number,
+    isActive: boolean
+  ): Promise<Shop> {
+    console.log(`Opening/Closing shop ${shopId} with status ${isActive}`)
+    await userManagementService.verifyUserPermission(
+      userId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.UPDATE
+    )
+
+    // Verify shop exists
+    const shopExists = await prisma.shop.findUnique({ where: { shopId } })
+    if (!shopExists) throw new ApiError(404, 'Shop not found')
+
+    return prisma.shop.update({
+      where: { shopId },
+      data: { isActive },
     })
   }
 

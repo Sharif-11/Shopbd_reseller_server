@@ -113,32 +113,34 @@ class AuthRouter {
       '/forgot-password',
       UserManagementValidator.resetPassword(),
       validateRequest,
-      isAuthenticated,
       userManagementControllers.resetPassword
     )
 
     // Profile management (require authentication)
     this.router.get(
       '/profile',
+      isAuthenticated,
       UserManagementValidator.getProfile(),
       validateRequest,
-      isAuthenticated,
+
       userManagementControllers.getProfile
     )
 
     this.router.patch(
       '/profile',
+      isAuthenticated,
       UserManagementValidator.updateProfile(),
       validateRequest,
-      isAuthenticated,
+
       userManagementControllers.updateProfile
     )
 
     this.router.patch(
       '/change-password',
+      isAuthenticated,
       UserManagementValidator.changePassword(),
       validateRequest,
-      isAuthenticated,
+
       userManagementControllers.changePassword
     )
     this.router.post(

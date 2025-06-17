@@ -56,7 +56,12 @@ class ShopCategoryController {
 
   async getAllShops(req: Request, res: Response, next: NextFunction) {
     try {
-      const shops = await shopCategoryServices.getAllShops()
+      const { page = 1, limit = 10 } = req.query
+      const pageNumber = Number(page)
+      const shops = await shopCategoryServices.getAllShops(
+        pageNumber,
+        Number(limit)
+      )
 
       res.status(200).json({
         statusCode: 200,
@@ -72,7 +77,13 @@ class ShopCategoryController {
   async getAllShopsForAdmin(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.userId
-      const shops = await shopCategoryServices.getAllShopsForAdmin(userId!)
+      const { page = 1, limit = 10 } = req.query
+      const pageNumber = Number(page)
+      const shops = await shopCategoryServices.getAllShopsForAdmin(
+        userId!,
+        pageNumber,
+        Number(limit)
+      )
 
       res.status(200).json({
         statusCode: 200,
@@ -116,6 +127,30 @@ class ShopCategoryController {
       res.status(200).json({
         statusCode: 200,
         message: 'Shop updated successfully',
+        success: true,
+        data: shop,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async openOrCloseShop(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+
+      const { shopId } = req.params
+      const { isActive } = req.body
+      console.log({ userId, shopId, isActive })
+
+      const shop = await shopCategoryServices.openOrCloseShop(
+        userId!,
+        Number(shopId),
+        isActive
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: `Shop ${isActive ? 'opened' : 'closed'} successfully`,
         success: true,
         data: shop,
       })
