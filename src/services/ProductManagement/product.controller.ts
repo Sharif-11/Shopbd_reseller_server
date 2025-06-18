@@ -41,7 +41,7 @@ class ProductController {
   async getProductDetailForAdmin(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const userId = req.user?.userId
@@ -49,7 +49,7 @@ class ProductController {
 
       const product = await productServices.getProductDetailForAdmin(
         userId!,
-        Number(productId)
+        Number(productId),
       )
 
       res.status(200).json({
@@ -90,7 +90,7 @@ class ProductController {
           ...(suggestedMaxPrice && {
             suggestedMaxPrice: Number(suggestedMaxPrice),
           }),
-        }
+        },
       )
 
       res.status(200).json({
@@ -113,7 +113,7 @@ class ProductController {
       const product = await productServices.togglePublishStatus(
         userId!,
         Number(productId),
-        Boolean(publish)
+        Boolean(publish),
       )
 
       res.status(200).json({
@@ -138,7 +138,7 @@ class ProductController {
       const { productId } = req.params
 
       const variants = await productServices.getProductVariants(
-        Number(productId)
+        Number(productId),
       )
 
       res.status(200).json({
@@ -161,7 +161,7 @@ class ProductController {
       const result = await productServices.replaceVariants(
         userId!,
         Number(productId),
-        variants
+        variants,
       )
 
       res.status(200).json({
@@ -188,7 +188,7 @@ class ProductController {
       const result = await productServices.addImages(
         userId!,
         Number(productId),
-        images
+        images,
       )
 
       res.status(201).json({
@@ -231,7 +231,7 @@ class ProductController {
         {
           ...(isPrimary !== undefined && { isPrimary }),
           ...(hidden !== undefined && { hidden }),
-        }
+        },
       )
 
       res.status(200).json({
@@ -286,13 +286,13 @@ class ProductController {
   async getProductDetailForCustomer(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { productId } = req.params
 
       const product = await productServices.getProductDetailForCustomer(
-        Number(productId)
+        Number(productId),
       )
 
       res.status(200).json({
@@ -309,14 +309,14 @@ class ProductController {
   async getProductDetailForSeller(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const userId = req.user?.userId
       const { productId } = req.params
 
       const product = await productServices.getProductDetailForSeller(
-        Number(productId)
+        Number(productId),
       )
 
       res.status(200).json({
@@ -336,35 +336,33 @@ class ProductController {
   async getAllProductsForAdmin(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const userId = req.user?.userId
-      const { search, minPrice, maxPrice, shopId, categoryId, published } =
-        req.query
+      const { search, shopId, published } = req.query
       const page = Number(req.query.page) || 1
-      const limit = Number(req.query.limit) || 10
+      const limit = Number(req.query.limit) || 10000
 
       // No need for optional checks since validation middleware ensures required fields
       const result = await productServices.getAllProductsForAdmin(
         userId!,
         {
           search: search?.toString(),
-          minPrice: minPrice ? Number(minPrice) : undefined,
-          maxPrice: maxPrice ? Number(maxPrice) : undefined,
           shopId: Number(shopId),
-          categoryId: Number(categoryId),
           published: published ? published === 'true' : undefined,
         },
-        { page, limit }
+        { page, limit },
       )
 
       res.status(200).json({
         statusCode: 200,
         message: 'Products retrieved successfully',
         success: true,
-        data: result.data,
-        pagination: result.pagination,
+        data: {
+          products: result.data,
+          pagination: result.pagination,
+        },
       })
     } catch (error) {
       next(error)
@@ -374,7 +372,7 @@ class ProductController {
   async getAllProductsForCustomer(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { search, minPrice, maxPrice, categoryId } = req.query
@@ -388,7 +386,7 @@ class ProductController {
           maxPrice: maxPrice ? Number(maxPrice) : undefined,
           categoryId: Number(categoryId),
         },
-        { page, limit }
+        { page, limit },
       )
 
       res.status(200).json({
@@ -406,7 +404,7 @@ class ProductController {
   async getAllProductsForSeller(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const userId = req.user?.userId
@@ -422,7 +420,7 @@ class ProductController {
           categoryId: Number(categoryId),
           shopId: Number(shopId),
         },
-        { page, limit }
+        { page, limit },
       )
 
       res.status(200).json({

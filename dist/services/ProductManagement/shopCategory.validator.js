@@ -111,8 +111,7 @@ class ShopCategoryValidator {
                 }
             }),
             (0, express_validator_1.body)('shopDescription')
-                .notEmpty()
-                .withMessage('দোকানের বিবরণ প্রয়োজন')
+                .optional()
                 .isString()
                 .withMessage('দোকানের বিবরণ অবশ্যই স্ট্রিং হতে হবে')
                 .trim(),

@@ -58,7 +58,7 @@ class ProductValidator {
           const suggestedMaxPrice = new Prisma.Decimal(value)
           if (suggestedMaxPrice.lessThan(basePrice)) {
             throw new Error(
-              'সুপারিশকৃত সর্বোচ্চ মূল্য বেস মূল্যের চেয়ে বেশি হতে হবে'
+              'সুপারিশকৃত সর্বোচ্চ মূল্য বেস মূল্যের চেয়ে বেশি হতে হবে',
             )
           }
           return true
@@ -132,7 +132,7 @@ class ProductValidator {
           const suggestedMaxPrice = new Prisma.Decimal(value)
           if (suggestedMaxPrice.lessThan(basePrice)) {
             throw new Error(
-              'সুপারিশকৃত সর্বোচ্চ মূল্য বেস মূল্যের চেয়ে বেশি হতে হবে'
+              'সুপারিশকৃত সর্বোচ্চ মূল্য বেস মূল্যের চেয়ে বেশি হতে হবে',
             )
           }
           return true
@@ -308,35 +308,34 @@ class ProductValidator {
         .optional()
         .isString()
         .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
-      query('minPrice')
-        .optional()
-        .isFloat({ min: 0 })
-        .withMessage('ন্যূনতম মূল্য অবশ্যই ০ বা তার বেশি হতে হবে')
-        .toFloat(),
-      query('maxPrice')
-        .optional()
-        .isFloat({ min: 0 })
-        .withMessage('সর্বোচ্চ মূল্য অবশ্যই ০ বা তার বেশি হতে হবে')
-        .toFloat()
-        .custom((value, { req }) => {
-          const minPrice = req.query?.minPrice
-          if (minPrice && value < Number(minPrice)) {
-            throw new Error('সর্বোচ্চ মূল্য ন্যূনতম মূল্যের চেয়ে বেশি হতে হবে')
-          }
-          return true
-        }),
+      // query('minPrice')
+      //   .optional()
+      //   .isFloat({ min: 0 })
+      //   .withMessage('ন্যূনতম মূল্য অবশ্যই ০ বা তার বেশি হতে হবে')
+      //   .toFloat(),
+      // query('maxPrice')
+      //   .optional()
+      //   .isFloat({ min: 0 })
+      //   .withMessage('সর্বোচ্চ মূল্য অবশ্যই ০ বা তার বেশি হতে হবে')
+      //   .toFloat()
+      //   .custom((value, { req }) => {
+      //     const minPrice = req.query?.minPrice
+      //     if (minPrice && value < Number(minPrice)) {
+      //       throw new Error('সর্বোচ্চ মূল্য ন্যূনতম মূল্যের চেয়ে বেশি হতে হবে')
+      //     }
+      //     return true
+      //   }),
       query('shopId')
         .notEmpty()
         .withMessage('দোকান আইডি প্রয়োজন')
         .isInt({ min: 1 })
         .withMessage('দোকান আইডি অবশ্যই সংখ্যা হতে হবে')
         .toInt(),
-      query('categoryId')
-        .notEmpty()
-        .withMessage('ক্যাটাগরি আইডি প্রয়োজন')
-        .isInt({ min: 1 })
-        .withMessage('ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে')
-        .toInt(),
+      // query('categoryId')
+      //   .optional()
+      //   .isInt({ min: 1 })
+      //   .withMessage('ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে')
+      //   .toInt(),
       query('published')
         .optional()
         .isBoolean()
@@ -350,8 +349,8 @@ class ProductValidator {
         .toInt(),
       query('limit')
         .optional()
-        .isInt({ min: 1, max: 100 })
-        .withMessage('সীমা অবশ্যই ১ থেকে ১০০ এর মধ্যে হতে হবে')
+        .isInt({ min: 1, max: 1000 })
+        .withMessage('সীমা অবশ্যই ১ থেকে ১০০০ এর মধ্যে হতে হবে')
         .default(10)
         .toInt(),
     ]

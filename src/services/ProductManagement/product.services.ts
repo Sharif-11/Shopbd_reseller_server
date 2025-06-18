@@ -18,7 +18,7 @@ class ProductServices {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      action
+      action,
     )
   }
 
@@ -35,26 +35,51 @@ class ProductServices {
       description: string
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
-    }
+    },
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.CREATE)
 
-    // ensure that shopid and category id combination is valid
+    // check validity of shop and category
+
+    const shop = await prisma.shop.findUnique({
+      where: { shopId: data.shopId },
+    })
+    if (!shop) throw new ApiError(404, 'Shop not found')
+    const category = await prisma.category.findUnique({
+      where: { categoryId: data.categoryId },
+    })
+    if (!category) throw new ApiError(404, 'Category not found')
+    // now we need to assign the category to the shop and add product within a transaction
     const shopCategory = await prisma.shopCategory.findFirst({
       where: {
         shopId: data.shopId,
         categoryId: data.categoryId,
       },
     })
-
-    if (!shopCategory) throw new ApiError(400, 'Invalid shop or category')
-
-    return prisma.product.create({
-      data: {
-        ...data,
-        published: false, // Default to unpublished
-      },
-    })
+    if (shopCategory) {
+      return prisma.product.create({
+        data: {
+          ...data,
+          published: false, // Default to unpublished
+        },
+      })
+    } else {
+      // If shop-category relationship doesn't exist, create it and then create the product within a transaction
+      return prisma.$transaction(async tx => {
+        const newShopCategory = await tx.shopCategory.create({
+          data: {
+            shopId: data.shopId,
+            categoryId: data.categoryId,
+          },
+        })
+        return tx.product.create({
+          data: {
+            ...data,
+            published: false, // Default to unpublished
+          },
+        })
+      })
+    }
   }
 
   async updateProduct(
@@ -67,7 +92,7 @@ class ProductServices {
       description: string
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
-    }
+    },
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -89,7 +114,7 @@ class ProductServices {
   async togglePublishStatus(
     userId: string,
     productId: number,
-    publish: boolean
+    publish: boolean,
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -104,20 +129,23 @@ class ProductServices {
   // ==========================================
 
   async getProductVariants(
-    productId: number
+    productId: number,
   ): Promise<{ [key: string]: string[] }> {
     const variants = await prisma.productVariant.findMany({
       where: { productId },
     })
 
     // Group variants by name
-    const groupedVariants = variants.reduce((acc, variant) => {
-      if (!acc[variant.name]) {
-        acc[variant.name] = []
-      }
-      acc[variant.name].push(variant.value)
-      return acc
-    }, {} as { [key: string]: string[] })
+    const groupedVariants = variants.reduce(
+      (acc, variant) => {
+        if (!acc[variant.name]) {
+          acc[variant.name] = []
+        }
+        acc[variant.name].push(variant.value)
+        return acc
+      },
+      {} as { [key: string]: string[] },
+    )
 
     return groupedVariants
   }
@@ -125,7 +153,7 @@ class ProductServices {
   async replaceVariants(
     userId: string,
     productId: number,
-    variants: { name: string; value: string }[]
+    variants: { name: string; value: string }[],
   ) {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -155,7 +183,7 @@ class ProductServices {
   async addImages(
     userId: string,
     productId: number,
-    images: { url: string; isPrimary?: boolean; hidden?: boolean }[]
+    images: { url: string; isPrimary?: boolean; hidden?: boolean }[],
   ) {
     await this.verifyProductPermission(userId, ActionType.CREATE)
 
@@ -231,7 +259,7 @@ class ProductServices {
       else if (primaryCount > 1) {
         const primaryImages = images.filter(img => img.isPrimary)
         const newestPrimary = primaryImages.reduce((prev, current) =>
-          prev.createdAt > current.createdAt ? prev : current
+          prev.createdAt > current.createdAt ? prev : current,
         )
 
         await tx.productImage.updateMany({
@@ -255,7 +283,7 @@ class ProductServices {
   async updateImage(
     userId: string,
     imageId: number,
-    data: { isPrimary?: boolean; hidden?: boolean }
+    data: { isPrimary?: boolean; hidden?: boolean },
   ) {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -284,7 +312,7 @@ class ProductServices {
         if (otherImages === 0) {
           throw new ApiError(
             400,
-            'Cannot unset primary - product must have at least one primary image'
+            'Cannot unset primary - product must have at least one primary image',
           )
         }
       }
@@ -345,7 +373,7 @@ class ProductServices {
   // ==========================================
   async getProductDetailForAdmin(
     userId: string,
-    productId: number
+    productId: number,
   ): Promise<
     Product & {
       shop: { shopName: string }
@@ -372,13 +400,16 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
-      if (!acc[variant.name]) {
-        acc[variant.name] = []
-      }
-      acc[variant.name].push(variant.value)
-      return acc
-    }, {} as Record<string, string[]>)
+    const groupedVariants = product.ProductVariant.reduce(
+      (acc, variant) => {
+        if (!acc[variant.name]) {
+          acc[variant.name] = []
+        }
+        acc[variant.name].push(variant.value)
+        return acc
+      },
+      {} as Record<string, string[]>,
+    )
 
     return {
       ...product,
@@ -419,13 +450,16 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found or not published')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
-      if (!acc[variant.name]) {
-        acc[variant.name] = []
-      }
-      acc[variant.name].push(variant.value)
-      return acc
-    }, {} as Record<string, string[]>)
+    const groupedVariants = product.ProductVariant.reduce(
+      (acc, variant) => {
+        if (!acc[variant.name]) {
+          acc[variant.name] = []
+        }
+        acc[variant.name].push(variant.value)
+        return acc
+      },
+      {} as Record<string, string[]>,
+    )
 
     const { basePrice, ...productData } = product
     return {
@@ -469,13 +503,16 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found in your shop')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
-      if (!acc[variant.name]) {
-        acc[variant.name] = []
-      }
-      acc[variant.name].push(variant.value)
-      return acc
-    }, {} as Record<string, string[]>)
+    const groupedVariants = product.ProductVariant.reduce(
+      (acc, variant) => {
+        if (!acc[variant.name]) {
+          acc[variant.name] = []
+        }
+        acc[variant.name].push(variant.value)
+        return acc
+      },
+      {} as Record<string, string[]>,
+    )
 
     return {
       product: {
@@ -494,18 +531,14 @@ class ProductServices {
     adminId: string,
     filters: {
       search?: string
-      minPrice?: number
-      maxPrice?: number
       shopId: number // Now required
-      categoryId: number // Now required
       published?: boolean
     },
-    pagination: { page: number; limit: number }
+    pagination: { page: number; limit: number },
   ) {
     await this.verifyProductPermission(adminId, ActionType.READ)
     const where: Prisma.ProductWhereInput = {
       shopId: filters.shopId,
-      categoryId: filters.categoryId,
     }
 
     // Search filter
@@ -514,20 +547,6 @@ class ProductServices {
         { name: { contains: filters.search, mode: 'insensitive' } },
         { description: { contains: filters.search, mode: 'insensitive' } },
       ]
-    }
-
-    // Price range filter
-    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-      where.basePrice = {
-        gte:
-          filters.minPrice !== undefined
-            ? new Prisma.Decimal(filters.minPrice)
-            : undefined,
-        lte:
-          filters.maxPrice !== undefined
-            ? new Prisma.Decimal(filters.maxPrice)
-            : undefined,
-      }
     }
 
     // Published filter
@@ -571,7 +590,7 @@ class ProductServices {
       maxPrice?: number
       categoryId: number
     },
-    pagination: { page: number; limit: number }
+    pagination: { page: number; limit: number },
   ) {
     const where: Prisma.ProductWhereInput = {
       published: true,
@@ -650,7 +669,7 @@ class ProductServices {
       categoryId: number
       shopId: number
     },
-    pagination: { page: number; limit: number }
+    pagination: { page: number; limit: number },
   ) {
     const where: Prisma.ProductWhereInput = {
       published: true,

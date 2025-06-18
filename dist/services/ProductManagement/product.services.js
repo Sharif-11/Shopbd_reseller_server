@@ -42,18 +42,43 @@ class ProductServices {
     createProduct(userId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.CREATE);
-            // ensure that shopid and category id combination is valid
+            // check validity of shop and category
+            const shop = yield prisma_1.default.shop.findUnique({
+                where: { shopId: data.shopId },
+            });
+            if (!shop)
+                throw new ApiError_1.default(404, 'Shop not found');
+            const category = yield prisma_1.default.category.findUnique({
+                where: { categoryId: data.categoryId },
+            });
+            if (!category)
+                throw new ApiError_1.default(404, 'Category not found');
+            // now we need to assign the category to the shop and add product within a transaction
             const shopCategory = yield prisma_1.default.shopCategory.findFirst({
                 where: {
                     shopId: data.shopId,
                     categoryId: data.categoryId,
                 },
             });
-            if (!shopCategory)
-                throw new ApiError_1.default(400, 'Invalid shop or category');
-            return prisma_1.default.product.create({
-                data: Object.assign(Object.assign({}, data), { published: false }),
-            });
+            if (shopCategory) {
+                return prisma_1.default.product.create({
+                    data: Object.assign(Object.assign({}, data), { published: false }),
+                });
+            }
+            else {
+                // If shop-category relationship doesn't exist, create it and then create the product within a transaction
+                return prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    const newShopCategory = yield tx.shopCategory.create({
+                        data: {
+                            shopId: data.shopId,
+                            categoryId: data.categoryId,
+                        },
+                    });
+                    return tx.product.create({
+                        data: Object.assign(Object.assign({}, data), { published: false }),
+                    });
+                }));
+            }
         });
     }
     updateProduct(userId, productId, data) {
@@ -403,7 +428,6 @@ class ProductServices {
             yield this.verifyProductPermission(adminId, client_1.ActionType.READ);
             const where = {
                 shopId: filters.shopId,
-                categoryId: filters.categoryId,
             };
             // Search filter
             if (filters.search) {
@@ -411,17 +435,6 @@ class ProductServices {
                     { name: { contains: filters.search, mode: 'insensitive' } },
                     { description: { contains: filters.search, mode: 'insensitive' } },
                 ];
-            }
-            // Price range filter
-            if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-                where.basePrice = {
-                    gte: filters.minPrice !== undefined
-                        ? new client_1.Prisma.Decimal(filters.minPrice)
-                        : undefined,
-                    lte: filters.maxPrice !== undefined
-                        ? new client_1.Prisma.Decimal(filters.maxPrice)
-                        : undefined,
-                };
             }
             // Published filter
             if (filters.published !== undefined)

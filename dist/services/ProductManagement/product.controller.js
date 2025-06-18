@@ -288,24 +288,23 @@ class ProductController {
             var _a;
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { search, minPrice, maxPrice, shopId, categoryId, published } = req.query;
+                const { search, shopId, published } = req.query;
                 const page = Number(req.query.page) || 1;
-                const limit = Number(req.query.limit) || 10;
+                const limit = Number(req.query.limit) || 10000;
                 // No need for optional checks since validation middleware ensures required fields
                 const result = yield product_services_1.default.getAllProductsForAdmin(userId, {
                     search: search === null || search === void 0 ? void 0 : search.toString(),
-                    minPrice: minPrice ? Number(minPrice) : undefined,
-                    maxPrice: maxPrice ? Number(maxPrice) : undefined,
                     shopId: Number(shopId),
-                    categoryId: Number(categoryId),
                     published: published ? published === 'true' : undefined,
                 }, { page, limit });
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Products retrieved successfully',
                     success: true,
-                    data: result.data,
-                    pagination: result.pagination,
+                    data: {
+                        products: result.data,
+                        pagination: result.pagination,
+                    },
                 });
             }
             catch (error) {
