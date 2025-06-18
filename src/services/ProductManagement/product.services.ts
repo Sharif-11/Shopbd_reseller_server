@@ -531,14 +531,14 @@ class ProductServices {
     adminId: string,
     filters: {
       search?: string
-      shopId: number // Now required
+      shopId?: number // Now optional
       published?: boolean
     },
     pagination: { page: number; limit: number },
   ) {
     await this.verifyProductPermission(adminId, ActionType.READ)
     const where: Prisma.ProductWhereInput = {
-      shopId: filters.shopId,
+      // Default to true if not provided
     }
 
     // Search filter
@@ -550,7 +550,11 @@ class ProductServices {
     }
 
     // Published filter
-    if (filters.published !== undefined) where.published = filters.published
+
+    if (filters.shopId) where.shopId = filters.shopId
+    if (filters.published !== undefined) {
+      where.published = filters.published
+    }
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
@@ -558,7 +562,9 @@ class ProductServices {
         skip: (pagination.page - 1) * pagination.limit,
         take: pagination.limit,
         include: {
-          shop: { select: { shopName: true } },
+          shop: {
+            select: { shopName: true, shopLocation: true, shopId: true },
+          },
           category: { select: { name: true } },
           ProductImage: {
             where: { hidden: false },

@@ -345,12 +345,18 @@ class ProductController {
       const limit = Number(req.query.limit) || 10000
 
       // No need for optional checks since validation middleware ensures required fields
+      console.log(published, 'published value in controller')
       const result = await productServices.getAllProductsForAdmin(
         userId!,
         {
           search: search?.toString(),
           shopId: Number(shopId),
-          published: published ? published === 'true' : undefined,
+          published:
+            String(published) === 'true'
+              ? true
+              : String(published) === 'false'
+                ? false
+                : undefined,
         },
         { page, limit },
       )

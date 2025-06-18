@@ -326,8 +326,7 @@ class ProductValidator {
       //     return true
       //   }),
       query('shopId')
-        .notEmpty()
-        .withMessage('দোকান আইডি প্রয়োজন')
+        .optional()
         .isInt({ min: 1 })
         .withMessage('দোকান আইডি অবশ্যই সংখ্যা হতে হবে')
         .toInt(),

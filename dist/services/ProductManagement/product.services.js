@@ -427,7 +427,7 @@ class ProductServices {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(adminId, client_1.ActionType.READ);
             const where = {
-                shopId: filters.shopId,
+            // Default to true if not provided
             };
             // Search filter
             if (filters.search) {
@@ -437,15 +437,20 @@ class ProductServices {
                 ];
             }
             // Published filter
-            if (filters.published !== undefined)
+            if (filters.shopId)
+                where.shopId = filters.shopId;
+            if (filters.published !== undefined) {
                 where.published = filters.published;
+            }
             const [products, total] = yield Promise.all([
                 prisma_1.default.product.findMany({
                     where,
                     skip: (pagination.page - 1) * pagination.limit,
                     take: pagination.limit,
                     include: {
-                        shop: { select: { shopName: true } },
+                        shop: {
+                            select: { shopName: true, shopLocation: true, shopId: true },
+                        },
                         category: { select: { name: true } },
                         ProductImage: {
                             where: { hidden: false },
