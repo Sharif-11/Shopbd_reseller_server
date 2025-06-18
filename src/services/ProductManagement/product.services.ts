@@ -86,8 +86,6 @@ class ProductServices {
     userId: string,
     productId: number,
     data: {
-      shopId: number
-      categoryId: number
       name: string
       description: string
       basePrice: Prisma.Decimal | number
@@ -95,15 +93,6 @@ class ProductServices {
     },
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
-
-    // ensure that shopid and category id combination is valid
-    const shopCategory = await prisma.shopCategory.findFirst({
-      where: {
-        shopId: data.shopId,
-        categoryId: data.categoryId,
-      },
-    })
-    if (!shopCategory) throw new ApiError(400, 'Invalid shop or category')
 
     return prisma.product.update({
       where: { productId },

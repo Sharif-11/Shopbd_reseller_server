@@ -68,22 +68,12 @@ class ProductController {
       const userId = req.user?.userId
       const { productId } = req.params
 
-      const {
-        shopId,
-        categoryId,
-        name,
-        description,
-        basePrice,
-        suggestedMaxPrice,
-      } = req.body
-      console.log('shopId:', shopId)
+      const { name, description, basePrice, suggestedMaxPrice } = req.body
 
       const product = await productServices.updateProduct(
         userId!,
         Number(productId),
         {
-          ...(shopId && { shopId: Number(shopId) }),
-          ...(categoryId && { categoryId: Number(categoryId) }),
           ...(name && { name }),
           ...(description && { description }),
           ...(basePrice && { basePrice: Number(basePrice) }),

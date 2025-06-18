@@ -83,16 +83,6 @@ class ProductValidator {
         .withMessage('পণ্য আইডি প্রয়োজন')
         .isInt()
         .withMessage('পণ্য আইডি অবশ্যই সংখ্যা হতে হবে'),
-      body('shopId')
-        .notEmpty()
-        .withMessage('দোকান আইডি প্রয়োজন')
-        .isInt()
-        .withMessage('দোকান আইডি অবশ্যই সংখ্যা হতে হবে'),
-      body('categoryId')
-        .notEmpty()
-        .withMessage('ক্যাটাগরি আইডি প্রয়োজন')
-        .isInt()
-        .withMessage('ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে'),
       body('name')
         .notEmpty()
         .withMessage('পণ্যের নাম প্রয়োজন')

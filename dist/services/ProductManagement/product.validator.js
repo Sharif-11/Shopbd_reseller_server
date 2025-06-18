@@ -80,16 +80,6 @@ class ProductValidator {
                 .withMessage('পণ্য আইডি প্রয়োজন')
                 .isInt()
                 .withMessage('পণ্য আইডি অবশ্যই সংখ্যা হতে হবে'),
-            (0, express_validator_1.body)('shopId')
-                .notEmpty()
-                .withMessage('দোকান আইডি প্রয়োজন')
-                .isInt()
-                .withMessage('দোকান আইডি অবশ্যই সংখ্যা হতে হবে'),
-            (0, express_validator_1.body)('categoryId')
-                .notEmpty()
-                .withMessage('ক্যাটাগরি আইডি প্রয়োজন')
-                .isInt()
-                .withMessage('ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে'),
             (0, express_validator_1.body)('name')
                 .notEmpty()
                 .withMessage('পণ্যের নাম প্রয়োজন')

@@ -84,15 +84,6 @@ class ProductServices {
     updateProduct(userId, productId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.UPDATE);
-            // ensure that shopid and category id combination is valid
-            const shopCategory = yield prisma_1.default.shopCategory.findFirst({
-                where: {
-                    shopId: data.shopId,
-                    categoryId: data.categoryId,
-                },
-            });
-            if (!shopCategory)
-                throw new ApiError_1.default(400, 'Invalid shop or category');
             return prisma_1.default.product.update({
                 where: { productId },
                 data,

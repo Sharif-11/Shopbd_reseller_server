@@ -68,9 +68,8 @@ class ProductController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { productId } = req.params;
-                const { shopId, categoryId, name, description, basePrice, suggestedMaxPrice, } = req.body;
-                console.log('shopId:', shopId);
-                const product = yield product_services_1.default.updateProduct(userId, Number(productId), Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, (shopId && { shopId: Number(shopId) })), (categoryId && { categoryId: Number(categoryId) })), (name && { name })), (description && { description })), (basePrice && { basePrice: Number(basePrice) })), (suggestedMaxPrice && {
+                const { name, description, basePrice, suggestedMaxPrice } = req.body;
+                const product = yield product_services_1.default.updateProduct(userId, Number(productId), Object.assign(Object.assign(Object.assign(Object.assign({}, (name && { name })), (description && { description })), (basePrice && { basePrice: Number(basePrice) })), (suggestedMaxPrice && {
                     suggestedMaxPrice: Number(suggestedMaxPrice),
                 })));
                 res.status(200).json({
