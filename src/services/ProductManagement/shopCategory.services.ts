@@ -23,12 +23,12 @@ class ShopCategoryServices {
       deliveryChargeOutside: Prisma.Decimal | number
       shopDescription?: string
       shopIcon?: string
-    }
+    },
   ) {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.CREATE
+      ActionType.CREATE,
     )
     const shop = await prisma.shop.create({
       data: {
@@ -62,7 +62,7 @@ class ShopCategoryServices {
   async getAllShops(
     page = 1,
     limit = 10,
-    shopName?: string
+    shopName?: string,
   ): Promise<{
     shops: Shop[]
     total: number
@@ -100,7 +100,7 @@ class ShopCategoryServices {
     userId: string,
     page = 1,
     limit = 10,
-    shopName?: string
+    shopName?: string,
   ): Promise<{
     shops: Shop[]
     total: number
@@ -111,7 +111,7 @@ class ShopCategoryServices {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.READ
+      ActionType.READ,
     )
 
     const skip = (page - 1) * limit
@@ -158,12 +158,12 @@ class ShopCategoryServices {
       shopDescription?: string | null
       shopIcon?: string | null
       isActive?: boolean
-    }
+    },
   ): Promise<Shop> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     // Verify shop exists
@@ -178,13 +178,13 @@ class ShopCategoryServices {
   async openOrCloseShop(
     userId: string,
     shopId: number,
-    isActive: boolean
+    isActive: boolean,
   ): Promise<Shop> {
     console.log(`Opening/Closing shop ${shopId} with status ${isActive}`)
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     // Verify shop exists
@@ -207,21 +207,84 @@ class ShopCategoryServices {
       name: string
       description?: string
       categoryIcon?: string
-    }
+      parentId?: number | null // Add parentId to creation
+    },
   ): Promise<Category> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.CREATE
+      ActionType.CREATE,
     )
 
-    return prisma.category.create({ data })
+    // Validate parent exists if provided
+    if (data.parentId) {
+      const parentExists = await prisma.category.count({
+        where: { categoryId: data.parentId },
+      })
+      if (!parentExists) {
+        throw new Error('Parent category not found')
+      }
+    }
+
+    return prisma.category.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        categoryIcon: data.categoryIcon,
+        parentId: data.parentId,
+      },
+    })
+  }
+
+  async updateCategory(
+    userId: string,
+    categoryId: number,
+    data: {
+      name?: string
+      description?: string | null
+      categoryIcon?: string | null
+    },
+  ): Promise<Category> {
+    await userManagementService.verifyUserPermission(
+      userId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.UPDATE,
+    )
+
+    // Prevent circular references
+
+    return prisma.category.update({
+      where: { categoryId },
+      data,
+    })
+  }
+
+  // Helper method to check if a category is a descendant of another
+  private async isDescendant(
+    parentId: number,
+    potentialChildId: number,
+  ): Promise<boolean> {
+    let currentId = potentialChildId
+    while (currentId) {
+      const category = await prisma.category.findUnique({
+        where: { categoryId: currentId },
+        select: { parentId: true },
+      })
+
+      if (!category) return false
+      if (category.parentId === parentId) return true
+
+      currentId = category.parentId || 0
+    }
+    return false
   }
 
   async getCategory(categoryId: number): Promise<Category & { shops: Shop[] }> {
     const category = await prisma.category.findUnique({
       where: { categoryId },
       include: {
+        parentCategory: true,
+        subCategories: true,
         shopCategories: {
           include: {
             shop: true,
@@ -241,12 +304,14 @@ class ShopCategoryServices {
   async getAllCategories(
     page = 1,
     limit = 10,
-    name?: string
+    name?: string,
+    subCategories = false, // Whether to include subcategories in the result
   ): Promise<{
     categories: Category[]
     total: number
     page: number
     totalPages: number
+    subCategories?: boolean // Include this in the response if needed
   }> {
     const skip = (page - 1) * limit
 
@@ -262,6 +327,9 @@ class ShopCategoryServices {
         skip,
         take: limit,
         orderBy: { name: 'asc' },
+        include: {
+          subCategories: subCategories || false,
+        },
       }),
       prisma.category.count({ where }),
     ])
@@ -274,49 +342,108 @@ class ShopCategoryServices {
     }
   }
 
-  async updateCategory(
+  async deleteCategory(
     userId: string,
     categoryId: number,
-    data: {
-      name?: string
-      description?: string | null
-      categoryIcon?: string | null
-    }
-  ): Promise<Category> {
+    options: {
+      deleteChildren?: boolean // Whether to delete child categories
+      moveChildrenToParent?: boolean // Alternative: move children to parent category
+    } = {},
+  ): Promise<void> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.DELETE,
     )
 
-    return prisma.category.update({
+    // First get the category with its children
+    const category = await prisma.category.findUnique({
       where: { categoryId },
-      data,
-    })
-  }
-
-  async deleteCategory(userId: string, categoryId: number): Promise<void> {
-    await userManagementService.verifyUserPermission(
-      userId,
-      PermissionType.ORDER_MANAGEMENT,
-      ActionType.DELETE
-    )
-
-    // Check if category is used in any products
-    const productsCount = await prisma.product.count({
-      where: { categoryId },
+      include: { subCategories: true },
     })
 
-    if (productsCount > 0) {
-      throw new ApiError(400, 'Cannot delete category with associated products')
+    if (!category) {
+      throw new ApiError(404, 'Category not found')
     }
 
-    await prisma.$transaction([
-      prisma.shopCategory.deleteMany({ where: { categoryId } }),
-      prisma.category.delete({ where: { categoryId } }),
-    ])
+    // Check if category or any children have associated products
+    if (options.deleteChildren) {
+      // Check products in this category and all descendants
+      const descendantIds = await this.getAllDescendantIds(categoryId)
+      const allCategoryIds = [categoryId, ...descendantIds]
+
+      const productsCount = await prisma.product.count({
+        where: { categoryId: { in: allCategoryIds } },
+      })
+
+      if (productsCount > 0) {
+        throw new ApiError(
+          400,
+          'Cannot delete category tree with associated products',
+        )
+      }
+    } else {
+      // Check only this category's products
+      const productsCount = await prisma.product.count({
+        where: { categoryId },
+      })
+
+      if (productsCount > 0) {
+        throw new ApiError(
+          400,
+          'Cannot delete category with associated products',
+        )
+      }
+
+      // Check if category has children
+      if (category.subCategories.length > 0) {
+        throw new ApiError(
+          400,
+          'Category has child categories. Set deleteChildren or moveChildrenToParent option',
+        )
+      }
+    }
+
+    return await prisma.$transaction(async tx => {
+      // Handle children based on options
+      if (options.deleteChildren) {
+        // Delete all descendant categories
+        const descendantIds = await this.getAllDescendantIds(categoryId)
+        await tx.shopCategory.deleteMany({
+          where: { categoryId: { in: descendantIds } },
+        })
+        await tx.category.deleteMany({
+          where: { categoryId: { in: descendantIds } },
+        })
+      } else if (options.moveChildrenToParent) {
+        // Move children to this category's parent
+        await tx.category.updateMany({
+          where: { parentId: categoryId },
+          data: { parentId: category.parentId },
+        })
+      }
+
+      // Delete shop category associations
+      await tx.shopCategory.deleteMany({ where: { categoryId } })
+
+      // Finally delete the category itself
+      await tx.category.delete({ where: { categoryId } })
+    })
   }
 
+  // Helper method to get all descendant IDs (including nested children)
+  private async getAllDescendantIds(parentId: number): Promise<number[]> {
+    const descendants = await prisma.$queryRaw<{ categoryId: number }[]>`
+    WITH RECURSIVE CategoryTree AS (
+      SELECT categoryId FROM categories WHERE parentId = ${parentId}
+      UNION ALL
+      SELECT c.categoryId FROM categories c
+      JOIN CategoryTree ct ON c.parentId = ct.categoryId
+    )
+    SELECT categoryId FROM CategoryTree
+  `
+    return descendants.map(d => d.categoryId)
+  }
   // ==========================================
   // SHOP-CATEGORY ASSIGNMENT
   // ==========================================
@@ -324,12 +451,12 @@ class ShopCategoryServices {
   async assignCategoryToShop(
     userId: string,
     shopId: number,
-    categoryId: number
+    categoryId: number,
   ): Promise<ShopCategory> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     // Verify shop and category exist
@@ -352,12 +479,12 @@ class ShopCategoryServices {
   async removeCategoryFromShop(
     userId: string,
     shopId: number,
-    categoryId: number
+    categoryId: number,
   ): Promise<void> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.DELETE
+      ActionType.DELETE,
     )
 
     // Check if category is used in any products in this shop
@@ -371,7 +498,7 @@ class ShopCategoryServices {
     if (productsCount > 0) {
       throw new ApiError(
         400,
-        'Cannot remove category with associated products in this shop'
+        'Cannot remove category with associated products in this shop',
       )
     }
 

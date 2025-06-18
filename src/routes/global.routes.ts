@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import authRoute from '../services/Auth/auth.route'
+import ftpRoutes from '../services/FtpFileUpload/ftp.routes'
 import productRoutes from '../services/ProductManagement/product.routes'
 import {
   categoryRouter,
@@ -24,6 +25,10 @@ class GlobalRoutes {
       {
         path: '/products',
         route: productRoutes,
+      },
+      {
+        path: '/ftp',
+        route: ftpRoutes,
       },
       // { path: '/admin', route: adminRouter },
       // { path: '/sellers', route: sellerRouter },

@@ -32,6 +32,10 @@ export interface IConfig {
   forgotPasswordRequestInterval: number
   defaultSellerPermissions: PermissionType[]
   defaultAdminPermissions: PermissionType[]
+  ftpHost: string
+  ftpUser: string
+  ftpPassword: string
+  ftpBaseUrl: string
   // cloudinaryKey?: string;
   // cloudinarySecret?: string;
   // cloudinaryName?: string;
@@ -68,6 +72,10 @@ const config: IConfig = {
     PermissionType.ORDER_MANAGEMENT,
     PermissionType.PAYMENT_MANAGEMENT,
   ],
+  ftpHost: process.env.FTP_HOST || '',
+  ftpUser: process.env.FTP_USER || '',
+  ftpPassword: process.env.FTP_PASSWORD || '',
+  ftpBaseUrl: process.env.FTP_BASE_URL || '',
   // cloudinaryKey: process.env.CLOUDINARY_KEY,
   // cloudinarySecret: process.env.CLOUDINARY_SECRET,
   // cloudinaryName: process.env.CLOUDINARY_NAME,

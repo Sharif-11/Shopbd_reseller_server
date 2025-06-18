@@ -165,6 +165,10 @@ class ShopCategoryValidator {
                 .optional()
                 .isURL()
                 .withMessage('সঠিক ক্যাটাগরি আইকন URL প্রদান করুন'),
+            (0, express_validator_1.body)('parentId')
+                .optional()
+                .isInt()
+                .withMessage('প্যারেন্ট ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে'),
         ];
     }
     static getCategory() {

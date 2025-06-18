@@ -265,10 +265,15 @@ model Category {
   name           String
   categoryIcon   String?
   description    String?
+  parentId       Int?           // Reference to parent category
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   Product        Product[]
   shopCategories ShopCategory[]
+  
+  // Self-referential relationship for parent-child
+  parentCategory         Category?      @relation("CategoryHierarchy", fields: [parentId], references: [categoryId])
+  subCategories       Category[]     @relation("CategoryHierarchy")
 
   @@map("categories")
 }

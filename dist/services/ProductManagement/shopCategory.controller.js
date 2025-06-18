@@ -155,11 +155,12 @@ class ShopCategoryController {
             var _a;
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { name, description, categoryIcon } = req.body;
+                const { name, description, categoryIcon, parentId } = req.body;
                 const category = yield shopCategory_services_1.default.createCategory(userId, {
                     name,
                     description,
                     categoryIcon,
+                    parentId: parentId ? Number(parentId) : null,
                 });
                 res.status(201).json({
                     statusCode: 201,
@@ -193,9 +194,9 @@ class ShopCategoryController {
     getAllCategories(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { page = 1, limit = 10, name = '' } = req.query;
-                console.log({ page, limit, name });
-                const categories = yield shopCategory_services_1.default.getAllCategories(Number(page), Number(limit), String(name));
+                const { page = 1, limit = 10, name = '', subCategories = false, } = req.query;
+                console.log({ page, limit, name, subCategories });
+                const categories = yield shopCategory_services_1.default.getAllCategories(Number(page), Number(limit), String(name), Boolean(subCategories));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Categories retrieved successfully',

@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_route_1 = __importDefault(require("../services/Auth/auth.route"));
+const ftp_routes_1 = __importDefault(require("../services/FtpFileUpload/ftp.routes"));
 const product_routes_1 = __importDefault(require("../services/ProductManagement/product.routes"));
 const shopCategory_routes_1 = require("../services/ProductManagement/shopCategory.routes");
 const wallet_routes_1 = __importDefault(require("../services/WalletManagement/wallet.routes"));
@@ -21,6 +22,10 @@ class GlobalRoutes {
             {
                 path: '/products',
                 route: product_routes_1.default,
+            },
+            {
+                path: '/ftp',
+                route: ftp_routes_1.default,
             },
             // { path: '/admin', route: adminRouter },
             // { path: '/sellers', route: sellerRouter },

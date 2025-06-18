@@ -137,7 +137,51 @@ class ShopCategoryServices {
     createCategory(userId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.CREATE);
-            return prisma_1.default.category.create({ data });
+            // Validate parent exists if provided
+            if (data.parentId) {
+                const parentExists = yield prisma_1.default.category.count({
+                    where: { categoryId: data.parentId },
+                });
+                if (!parentExists) {
+                    throw new Error('Parent category not found');
+                }
+            }
+            return prisma_1.default.category.create({
+                data: {
+                    name: data.name,
+                    description: data.description,
+                    categoryIcon: data.categoryIcon,
+                    parentId: data.parentId,
+                },
+            });
+        });
+    }
+    updateCategory(userId, categoryId, data) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            // Prevent circular references
+            return prisma_1.default.category.update({
+                where: { categoryId },
+                data,
+            });
+        });
+    }
+    // Helper method to check if a category is a descendant of another
+    isDescendant(parentId, potentialChildId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            let currentId = potentialChildId;
+            while (currentId) {
+                const category = yield prisma_1.default.category.findUnique({
+                    where: { categoryId: currentId },
+                    select: { parentId: true },
+                });
+                if (!category)
+                    return false;
+                if (category.parentId === parentId)
+                    return true;
+                currentId = category.parentId || 0;
+            }
+            return false;
         });
     }
     getCategory(categoryId) {
@@ -145,6 +189,8 @@ class ShopCategoryServices {
             const category = yield prisma_1.default.category.findUnique({
                 where: { categoryId },
                 include: {
+                    parentCategory: true,
+                    subCategories: true,
                     shopCategories: {
                         include: {
                             shop: true,
@@ -158,7 +204,7 @@ class ShopCategoryServices {
         });
     }
     getAllCategories() {
-        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, name) {
+        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, name, subCategories = false) {
             const skip = (page - 1) * limit;
             const where = Object.assign({}, (name && {
                 name: { contains: name, mode: 'insensitive' },
@@ -169,6 +215,9 @@ class ShopCategoryServices {
                     skip,
                     take: limit,
                     orderBy: { name: 'asc' },
+                    include: {
+                        subCategories: subCategories || false,
+                    },
                 }),
                 prisma_1.default.category.count({ where }),
             ]);
@@ -180,29 +229,81 @@ class ShopCategoryServices {
             };
         });
     }
-    updateCategory(userId, categoryId, data) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
-            return prisma_1.default.category.update({
+    deleteCategory(userId_1, categoryId_1) {
+        return __awaiter(this, arguments, void 0, function* (userId, categoryId, options = {}) {
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.DELETE);
+            // First get the category with its children
+            const category = yield prisma_1.default.category.findUnique({
                 where: { categoryId },
-                data,
+                include: { subCategories: true },
             });
+            if (!category) {
+                throw new ApiError_1.default(404, 'Category not found');
+            }
+            // Check if category or any children have associated products
+            if (options.deleteChildren) {
+                // Check products in this category and all descendants
+                const descendantIds = yield this.getAllDescendantIds(categoryId);
+                const allCategoryIds = [categoryId, ...descendantIds];
+                const productsCount = yield prisma_1.default.product.count({
+                    where: { categoryId: { in: allCategoryIds } },
+                });
+                if (productsCount > 0) {
+                    throw new ApiError_1.default(400, 'Cannot delete category tree with associated products');
+                }
+            }
+            else {
+                // Check only this category's products
+                const productsCount = yield prisma_1.default.product.count({
+                    where: { categoryId },
+                });
+                if (productsCount > 0) {
+                    throw new ApiError_1.default(400, 'Cannot delete category with associated products');
+                }
+                // Check if category has children
+                if (category.subCategories.length > 0) {
+                    throw new ApiError_1.default(400, 'Category has child categories. Set deleteChildren or moveChildrenToParent option');
+                }
+            }
+            return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                // Handle children based on options
+                if (options.deleteChildren) {
+                    // Delete all descendant categories
+                    const descendantIds = yield this.getAllDescendantIds(categoryId);
+                    yield tx.shopCategory.deleteMany({
+                        where: { categoryId: { in: descendantIds } },
+                    });
+                    yield tx.category.deleteMany({
+                        where: { categoryId: { in: descendantIds } },
+                    });
+                }
+                else if (options.moveChildrenToParent) {
+                    // Move children to this category's parent
+                    yield tx.category.updateMany({
+                        where: { parentId: categoryId },
+                        data: { parentId: category.parentId },
+                    });
+                }
+                // Delete shop category associations
+                yield tx.shopCategory.deleteMany({ where: { categoryId } });
+                // Finally delete the category itself
+                yield tx.category.delete({ where: { categoryId } });
+            }));
         });
     }
-    deleteCategory(userId, categoryId) {
+    // Helper method to get all descendant IDs (including nested children)
+    getAllDescendantIds(parentId) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.DELETE);
-            // Check if category is used in any products
-            const productsCount = yield prisma_1.default.product.count({
-                where: { categoryId },
-            });
-            if (productsCount > 0) {
-                throw new ApiError_1.default(400, 'Cannot delete category with associated products');
-            }
-            yield prisma_1.default.$transaction([
-                prisma_1.default.shopCategory.deleteMany({ where: { categoryId } }),
-                prisma_1.default.category.delete({ where: { categoryId } }),
-            ]);
+            const descendants = yield prisma_1.default.$queryRaw `
+    WITH RECURSIVE CategoryTree AS (
+      SELECT categoryId FROM categories WHERE parentId = ${parentId}
+      UNION ALL
+      SELECT c.categoryId FROM categories c
+      JOIN CategoryTree ct ON c.parentId = ct.categoryId
+    )
+    SELECT categoryId FROM CategoryTree
+  `;
+            return descendants.map(d => d.categoryId);
         });
     }
     // ==========================================

@@ -61,7 +61,7 @@ class ShopCategoryController {
       const shops = await shopCategoryServices.getAllShops(
         pageNumber,
         Number(limit),
-        String(shopName)
+        String(shopName),
       )
 
       res.status(200).json({
@@ -84,7 +84,7 @@ class ShopCategoryController {
         userId!,
         pageNumber,
         Number(limit),
-        String(shopName)
+        String(shopName),
       )
 
       res.status(200).json({
@@ -123,7 +123,7 @@ class ShopCategoryController {
           shopDescription,
           shopIcon,
           isActive,
-        }
+        },
       )
 
       res.status(200).json({
@@ -147,7 +147,7 @@ class ShopCategoryController {
       const shop = await shopCategoryServices.openOrCloseShop(
         userId!,
         Number(shopId),
-        isActive
+        isActive,
       )
 
       res.status(200).json({
@@ -168,12 +168,13 @@ class ShopCategoryController {
   async createCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.userId
-      const { name, description, categoryIcon } = req.body
+      const { name, description, categoryIcon, parentId } = req.body
 
       const category = await shopCategoryServices.createCategory(userId!, {
         name,
         description,
         categoryIcon,
+        parentId: parentId ? Number(parentId) : null,
       })
 
       res.status(201).json({
@@ -191,7 +192,7 @@ class ShopCategoryController {
     try {
       const { categoryId } = req.params
       const category = await shopCategoryServices.getCategory(
-        Number(categoryId)
+        Number(categoryId),
       )
 
       res.status(200).json({
@@ -207,12 +208,18 @@ class ShopCategoryController {
 
   async getAllCategories(req: Request, res: Response, next: NextFunction) {
     try {
-      const { page = 1, limit = 10, name = '' } = req.query
-      console.log({ page, limit, name })
+      const {
+        page = 1,
+        limit = 10,
+        name = '',
+        subCategories = false,
+      } = req.query
+      console.log({ page, limit, name, subCategories })
       const categories = await shopCategoryServices.getAllCategories(
         Number(page),
         Number(limit),
-        String(name)
+        String(name),
+        Boolean(subCategories),
       )
 
       res.status(200).json({
@@ -239,7 +246,7 @@ class ShopCategoryController {
           name,
           description,
           categoryIcon,
-        }
+        },
       )
 
       res.status(200).json({
@@ -282,7 +289,7 @@ class ShopCategoryController {
       const shopCategory = await shopCategoryServices.assignCategoryToShop(
         userId!,
         Number(shopId),
-        Number(categoryId)
+        Number(categoryId),
       )
 
       res.status(201).json({
@@ -299,7 +306,7 @@ class ShopCategoryController {
   async removeCategoryFromShop(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const userId = req.user?.userId
@@ -308,7 +315,7 @@ class ShopCategoryController {
       await shopCategoryServices.removeCategoryFromShop(
         userId!,
         Number(shopId),
-        Number(categoryId)
+        Number(categoryId),
       )
 
       res.status(200).json({
@@ -325,7 +332,7 @@ class ShopCategoryController {
     try {
       const { shopId } = req.params
       const categories = await shopCategoryServices.getShopCategories(
-        Number(shopId)
+        Number(shopId),
       )
 
       res.status(200).json({
@@ -343,7 +350,7 @@ class ShopCategoryController {
     try {
       const { categoryId } = req.params
       const shops = await shopCategoryServices.getShopsByCategory(
-        Number(categoryId)
+        Number(categoryId),
       )
 
       res.status(200).json({
