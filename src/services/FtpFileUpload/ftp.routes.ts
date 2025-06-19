@@ -30,7 +30,7 @@ class FTPRouter {
     this.router.post(
       '/upload',
       this.upload.single('image') as RequestHandler, // Expect a single file with field name 'image'
-      ftpController.uploadFile,
+      ftpController.uploadFile
     )
   }
 

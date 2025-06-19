@@ -15,6 +15,7 @@ class BlockRouter {
 
   protected initializeRoutes(): void {
     // Get blocked actions for a specific user
+    this.router.get('/', isAuthenticated, blockController.getAllBlockActions)
     this.router.get(
       '/:phoneNo',
       isAuthenticated,

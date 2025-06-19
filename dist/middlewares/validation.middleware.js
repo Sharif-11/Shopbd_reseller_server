@@ -5,12 +5,13 @@ const validateRequest = (req, res, next) => {
     const errors = (0, express_validator_1.validationResult)(req);
     console.log(errors.array());
     if (!errors.isEmpty()) {
-        const firstError = errors.array()[0]; // Get the first error from the array
-        return res.status(400).json({
+        const firstError = errors.array()[0];
+        res.status(400).json({
             statusCode: 400,
-            message: firstError.msg, // Use the first error's message
+            message: firstError.msg,
             success: false,
         });
+        return;
     }
     next();
 };

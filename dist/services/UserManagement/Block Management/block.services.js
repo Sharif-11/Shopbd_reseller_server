@@ -21,6 +21,15 @@ class BlockService {
     /**
      * Get all block actions for a user with their individual attributes
      */
+    getAllBlockActions(adminId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, 'READ');
+            const blocks = Object.values(client_1.BlockActionType);
+            // convert the prisma block actions to an array of string
+            const blockActions = blocks.map(action => action.toString());
+            return blockActions;
+        });
+    }
     getUserBlockStatus(adminId, userPhoneNo) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
@@ -47,7 +56,7 @@ class BlockService {
                     userId: user.userId,
                 },
                 blockId: block === null || block === void 0 ? void 0 : block.blockId,
-                actions: (_a = block === null || block === void 0 ? void 0 : block.actions) !== null && _a !== void 0 ? _a : [],
+                actions: ((_a = block === null || block === void 0 ? void 0 : block.actions) !== null && _a !== void 0 ? _a : []).map(action => action.actionType),
             };
         });
     }

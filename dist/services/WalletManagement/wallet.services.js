@@ -16,6 +16,7 @@ const client_1 = require("@prisma/client");
 const config_1 = __importDefault(require("../../config"));
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
+const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 class WalletServices {
     /**
@@ -56,7 +57,7 @@ class WalletServices {
         return __awaiter(this, void 0, void 0, function* () {
             // Check if creator is blocked
             const user = yield user_services_1.default.getUserById(creatorId);
-            const isBlocked = yield user_services_1.default.isUserBlocked(user.phoneNo, client_1.BlockActionType.WALLET_ADDITION);
+            const isBlocked = yield block_services_1.blockServices.isUserBlocked(user.phoneNo, client_1.BlockActionType.WALLET_ADDITION);
             if (isBlocked) {
                 throw new ApiError_1.default(403, 'User is blocked from adding wallets');
             }

@@ -5,6 +5,26 @@ import { blockServices } from './block.services'
 
 class BlockController {
   /**
+   * Get all block actions of the system
+   */
+  async getAllBlockActions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const adminId = req.user?.userId
+
+      const blockActions = await blockServices.getAllBlockActions(adminId!)
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Block actions retrieved successfully',
+        success: true,
+        data: blockActions,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
    * Get all blocked actions for a user
    */
   async getBlockedActions(req: Request, res: Response, next: NextFunction) {

@@ -7,6 +7,18 @@ class BlockService {
   /**
    * Get all block actions for a user with their individual attributes
    */
+  public async getAllBlockActions(adminId: string) {
+    await userManagementServices.verifyUserPermission(
+      adminId,
+      PermissionType.USER_MANAGEMENT,
+      'READ'
+    )
+    const blocks = Object.values(BlockActionType)
+
+    // convert the prisma block actions to an array of string
+    const blockActions = blocks.map(action => action.toString())
+    return blockActions
+  }
   public async getUserBlockStatus(adminId: string, userPhoneNo: string) {
     await userManagementServices.verifyUserPermission(
       adminId,
@@ -40,7 +52,7 @@ class BlockService {
       },
 
       blockId: block?.blockId,
-      actions: block?.actions ?? [],
+      actions: (block?.actions ?? []).map(action => action.actionType),
     }
   }
 

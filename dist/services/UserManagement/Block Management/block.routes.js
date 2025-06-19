@@ -16,6 +16,7 @@ class BlockRouter {
     }
     initializeRoutes() {
         // Get blocked actions for a specific user
+        this.router.get('/', auth_middlewares_1.isAuthenticated, block_controller_1.default.getAllBlockActions);
         this.router.get('/:phoneNo', auth_middlewares_1.isAuthenticated, block_validator_1.default.getBlockedActions(), validation_middleware_1.default, block_controller_1.default.getBlockedActions);
         // Update block actions for a user
         this.router.put('/:phoneNo', auth_middlewares_1.isAuthenticated, block_validator_1.default.updateBlockActions(), validation_middleware_1.default, block_controller_1.default.updateBlockActions);

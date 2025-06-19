@@ -1,17 +1,20 @@
-import { NextFunction, Request, Response } from 'express'
+import { RequestHandler } from 'express'
 import { validationResult } from 'express-validator'
 
-const validateRequest = (req: Request, res: Response, next: NextFunction) => {
+const validateRequest: RequestHandler = (req, res, next) => {
   const errors = validationResult(req)
   console.log(errors.array())
+
   if (!errors.isEmpty()) {
-    const firstError = errors.array()[0] // Get the first error from the array
-    return res.status(400).json({
+    const firstError = errors.array()[0]
+    res.status(400).json({
       statusCode: 400,
-      message: firstError.msg, // Use the first error's message
+      message: firstError.msg,
       success: false,
     })
+    return
   }
+
   next()
 }
 

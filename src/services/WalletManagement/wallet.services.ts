@@ -8,6 +8,7 @@ import {
 import config from '../../config'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
+import { blockServices } from '../UserManagement/Block Management/block.services'
 import userManagementServices from '../UserManagement/user.services'
 
 class WalletServices {
@@ -59,7 +60,7 @@ class WalletServices {
     // Check if creator is blocked
 
     const user = await userManagementServices.getUserById(creatorId)
-    const isBlocked = await userManagementServices.isUserBlocked(
+    const isBlocked = await blockServices.isUserBlocked(
       user.phoneNo,
       BlockActionType.WALLET_ADDITION
     )

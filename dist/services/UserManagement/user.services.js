@@ -128,6 +128,8 @@ class UserManagementServices {
             // Verify current user is super admin
             const currentAdmin = yield this.verifyUserRole(currentAdminId, client_1.UserType.SuperAdmin);
             const hashedPassword = yield this.hashPassword(input.password);
+            // Validate phone number and email uniqueness
+            yield this.validateUserInput(input.phoneNo, input.email);
             return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 // Get or create super admin role
                 const superAdminRole = yield tx.role.upsert({
@@ -157,15 +159,20 @@ class UserManagementServices {
                         roleId: superAdminRole.roleId,
                     },
                 });
-                // Assign all permissions to super admin role
-                const allPermissions = Object.values(client_1.PermissionType);
-                for (const permission of allPermissions) {
-                    yield tx.rolePermission.create({
-                        data: {
+                // Check if permissions already exist for this role
+                const existingPermissions = yield tx.rolePermission.findMany({
+                    where: { roleId: superAdminRole.roleId },
+                });
+                // Only assign all permissions if they don't exist
+                if (existingPermissions.length === 0) {
+                    const allPermissions = Object.values(client_1.PermissionType);
+                    yield tx.rolePermission.createMany({
+                        data: allPermissions.map(permission => ({
                             roleId: superAdminRole.roleId,
                             permission,
                             actions: [client_1.ActionType.ALL],
-                        },
+                        })),
+                        skipDuplicates: true,
                     });
                 }
                 // return user without password
@@ -174,14 +181,13 @@ class UserManagementServices {
             }));
         });
     }
-    /**
-     * Create a new admin (can be done by super admin)
-     */
     createAdmin(currentAdminId, input) {
         return __awaiter(this, void 0, void 0, function* () {
             // Verify current user is super admin
             const currentAdmin = yield this.verifyUserRole(currentAdminId, client_1.UserType.SuperAdmin);
             const hashedPassword = yield this.hashPassword(input.password);
+            // Validate phone number and email uniqueness
+            yield this.validateUserInput(input.phoneNo, input.email);
             return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 // Get or create admin role
                 const adminRole = yield tx.role.upsert({
@@ -211,19 +217,47 @@ class UserManagementServices {
                         roleId: adminRole.roleId,
                     },
                 });
-                // Assign basic admin permissions
-                const adminPermissions = config_1.default.defaultAdminPermissions;
-                for (const permission of adminPermissions) {
-                    yield tx.rolePermission.create({
-                        data: {
+                // Check if permissions already exist for this role
+                const existingPermissions = yield tx.rolePermission.findMany({
+                    where: { roleId: adminRole.roleId },
+                });
+                // Only assign default admin permissions if they don't exist
+                if (existingPermissions.length === 0) {
+                    const adminPermissions = config_1.default.defaultAdminPermissions;
+                    yield tx.rolePermission.createMany({
+                        data: adminPermissions.map(permission => ({
                             roleId: adminRole.roleId,
                             permission,
                             actions: [client_1.ActionType.CREATE, client_1.ActionType.READ, client_1.ActionType.UPDATE],
-                        },
+                        })),
+                        skipDuplicates: true,
                     });
                 }
-                return user;
+                // return user without password
+                const { password } = user, userWithoutPassword = __rest(user, ["password"]);
+                return userWithoutPassword;
             }));
+        });
+    }
+    // Helper method for input validation
+    validateUserInput(phoneNo, email) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Check if phone number is already registered
+            const existingUser = yield prisma_1.default.user.findUnique({
+                where: { phoneNo },
+            });
+            if (existingUser) {
+                throw new ApiError_1.default(400, 'Phone number is already registered');
+            }
+            // Check email unique constraint if provided
+            if (email) {
+                const existingEmail = yield prisma_1.default.user.findUnique({
+                    where: { email },
+                });
+                if (existingEmail) {
+                    throw new ApiError_1.default(400, 'Email is already used by another user');
+                }
+            }
         });
     }
     /**
@@ -236,14 +270,14 @@ class UserManagementServices {
             if (!verifiedPhoneNo.isVerified) {
                 throw new ApiError_1.default(400, 'Phone number is not verified');
             }
-            // check if the phone number is already registered as a seller
+            // Check if the phone number is already registered
             const existingSeller = yield prisma_1.default.user.findUnique({
                 where: { phoneNo: input.phoneNo },
             });
             if (existingSeller) {
                 throw new ApiError_1.default(400, 'Phone number is already registered as a seller');
             }
-            // check email unique constraint
+            // Check email unique constraint
             if (input.email) {
                 const existingEmail = yield prisma_1.default.user.findUnique({
                     where: { email: input.email },
@@ -264,7 +298,6 @@ class UserManagementServices {
                 referredByPhone = referrer.phoneNo;
             }
             return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                // Handle referral if provided
                 // Get or create seller role
                 const sellerRole = yield tx.role.upsert({
                     where: { roleName: 'Seller' },
@@ -275,29 +308,32 @@ class UserManagementServices {
                         isDefault: true,
                     },
                 });
-                // Create the user
-                const userData = Object.assign({ phoneNo: input.phoneNo, name: input.name, password: hashedPassword, email: input.email, role: client_1.UserType.Seller, isVerified: false, zilla: input.zilla, upazilla: input.upazilla, address: input.address, shopName: input.shopName, nomineePhone: input.nomineePhone, facebookProfileLink: input.facebookProfileLink }, (referredByPhone
-                    ? {
-                        referredBy: {
-                            connect: { phoneNo: referredByPhone },
-                        },
-                    }
-                    : {}));
-                // Create the user
-                const user = yield tx.user.create({
-                    data: userData,
+                // Check if permissions already exist for this role
+                const existingPermissions = yield tx.rolePermission.findMany({
+                    where: { roleId: sellerRole.roleId },
                 });
-                // give some default permissions to seller
-                const sellerPermissions = config_1.default.defaultSellerPermissions;
-                for (const permission of sellerPermissions) {
-                    yield tx.rolePermission.create({
-                        data: {
+                // Only create default permissions if they don't exist
+                if (existingPermissions.length === 0) {
+                    const sellerPermissions = config_1.default.defaultSellerPermissions;
+                    yield tx.rolePermission.createMany({
+                        data: sellerPermissions.map(permission => ({
                             roleId: sellerRole.roleId,
                             permission,
                             actions: [client_1.ActionType.CREATE, client_1.ActionType.READ, client_1.ActionType.UPDATE],
-                        },
+                        })),
+                        skipDuplicates: true,
                     });
                 }
+                // Create the user
+                const user = yield tx.user.create({
+                    data: Object.assign({ phoneNo: input.phoneNo, name: input.name, password: hashedPassword, email: input.email, role: client_1.UserType.Seller, isVerified: false, zilla: input.zilla, upazilla: input.upazilla, address: input.address, shopName: input.shopName, nomineePhone: input.nomineePhone, facebookProfileLink: input.facebookProfileLink }, (referredByPhone
+                        ? {
+                            referredBy: {
+                                connect: { phoneNo: referredByPhone },
+                            },
+                        }
+                        : {})),
+                });
                 // Assign role to user
                 yield tx.userRole.create({
                     data: {
@@ -305,7 +341,7 @@ class UserManagementServices {
                         roleId: sellerRole.roleId,
                     },
                 });
-                // return user without password
+                // Return user without password
                 const { password } = user, userWithoutPassword = __rest(user, ["password"]);
                 return userWithoutPassword;
             }));

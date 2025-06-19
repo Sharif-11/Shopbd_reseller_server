@@ -142,6 +142,9 @@ class UserManagementServices {
 
     const hashedPassword = await this.hashPassword(input.password)
 
+    // Validate phone number and email uniqueness
+    await this.validateUserInput(input.phoneNo, input.email)
+
     return await prisma.$transaction(async tx => {
       // Get or create super admin role
       const superAdminRole = await tx.role.upsert({
@@ -173,32 +176,35 @@ class UserManagementServices {
           roleId: superAdminRole.roleId,
         },
       })
-      // Assign all permissions to super admin role
-      const allPermissions = Object.values(PermissionType)
 
-      for (const permission of allPermissions) {
-        await tx.rolePermission.create({
-          data: {
+      // Check if permissions already exist for this role
+      const existingPermissions = await tx.rolePermission.findMany({
+        where: { roleId: superAdminRole.roleId },
+      })
+
+      // Only assign all permissions if they don't exist
+      if (existingPermissions.length === 0) {
+        const allPermissions = Object.values(PermissionType)
+        await tx.rolePermission.createMany({
+          data: allPermissions.map(permission => ({
             roleId: superAdminRole.roleId,
             permission,
             actions: [ActionType.ALL],
-          },
+          })),
+          skipDuplicates: true,
         })
       }
+
       // return user without password
       const { password, ...userWithoutPassword } = user
-
       return userWithoutPassword
     })
   }
 
-  /**
-   * Create a new admin (can be done by super admin)
-   */
   async createAdmin(
     currentAdminId: string,
     input: CreateAdminInput
-  ): Promise<User> {
+  ): Promise<Omit<User, 'password'>> {
     // Verify current user is super admin
     const currentAdmin = await this.verifyUserRole(
       currentAdminId,
@@ -206,6 +212,9 @@ class UserManagementServices {
     )
 
     const hashedPassword = await this.hashPassword(input.password)
+
+    // Validate phone number and email uniqueness
+    await this.validateUserInput(input.phoneNo, input.email)
 
     return await prisma.$transaction(async tx => {
       // Get or create admin role
@@ -239,23 +248,53 @@ class UserManagementServices {
         },
       })
 
-      // Assign basic admin permissions
-      const adminPermissions = config.defaultAdminPermissions
+      // Check if permissions already exist for this role
+      const existingPermissions = await tx.rolePermission.findMany({
+        where: { roleId: adminRole.roleId },
+      })
 
-      for (const permission of adminPermissions) {
-        await tx.rolePermission.create({
-          data: {
+      // Only assign default admin permissions if they don't exist
+      if (existingPermissions.length === 0) {
+        const adminPermissions = config.defaultAdminPermissions
+        await tx.rolePermission.createMany({
+          data: adminPermissions.map(permission => ({
             roleId: adminRole.roleId,
             permission,
             actions: [ActionType.CREATE, ActionType.READ, ActionType.UPDATE],
-          },
+          })),
+          skipDuplicates: true,
         })
       }
 
-      return user
+      // return user without password
+      const { password, ...userWithoutPassword } = user
+      return userWithoutPassword
     })
   }
 
+  // Helper method for input validation
+  private async validateUserInput(
+    phoneNo: string,
+    email?: string
+  ): Promise<void> {
+    // Check if phone number is already registered
+    const existingUser = await prisma.user.findUnique({
+      where: { phoneNo },
+    })
+    if (existingUser) {
+      throw new ApiError(400, 'Phone number is already registered')
+    }
+
+    // Check email unique constraint if provided
+    if (email) {
+      const existingEmail = await prisma.user.findUnique({
+        where: { email },
+      })
+      if (existingEmail) {
+        throw new ApiError(400, 'Email is already used by another user')
+      }
+    }
+  }
   /**
    * Create a new seller with optional referral code
    */
@@ -266,14 +305,16 @@ class UserManagementServices {
     if (!verifiedPhoneNo.isVerified) {
       throw new ApiError(400, 'Phone number is not verified')
     }
-    // check if the phone number is already registered as a seller
+
+    // Check if the phone number is already registered
     const existingSeller = await prisma.user.findUnique({
       where: { phoneNo: input.phoneNo },
     })
     if (existingSeller) {
       throw new ApiError(400, 'Phone number is already registered as a seller')
     }
-    // check email unique constraint
+
+    // Check email unique constraint
     if (input.email) {
       const existingEmail = await prisma.user.findUnique({
         where: { email: input.email },
@@ -282,6 +323,7 @@ class UserManagementServices {
         throw new ApiError(400, 'Email is already used by another user')
       }
     }
+
     let referredByPhone: string | null = null
 
     if (input.referralCode) {
@@ -298,8 +340,6 @@ class UserManagementServices {
     }
 
     return await prisma.$transaction(async tx => {
-      // Handle referral if provided
-
       // Get or create seller role
       const sellerRole = await tx.role.upsert({
         where: { roleName: 'Seller' },
@@ -311,44 +351,48 @@ class UserManagementServices {
         },
       })
 
-      // Create the user
-      const userData = {
-        phoneNo: input.phoneNo,
-        name: input.name,
-        password: hashedPassword,
-        email: input.email,
-        role: UserType.Seller,
-        isVerified: false,
-        zilla: input.zilla,
-        upazilla: input.upazilla,
-        address: input.address,
-        shopName: input.shopName,
-        nomineePhone: input.nomineePhone,
-        facebookProfileLink: input.facebookProfileLink,
-        ...(referredByPhone
-          ? {
-              referredBy: {
-                connect: { phoneNo: referredByPhone },
-              },
-            }
-          : {}),
+      // Check if permissions already exist for this role
+      const existingPermissions = await tx.rolePermission.findMany({
+        where: { roleId: sellerRole.roleId },
+      })
+
+      // Only create default permissions if they don't exist
+      if (existingPermissions.length === 0) {
+        const sellerPermissions = config.defaultSellerPermissions
+        await tx.rolePermission.createMany({
+          data: sellerPermissions.map(permission => ({
+            roleId: sellerRole.roleId,
+            permission,
+            actions: [ActionType.CREATE, ActionType.READ, ActionType.UPDATE],
+          })),
+          skipDuplicates: true,
+        })
       }
 
       // Create the user
       const user = await tx.user.create({
-        data: userData,
+        data: {
+          phoneNo: input.phoneNo,
+          name: input.name,
+          password: hashedPassword,
+          email: input.email,
+          role: UserType.Seller,
+          isVerified: false,
+          zilla: input.zilla,
+          upazilla: input.upazilla,
+          address: input.address,
+          shopName: input.shopName,
+          nomineePhone: input.nomineePhone,
+          facebookProfileLink: input.facebookProfileLink,
+          ...(referredByPhone
+            ? {
+                referredBy: {
+                  connect: { phoneNo: referredByPhone },
+                },
+              }
+            : {}),
+        },
       })
-      // give some default permissions to seller
-      const sellerPermissions = config.defaultSellerPermissions
-      for (const permission of sellerPermissions) {
-        await tx.rolePermission.create({
-          data: {
-            roleId: sellerRole.roleId,
-            permission,
-            actions: [ActionType.CREATE, ActionType.READ, ActionType.UPDATE],
-          },
-        })
-      }
 
       // Assign role to user
       await tx.userRole.create({
@@ -358,9 +402,8 @@ class UserManagementServices {
         },
       })
 
-      // return user without password
+      // Return user without password
       const { password, ...userWithoutPassword } = user
-
       return userWithoutPassword
     })
   }

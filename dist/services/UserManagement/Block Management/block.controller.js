@@ -12,6 +12,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const block_services_1 = require("./block.services");
 class BlockController {
     /**
+     * Get all block actions of the system
+     */
+    getAllBlockActions(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const blockActions = yield block_services_1.blockServices.getAllBlockActions(adminId);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Block actions retrieved successfully',
+                    success: true,
+                    data: blockActions,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    /**
      * Get all blocked actions for a user
      */
     getBlockedActions(req, res, next) {
