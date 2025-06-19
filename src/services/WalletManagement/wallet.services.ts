@@ -147,14 +147,10 @@ class WalletServices {
    */
   async getSellerWallets(
     requesterId: string,
-    sellerId: string
+    phoneNo: string
   ): Promise<Wallet[]> {
     // Admin/SuperAdmin can view any seller's wallets
     try {
-      await userManagementServices.verifyUserRole(
-        requesterId,
-        UserType.Admin || UserType.SuperAdmin || UserType.Seller
-      )
       // verify if requester is allowed to view seller's wallets
       await userManagementServices.verifyUserPermission(
         requesterId,
@@ -162,14 +158,18 @@ class WalletServices {
         'READ'
       )
     } catch {
+      const user = await userManagementServices.getUserByPhoneNo(phoneNo)
+      if (!user) {
+        throw new ApiError(404, 'Seller not found')
+      }
       // Regular users can only view their own wallets
-      if (requesterId !== sellerId) {
+      if (requesterId !== user.userId) {
         throw new ApiError(403, 'Unauthorized to view these wallets')
       }
     }
 
     return await prisma.wallet.findMany({
-      where: { userId: sellerId, walletType: 'SELLER' },
+      where: { walletPhoneNo: phoneNo, walletType: 'SELLER' },
     })
   }
 

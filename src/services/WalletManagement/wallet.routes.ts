@@ -29,9 +29,9 @@ class WalletRouter {
     )
 
     this.router.get(
-      '/seller/:sellerId',
+      '/seller/:phoneNo',
       isAuthenticated,
-      WalletValidator.sellerIdParam(),
+      WalletValidator.phoneNoParam(),
       validateRequest,
       walletControllers.getSellerWallets
     )

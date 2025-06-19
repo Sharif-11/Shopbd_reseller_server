@@ -69,8 +69,8 @@ class WalletController {
             var _a;
             try {
                 const requesterId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { sellerId } = req.params;
-                const wallets = yield wallet_services_1.default.getSellerWallets(requesterId, sellerId);
+                const { phoneNo } = req.params;
+                const wallets = yield wallet_services_1.default.getSellerWallets(requesterId, phoneNo);
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Seller wallets retrieved successfully',

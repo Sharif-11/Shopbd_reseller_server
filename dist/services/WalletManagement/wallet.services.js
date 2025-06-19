@@ -119,22 +119,25 @@ class WalletServices {
     /**
      * Get wallets for a specific seller
      */
-    getSellerWallets(requesterId, sellerId) {
+    getSellerWallets(requesterId, phoneNo) {
         return __awaiter(this, void 0, void 0, function* () {
             // Admin/SuperAdmin can view any seller's wallets
             try {
-                yield user_services_1.default.verifyUserRole(requesterId, client_1.UserType.Admin || client_1.UserType.SuperAdmin || client_1.UserType.Seller);
                 // verify if requester is allowed to view seller's wallets
                 yield user_services_1.default.verifyUserPermission(requesterId, 'WALLET_MANAGEMENT', 'READ');
             }
             catch (_a) {
+                const user = yield user_services_1.default.getUserByPhoneNo(phoneNo);
+                if (!user) {
+                    throw new ApiError_1.default(404, 'Seller not found');
+                }
                 // Regular users can only view their own wallets
-                if (requesterId !== sellerId) {
+                if (requesterId !== user.userId) {
                     throw new ApiError_1.default(403, 'Unauthorized to view these wallets');
                 }
             }
             return yield prisma_1.default.wallet.findMany({
-                where: { userId: sellerId, walletType: 'SELLER' },
+                where: { walletPhoneNo: phoneNo, walletType: 'SELLER' },
             });
         });
     }

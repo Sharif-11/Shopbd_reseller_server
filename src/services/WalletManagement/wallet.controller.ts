@@ -52,11 +52,11 @@ class WalletController {
   async getSellerWallets(req: Request, res: Response, next: NextFunction) {
     try {
       const requesterId = req.user?.userId
-      const { sellerId } = req.params
+      const { phoneNo } = req.params
 
       const wallets = await walletServices.getSellerWallets(
         requesterId!,
-        sellerId
+        phoneNo
       )
 
       res.status(200).json({

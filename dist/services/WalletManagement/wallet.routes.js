@@ -17,7 +17,7 @@ class WalletRouter {
         // Wallet CRUD routes
         this.router.post('/', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.createWallet(), validation_middleware_1.default, wallet_controller_1.default.createWallet);
         this.router.get('/system', auth_middlewares_1.isAuthenticated, wallet_controller_1.default.getSystemWallets);
-        this.router.get('/seller/:sellerId', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.sellerIdParam(), validation_middleware_1.default, wallet_controller_1.default.getSellerWallets);
+        this.router.get('/seller/:phoneNo', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.phoneNoParam(), validation_middleware_1.default, wallet_controller_1.default.getSellerWallets);
         this.router.get('/:walletId', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.walletIdParam(), validation_middleware_1.default, wallet_controller_1.default.getWallet);
         this.router.patch('/:walletId', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.updateWallet(), validation_middleware_1.default, wallet_controller_1.default.updateWallet);
         this.router.delete('/:walletId', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.walletIdParam(), validation_middleware_1.default, wallet_controller_1.default.deleteWallet);

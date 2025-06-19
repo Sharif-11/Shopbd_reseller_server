@@ -111,6 +111,15 @@ class WalletValidator {
                 .withMessage('বিক্রেতা আইডি প্রয়োজন'),
         ];
     }
+    static phoneNoParam() {
+        return [
+            (0, express_validator_1.param)('phoneNo')
+                .isMobilePhone('bn-BD')
+                .withMessage('সঠিক বাংলাদেশী ফোন নম্বর প্রদান করুন')
+                .isLength({ min: 11, max: 11 })
+                .withMessage('ফোন নম্বরটি অবশ্যই ১১ ডিজিটের হতে হবে'),
+        ];
+    }
     /**
      * Validation rules for wallet verification
      */

@@ -25,9 +25,13 @@ class RoleService {
             // Verify permission (assuming you have this method)
             yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.ROLE_PERMISSIONS, client_1.ActionType.READ);
             return yield prisma_1.default.role.findMany({
+                where: {
+                    roleName: {
+                        notIn: ['SuperAdmin', 'Seller'],
+                    },
+                },
                 include: {
                     permissions: true,
-                    userRoles: true,
                 },
                 orderBy: {
                     createdAt: 'asc',
