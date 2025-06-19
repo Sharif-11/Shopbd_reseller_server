@@ -1,6 +1,6 @@
 import { ActionType, BlockActionType, PermissionType } from '@prisma/client'
 import { RequestHandler } from 'express'
-import { body } from 'express-validator'
+import { body, query } from 'express-validator'
 
 class UserManagementValidator {
   /**
@@ -376,6 +376,32 @@ class UserManagementValidator {
         .withMessage('সুপার অ্যাডমিন আইডি প্রয়োজন')
         .isString()
         .withMessage('সুপার অ্যাডমিন আইডি অবশ্যই স্ট্রিং হতে হবে'),
+    ]
+  }
+
+  static getAllUsers(): RequestHandler[] {
+    return [
+      query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('Page must be a positive integer')
+        .toInt(),
+      query('limit')
+        .optional()
+        .isInt({ min: 1, max: 100 })
+        .withMessage('Limit must be an integer between 1 and 100')
+        .toInt(),
+      query('role')
+        .optional()
+        .isString()
+        .withMessage('Role must be a string')
+        .trim(),
+      query('searchTerm')
+        .optional()
+        .isString()
+        .withMessage('Search term must be a string')
+        .trim()
+        .escape(),
     ]
   }
 }

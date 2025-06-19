@@ -4,7 +4,6 @@
 
 import {
   ActionType,
-  BlockActionType,
   PermissionType,
   Prisma,
   User,
@@ -20,7 +19,6 @@ import otpServices from '../otp/otp.services'
 import {
   AssignPermissionInput,
   AssignRoleInput,
-  BlockUserInput,
   ChangePasswordInput,
   CreateAdminInput,
   CreateRoleInput,
@@ -896,86 +894,6 @@ class UserManagementServices {
   /**
    * Block a user
    */
-  async blockUser(adminId: string, input: BlockUserInput) {
-    await this.verifyUserPermission(
-      adminId,
-      PermissionType.USER_MANAGEMENT,
-      ActionType.BLOCK
-    )
-
-    const user = await prisma.user.findUnique({
-      where: { phoneNo: input.userPhoneNo },
-    })
-    if (!user) {
-      throw new ApiError(404, 'User not found')
-    }
-
-    return await prisma.block.create({
-      data: {
-        userPhoneNo: input.userPhoneNo,
-        userName: user.name,
-        reason: input.reason,
-        actionTypes: input.actionTypes,
-        expiresAt: input.expiresAt,
-        isActive: true,
-      },
-    })
-  }
-
-  /**
-   * Unblock a user
-   */
-  async unblockUser({
-    adminId,
-    actionTypes,
-    userPhoneNo,
-  }: {
-    adminId: string
-    actionTypes: BlockActionType[]
-    userPhoneNo: string
-  }) {
-    await this.verifyUserPermission(
-      adminId,
-      PermissionType.USER_MANAGEMENT,
-      ActionType.BLOCK
-    )
-
-    // Find all active blocks for this user
-    const blocks = await prisma.block.findMany({
-      where: {
-        userPhoneNo,
-        isActive: true,
-      },
-    })
-
-    if (!blocks.length) {
-      throw new ApiError(404, 'No active blocks found for this user')
-    }
-
-    // Process each block to remove the specified action types
-    const results = []
-    for (const block of blocks) {
-      // Filter out the action types we want to remove
-      const remainingActionTypes = block.actionTypes.filter(
-        type => !actionTypes.includes(type)
-      )
-
-      // If no action types left, deactivate the entire block
-      // Otherwise, just update the action types
-      const updateData =
-        remainingActionTypes.length === 0
-          ? { isActive: false }
-          : { actionTypes: remainingActionTypes }
-
-      const result = await prisma.block.update({
-        where: { blockId: block.blockId },
-        data: updateData,
-      })
-      results.push(result)
-    }
-
-    return results
-  }
 
   // ==========================================
   // HELPER METHODS
@@ -1056,47 +974,20 @@ class UserManagementServices {
     throw new ApiError(403, 'permission denied')
   }
   //add another helper method to test if a user is blocked for some action
-  async isUserBlocked(
-    userPhoneNo: string,
-    actionType: BlockActionType
-  ): Promise<boolean> {
-    const block = await prisma.block.findFirst({
-      where: {
-        userPhoneNo,
-        isActive: true,
-        AND: [
-          {
-            OR: [
-              { actionTypes: { has: actionType } },
-              { actionTypes: { has: BlockActionType.ALL } }, // Check for ALL action type
-            ],
-          },
-          {
-            OR: [
-              { expiresAt: { gt: new Date() } },
-              { expiresAt: null }, // Handle never-expiring blocks
-            ],
-          },
-        ],
-      },
-    })
-    return !!block
-  }
+
   // Fetching all users with pagination, filtering by role, phone number, name along with all roles, permissions and wallets
   async getAllUsers({
     adminId,
     page = 1,
     limit = 10,
     role,
-    phoneNo,
-    name,
+    searchTerm,
   }: {
     adminId: string
     page?: number
     limit?: number
     role?: UserType
-    phoneNo?: string
-    name?: string
+    searchTerm?: string
   }) {
     // check permissions
     await this.verifyUserPermission(
@@ -1108,20 +999,13 @@ class UserManagementServices {
 
     const where: Prisma.UserWhereInput = {
       ...(role ? { role: role } : {}),
-      ...(phoneNo
+      ...(searchTerm
         ? {
-            phoneNo: {
-              contains: phoneNo,
-              mode: 'insensitive',
-            },
-          }
-        : {}),
-      ...(name
-        ? {
-            name: {
-              contains: name,
-              mode: 'insensitive',
-            },
+            OR: [
+              { phoneNo: { contains: searchTerm, mode: 'insensitive' } },
+              { name: { contains: searchTerm, mode: 'insensitive' } },
+              { email: { contains: searchTerm, mode: 'insensitive' } },
+            ],
           }
         : {}),
     }

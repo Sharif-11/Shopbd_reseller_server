@@ -41,7 +41,7 @@ class UserManagementController {
           name,
           password,
           email,
-        },
+        }
       )
 
       res.status(201).json({
@@ -158,7 +158,7 @@ class UserManagementController {
 
       const user = await userManagementServices.demoteSuperAdminToAdmin(
         currentAdminId!,
-        superAdminId,
+        superAdminId
       )
 
       res.status(200).json({
@@ -181,7 +181,7 @@ class UserManagementController {
 
       const user = await userManagementServices.promoteAdminToSuperAdmin(
         currentAdminId!,
-        adminId,
+        adminId
       )
 
       res.status(200).json({
@@ -380,7 +380,7 @@ class UserManagementController {
   async assignPermissionToRole(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const adminId = req.user?.userId
@@ -412,7 +412,7 @@ class UserManagementController {
   async assignMultiplePermissionsToRole(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const adminId = req.user?.userId
@@ -463,82 +463,18 @@ class UserManagementController {
   /**
    * Block a user
    */
-  async blockUser(req: Request, res: Response, next: NextFunction) {
-    try {
-      const adminId = req.user?.userId
-      const { userPhoneNo, reason, actionTypes, expiresAt } = req.body
-
-      const block = await userManagementServices.blockUser(adminId!, {
-        userPhoneNo,
-        reason,
-        actionTypes,
-        expiresAt,
-      })
-
-      res.status(200).json({
-        statusCode: 200,
-        message: 'User blocked successfully',
-        success: true,
-        data: block,
-      })
-    } catch (error) {
-      next(error)
-    }
-  }
-
-  /**
-   * Unblock a user
-   */
-  async unblockUser(req: Request, res: Response, next: NextFunction) {
-    try {
-      const adminId = req.user?.userId
-      const { phoneNo, actionTypes } = req.body
-      const block = await userManagementServices.unblockUser({
-        userPhoneNo: phoneNo,
-        actionTypes,
-        adminId: adminId!,
-      })
-
-      res.status(200).json({
-        statusCode: 200,
-        message: 'User unblocked successfully',
-        success: true,
-        data: block,
-      })
-    } catch (error) {
-      next(error)
-    }
-  }
 
   /**
    * Check if user is blocked for specific action
    */
-  async isUserBlocked(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { userPhoneNo, actionType } = req.body
 
-      const isBlocked = await userManagementServices.isUserBlocked(
-        userPhoneNo,
-        actionType,
-      )
-
-      res.status(200).json({
-        statusCode: 200,
-        message: isBlocked ? 'User is blocked' : 'User is not blocked',
-        success: true,
-        data: { isBlocked },
-      })
-    } catch (error) {
-      next(error)
-    }
-  }
   /**
    * Add referral code to the seller
    */
   async addReferralCodeToSeller(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const { referralCode } = req.body
@@ -547,7 +483,7 @@ class UserManagementController {
       const updatedSeller =
         await userManagementServices.addReferralCodeToSeller(
           sellerId!,
-          referralCode,
+          referralCode
         )
 
       res.status(200).json({
@@ -564,7 +500,7 @@ class UserManagementController {
     try {
       const currentAdminId = req.user?.userId // Assuming user ID is in request
       //after auth middleware
-      const { page = 1, limit = 10, role, name, phoneNo } = req.query
+      const { page = 1, limit = 10, role, searchTerm } = req.query
       const users = await userManagementServices.getAllUsers({
         adminId: currentAdminId!,
         ...req.query,

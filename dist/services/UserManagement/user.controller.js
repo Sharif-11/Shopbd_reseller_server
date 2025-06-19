@@ -462,76 +462,9 @@ class UserManagementController {
     /**
      * Block a user
      */
-    blockUser(req, res, next) {
-        return __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            try {
-                const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { userPhoneNo, reason, actionTypes, expiresAt } = req.body;
-                const block = yield user_services_1.default.blockUser(adminId, {
-                    userPhoneNo,
-                    reason,
-                    actionTypes,
-                    expiresAt,
-                });
-                res.status(200).json({
-                    statusCode: 200,
-                    message: 'User blocked successfully',
-                    success: true,
-                    data: block,
-                });
-            }
-            catch (error) {
-                next(error);
-            }
-        });
-    }
-    /**
-     * Unblock a user
-     */
-    unblockUser(req, res, next) {
-        return __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            try {
-                const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { phoneNo, actionTypes } = req.body;
-                const block = yield user_services_1.default.unblockUser({
-                    userPhoneNo: phoneNo,
-                    actionTypes,
-                    adminId: adminId,
-                });
-                res.status(200).json({
-                    statusCode: 200,
-                    message: 'User unblocked successfully',
-                    success: true,
-                    data: block,
-                });
-            }
-            catch (error) {
-                next(error);
-            }
-        });
-    }
     /**
      * Check if user is blocked for specific action
      */
-    isUserBlocked(req, res, next) {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                const { userPhoneNo, actionType } = req.body;
-                const isBlocked = yield user_services_1.default.isUserBlocked(userPhoneNo, actionType);
-                res.status(200).json({
-                    statusCode: 200,
-                    message: isBlocked ? 'User is blocked' : 'User is not blocked',
-                    success: true,
-                    data: { isBlocked },
-                });
-            }
-            catch (error) {
-                next(error);
-            }
-        });
-    }
     /**
      * Add referral code to the seller
      */
@@ -560,7 +493,7 @@ class UserManagementController {
             try {
                 const currentAdminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId; // Assuming user ID is in request
                 //after auth middleware
-                const { page = 1, limit = 10, role, name, phoneNo } = req.query;
+                const { page = 1, limit = 10, role, searchTerm } = req.query;
                 const users = yield user_services_1.default.getAllUsers(Object.assign({ adminId: currentAdminId }, req.query));
                 res.status(200).json({
                     statusCode: 200,

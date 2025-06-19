@@ -8,6 +8,7 @@ const auth_route_1 = __importDefault(require("../services/Auth/auth.route"));
 const ftp_routes_1 = __importDefault(require("../services/FtpFileUpload/ftp.routes"));
 const product_routes_1 = __importDefault(require("../services/ProductManagement/product.routes"));
 const shopCategory_routes_1 = require("../services/ProductManagement/shopCategory.routes");
+const block_routes_1 = __importDefault(require("../services/UserManagement/Block Management/block.routes"));
 const wallet_routes_1 = __importDefault(require("../services/WalletManagement/wallet.routes"));
 class GlobalRoutes {
     constructor() {
@@ -17,6 +18,7 @@ class GlobalRoutes {
             { path: '/auth', route: auth_route_1.default },
             { path: '/wallets', route: wallet_routes_1.default },
             { path: '/shops', route: shopCategory_routes_1.shopRouter },
+            { path: '/block', route: block_routes_1.default },
             { path: '/categories', route: shopCategory_routes_1.categoryRouter },
             { path: '/shop-categories', route: shopCategory_routes_1.shopCategoryAssignmentRouter },
             {

@@ -173,20 +173,31 @@ model UserRole {
 }
 
 model Block {
-  blockId     String            @id @default(cuid())
+  blockId     String       @id @default(cuid())
   userName    String
   userPhoneNo String
-  reason      String?
-  actionTypes BlockActionType[]
-  blockedAt   DateTime          @default(now())
-  isActive    Boolean           @default(true)
-  expiresAt   DateTime?
+  actions     BlockAction[] // One-to-many relationship with BlockAction
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   @@index([userPhoneNo], name: "blockUserPhoneIndex")
-  // Removed the unique constraint with actionTypes as it may not work as expected
   @@map("blocks")
 }
 
+model BlockAction {
+  actionId    String            @id @default(cuid())
+  block       Block             @relation(fields: [blockId], references: [blockId])
+  blockId     String
+  actionType  BlockActionType
+  reason      String?
+  expiresAt   DateTime?
+  createdAt   DateTime          @default(now())
+
+  // Properly define the composite unique constraint
+  @@unique([blockId, actionType])
+  @@map("block_actions")
+}
 // ======================
 // RELATIONSHIP DIAGRAM
 // ======================

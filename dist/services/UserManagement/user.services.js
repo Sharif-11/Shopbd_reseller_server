@@ -784,62 +784,6 @@ class UserManagementServices {
     /**
      * Block a user
      */
-    blockUser(adminId, input) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.BLOCK);
-            const user = yield prisma_1.default.user.findUnique({
-                where: { phoneNo: input.userPhoneNo },
-            });
-            if (!user) {
-                throw new ApiError_1.default(404, 'User not found');
-            }
-            return yield prisma_1.default.block.create({
-                data: {
-                    userPhoneNo: input.userPhoneNo,
-                    userName: user.name,
-                    reason: input.reason,
-                    actionTypes: input.actionTypes,
-                    expiresAt: input.expiresAt,
-                    isActive: true,
-                },
-            });
-        });
-    }
-    /**
-     * Unblock a user
-     */
-    unblockUser(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ adminId, actionTypes, userPhoneNo, }) {
-            yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.BLOCK);
-            // Find all active blocks for this user
-            const blocks = yield prisma_1.default.block.findMany({
-                where: {
-                    userPhoneNo,
-                    isActive: true,
-                },
-            });
-            if (!blocks.length) {
-                throw new ApiError_1.default(404, 'No active blocks found for this user');
-            }
-            // Process each block to remove the specified action types
-            const results = [];
-            for (const block of blocks) {
-                // Filter out the action types we want to remove
-                const remainingActionTypes = block.actionTypes.filter(type => !actionTypes.includes(type));
-                // If no action types left, deactivate the entire block
-                // Otherwise, just update the action types
-                const updateData = remainingActionTypes.length === 0
-                    ? { isActive: false }
-                    : { actionTypes: remainingActionTypes };
-                const result = yield prisma_1.default.block.update({
-                    where: { blockId: block.blockId },
-                    data: updateData,
-                });
-                results.push(result);
-            }
-            return results;
-        });
-    }
     // ==========================================
     // HELPER METHODS
     // ==========================================
@@ -903,50 +847,19 @@ class UserManagementServices {
         });
     }
     //add another helper method to test if a user is blocked for some action
-    isUserBlocked(userPhoneNo, actionType) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const block = yield prisma_1.default.block.findFirst({
-                where: {
-                    userPhoneNo,
-                    isActive: true,
-                    AND: [
-                        {
-                            OR: [
-                                { actionTypes: { has: actionType } },
-                                { actionTypes: { has: client_1.BlockActionType.ALL } }, // Check for ALL action type
-                            ],
-                        },
-                        {
-                            OR: [
-                                { expiresAt: { gt: new Date() } },
-                                { expiresAt: null }, // Handle never-expiring blocks
-                            ],
-                        },
-                    ],
-                },
-            });
-            return !!block;
-        });
-    }
     // Fetching all users with pagination, filtering by role, phone number, name along with all roles, permissions and wallets
     getAllUsers(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ adminId, page = 1, limit = 10, role, phoneNo, name, }) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, page = 1, limit = 10, role, searchTerm, }) {
             // check permissions
             yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.READ);
             const skip = (page - 1) * limit;
-            const where = Object.assign(Object.assign(Object.assign({}, (role ? { role: role } : {})), (phoneNo
+            const where = Object.assign(Object.assign({}, (role ? { role: role } : {})), (searchTerm
                 ? {
-                    phoneNo: {
-                        contains: phoneNo,
-                        mode: 'insensitive',
-                    },
-                }
-                : {})), (name
-                ? {
-                    name: {
-                        contains: name,
-                        mode: 'insensitive',
-                    },
+                    OR: [
+                        { phoneNo: { contains: searchTerm, mode: 'insensitive' } },
+                        { name: { contains: searchTerm, mode: 'insensitive' } },
+                        { email: { contains: searchTerm, mode: 'insensitive' } },
+                    ],
                 }
                 : {}));
             const [users, totalCount] = yield prisma_1.default.$transaction([

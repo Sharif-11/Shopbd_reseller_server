@@ -164,19 +164,12 @@ class AuthRouter {
       validateRequest,
       userManagementControllers.assignRoleToUser
     )
-    this.router.post(
-      '/block-user',
-      isAuthenticated,
-      userManagementControllers.blockUser
-    )
-    this.router.post(
-      '/unblock-user',
-      isAuthenticated,
-      userManagementControllers.unblockUser
-    )
+
     this.router.get(
       '/get-all-users',
       isAuthenticated,
+      UserManagementValidator.getAllUsers(),
+      validateRequest,
       userManagementControllers.getAllUsers
     )
     // route for logout and verify already logged in user

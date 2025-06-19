@@ -7,6 +7,7 @@ import {
   shopCategoryAssignmentRouter,
   shopRouter,
 } from '../services/ProductManagement/shopCategory.routes'
+import blockRoutes from '../services/UserManagement/Block Management/block.routes'
 import walletRoutes from '../services/WalletManagement/wallet.routes'
 
 class GlobalRoutes {
@@ -20,6 +21,7 @@ class GlobalRoutes {
       { path: '/auth', route: authRoute },
       { path: '/wallets', route: walletRoutes },
       { path: '/shops', route: shopRouter },
+      { path: '/block', route: blockRoutes },
       { path: '/categories', route: categoryRouter },
       { path: '/shop-categories', route: shopCategoryAssignmentRouter },
       {

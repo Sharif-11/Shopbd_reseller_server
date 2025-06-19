@@ -348,5 +348,30 @@ class UserManagementValidator {
                 .withMessage('সুপার অ্যাডমিন আইডি অবশ্যই স্ট্রিং হতে হবে'),
         ];
     }
+    static getAllUsers() {
+        return [
+            (0, express_validator_1.query)('page')
+                .optional()
+                .isInt({ min: 1 })
+                .withMessage('Page must be a positive integer')
+                .toInt(),
+            (0, express_validator_1.query)('limit')
+                .optional()
+                .isInt({ min: 1, max: 100 })
+                .withMessage('Limit must be an integer between 1 and 100')
+                .toInt(),
+            (0, express_validator_1.query)('role')
+                .optional()
+                .isString()
+                .withMessage('Role must be a string')
+                .trim(),
+            (0, express_validator_1.query)('searchTerm')
+                .optional()
+                .isString()
+                .withMessage('Search term must be a string')
+                .trim()
+                .escape(),
+        ];
+    }
 }
 exports.default = UserManagementValidator;

@@ -65,7 +65,7 @@ type AssignRoleInput = {
 type BlockUserInput = {
   userPhoneNo: string
   reason?: string
-  actionTypes: BlockActionType[]
+  actionType: BlockActionType
   expiresAt?: Date
 }
 export {
