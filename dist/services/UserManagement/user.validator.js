@@ -360,11 +360,22 @@ class UserManagementValidator {
                 .isInt({ min: 1, max: 100 })
                 .withMessage('Limit must be an integer between 1 and 100')
                 .toInt(),
+            // role is a string or array of strings
             (0, express_validator_1.query)('role')
                 .optional()
-                .isString()
-                .withMessage('Role must be a string')
-                .trim(),
+                .trim()
+                .escape()
+                .custom((value, { req }) => {
+                if (req.query) {
+                    if (Array.isArray(value)) {
+                        req.query.role = value.map(role => role.trim());
+                    }
+                    else {
+                        req.query.role = [value.trim()];
+                    }
+                }
+                return true;
+            }),
             (0, express_validator_1.query)('searchTerm')
                 .optional()
                 .isString()

@@ -75,6 +75,7 @@ class UserManagementController {
             try {
                 const currentAdminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { phoneNo, name, password, email } = req.body;
+                console.log(currentAdminId);
                 const user = yield user_services_1.default.createAdmin(currentAdminId, {
                     phoneNo,
                     name,

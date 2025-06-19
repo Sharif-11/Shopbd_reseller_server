@@ -28,9 +28,9 @@ class AuthRouter {
     initializeUserManagementRoutes() {
         // Super Admin routes
         this.router.post('/first-super-admin', user_validator_1.default.createFirstSuperAdmin(), validation_middleware_1.default, user_controller_1.default.createFirstSuperAdmin);
-        this.router.post('/super-admin', user_validator_1.default.createSuperAdmin(), validation_middleware_1.default, user_controller_1.default.createSuperAdmin);
+        this.router.post('/super-admin', auth_middlewares_1.isAuthenticated, user_validator_1.default.createSuperAdmin(), validation_middleware_1.default, user_controller_1.default.createSuperAdmin);
         // Admin routes (require authentication)
-        this.router.post('/admin', user_validator_1.default.createAdmin(), validation_middleware_1.default, user_controller_1.default.createAdmin);
+        this.router.post('/admin', auth_middlewares_1.isAuthenticated, user_validator_1.default.createAdmin(), validation_middleware_1.default, user_controller_1.default.createAdmin);
         // Seller routes
         this.router.post('/seller', user_validator_1.default.createSeller(), validation_middleware_1.default, user_controller_1.default.createSeller);
         // Customer routes

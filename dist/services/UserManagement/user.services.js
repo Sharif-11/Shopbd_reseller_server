@@ -889,7 +889,11 @@ class UserManagementServices {
             // check permissions
             yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.READ);
             const skip = (page - 1) * limit;
-            const where = Object.assign(Object.assign({}, (role ? { role: role } : {})), (searchTerm
+            const where = Object.assign(Object.assign({}, (role
+                ? Array.isArray(role)
+                    ? { role: { in: role } }
+                    : { role: role }
+                : {})), (searchTerm
                 ? {
                     OR: [
                         { phoneNo: { contains: searchTerm, mode: 'insensitive' } },

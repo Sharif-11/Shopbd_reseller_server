@@ -59,6 +59,7 @@ class AuthRouter {
     )
     this.router.post(
       '/super-admin',
+      isAuthenticated,
       UserManagementValidator.createSuperAdmin(),
       validateRequest,
       userManagementControllers.createSuperAdmin
@@ -67,6 +68,7 @@ class AuthRouter {
     // Admin routes (require authentication)
     this.router.post(
       '/admin',
+      isAuthenticated,
       UserManagementValidator.createAdmin(),
       validateRequest,
       userManagementControllers.createAdmin

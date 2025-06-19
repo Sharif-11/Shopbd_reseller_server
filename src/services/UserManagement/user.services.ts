@@ -1029,7 +1029,7 @@ class UserManagementServices {
     adminId: string
     page?: number
     limit?: number
-    role?: UserType
+    role?: UserType | UserType[]
     searchTerm?: string
   }) {
     // check permissions
@@ -1041,7 +1041,11 @@ class UserManagementServices {
     const skip = (page - 1) * limit
 
     const where: Prisma.UserWhereInput = {
-      ...(role ? { role: role } : {}),
+      ...(role
+        ? Array.isArray(role)
+          ? { role: { in: role } }
+          : { role: role }
+        : {}),
       ...(searchTerm
         ? {
             OR: [

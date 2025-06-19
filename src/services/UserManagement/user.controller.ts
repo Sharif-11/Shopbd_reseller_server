@@ -62,6 +62,7 @@ class UserManagementController {
     try {
       const currentAdminId = req.user?.userId
       const { phoneNo, name, password, email } = req.body
+      console.log(currentAdminId)
 
       const user = await userManagementServices.createAdmin(currentAdminId!, {
         phoneNo,
