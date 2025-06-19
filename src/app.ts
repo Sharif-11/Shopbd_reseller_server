@@ -1,7 +1,6 @@
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express, { Application } from 'express'
-import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 
 import config from './config'
@@ -14,13 +13,13 @@ const app: Application = express()
 app.use(helmet())
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false,
-})
-app.use(limiter)
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 100, // limit each IP to 100 requests per windowMs
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// })
+// app.use(limiter)
 
 // Body parsing middleware
 app.use(express.json({ limit: '10kb' }))
