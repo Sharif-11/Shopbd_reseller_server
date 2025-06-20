@@ -91,12 +91,14 @@ class AuthRouter {
     )
     this.router.patch(
       '/demote-super-admin',
+      isAuthenticated,
       UserManagementValidator.demoteSuperAdmin(),
       validateRequest,
       userManagementControllers.demoteSuperAdmin
     )
     this.router.patch(
       '/promote-admin',
+      isAuthenticated,
       UserManagementValidator.promoteAdmin(),
       validateRequest,
       userManagementControllers.promoteAdmin

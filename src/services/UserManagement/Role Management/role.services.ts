@@ -17,7 +17,7 @@ class RoleService {
     return await prisma.role.findMany({
       where: {
         roleName: {
-          notIn: ['SuperAdmin', 'Seller'],
+          notIn: ['SuperAdmin', 'Seller', 'Admin'],
         },
       },
       include: {

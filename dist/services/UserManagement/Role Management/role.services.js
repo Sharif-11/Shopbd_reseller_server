@@ -27,7 +27,7 @@ class RoleService {
             return yield prisma_1.default.role.findMany({
                 where: {
                     roleName: {
-                        notIn: ['SuperAdmin', 'Seller'],
+                        notIn: ['SuperAdmin', 'Seller', 'Admin'],
                     },
                 },
                 include: {

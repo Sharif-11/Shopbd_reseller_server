@@ -181,6 +181,10 @@ class UserManagementController {
             try {
                 const currentAdminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { adminId } = req.body;
+                console.log({
+                    currentAdminId,
+                    adminId,
+                });
                 const user = yield user_services_1.default.promoteAdminToSuperAdmin(currentAdminId, adminId);
                 res.status(200).json({
                     statusCode: 200,

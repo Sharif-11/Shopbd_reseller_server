@@ -35,8 +35,8 @@ class AuthRouter {
         this.router.post('/seller', user_validator_1.default.createSeller(), validation_middleware_1.default, user_controller_1.default.createSeller);
         // Customer routes
         this.router.post('/customer', user_validator_1.default.createCustomer(), validation_middleware_1.default, user_controller_1.default.createCustomer);
-        this.router.patch('/demote-super-admin', user_validator_1.default.demoteSuperAdmin(), validation_middleware_1.default, user_controller_1.default.demoteSuperAdmin);
-        this.router.patch('/promote-admin', user_validator_1.default.promoteAdmin(), validation_middleware_1.default, user_controller_1.default.promoteAdmin);
+        this.router.patch('/demote-super-admin', auth_middlewares_1.isAuthenticated, user_validator_1.default.demoteSuperAdmin(), validation_middleware_1.default, user_controller_1.default.demoteSuperAdmin);
+        this.router.patch('/promote-admin', auth_middlewares_1.isAuthenticated, user_validator_1.default.promoteAdmin(), validation_middleware_1.default, user_controller_1.default.promoteAdmin);
         // Login route
         this.router.post('/login', user_validator_1.default.login(), validation_middleware_1.default, user_controller_1.default.login);
         // Password reset

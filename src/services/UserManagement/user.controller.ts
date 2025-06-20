@@ -179,6 +179,10 @@ class UserManagementController {
     try {
       const currentAdminId = req.user?.userId
       const { adminId } = req.body
+      console.log({
+        currentAdminId,
+        adminId,
+      })
 
       const user = await userManagementServices.promoteAdminToSuperAdmin(
         currentAdminId!,
