@@ -42,9 +42,7 @@ class RoleValidator {
                 .withMessage('Role ID is required')
                 .isString()
                 .withMessage('Role ID must be a string'),
-            (0, express_validator_1.body)('permissions')
-                .isArray({ min: 1 })
-                .withMessage('Permissions must be a non-empty array'),
+            (0, express_validator_1.body)('permissions').isArray().withMessage('Permissions must be an array'),
         ];
     }
     static getUserRoles() {

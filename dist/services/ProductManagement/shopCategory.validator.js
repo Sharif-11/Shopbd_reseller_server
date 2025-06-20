@@ -117,10 +117,10 @@ class ShopCategoryValidator {
                 .trim(),
             // Optional field
             (0, express_validator_1.body)('shopIcon')
-                .optional() // Made optional
+                .optional({ checkFalsy: true }) // Made optional
+                .trim()
                 .isURL()
-                .withMessage('সঠিক আইকন URL প্রদান করুন')
-                .trim(),
+                .withMessage('সঠিক আইকন URL প্রদান করুন'),
             (0, express_validator_1.body)('isActive')
                 .notEmpty()
                 .withMessage('সক্রিয় অবস্থা প্রয়োজন')

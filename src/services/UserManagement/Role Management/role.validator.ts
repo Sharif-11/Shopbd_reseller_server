@@ -43,9 +43,7 @@ class RoleValidator {
         .withMessage('Role ID is required')
         .isString()
         .withMessage('Role ID must be a string'),
-      body('permissions')
-        .isArray({ min: 1 })
-        .withMessage('Permissions must be a non-empty array'),
+      body('permissions').isArray().withMessage('Permissions must be an array'),
     ]
   }
 

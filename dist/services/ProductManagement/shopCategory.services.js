@@ -75,7 +75,7 @@ class ShopCategoryServices {
     getAllShopsForAdmin(userId_1) {
         return __awaiter(this, arguments, void 0, function* (userId, page = 1, limit = 10, shopName) {
             // check permissions for admin
-            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.READ);
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.READ);
             const skip = (page - 1) * limit;
             const where = Object.assign({}, (shopName && {
                 shopName: { contains: shopName, mode: 'insensitive' },
@@ -106,7 +106,7 @@ class ShopCategoryServices {
     }
     updateShop(userId, shopId, data) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.UPDATE);
             // Verify shop exists
             const shopExists = yield prisma_1.default.shop.findUnique({ where: { shopId } });
             if (!shopExists)
@@ -204,7 +204,8 @@ class ShopCategoryServices {
         });
     }
     getAllCategories() {
-        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, name, subCategories = false) {
+        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, name, subCategories = false // Whether to include subcategories in the result
+        ) {
             const skip = (page - 1) * limit;
             const where = Object.assign({}, (name && {
                 name: { contains: name, mode: 'insensitive' },
