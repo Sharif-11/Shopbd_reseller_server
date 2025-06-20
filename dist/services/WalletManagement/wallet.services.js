@@ -18,6 +18,7 @@ const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
+const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 class WalletServices {
     /**
      * Generate Random Otp
@@ -255,7 +256,7 @@ class WalletServices {
                 update: newOtpRecord,
                 create: newOtpRecord,
             });
-            // await SmsServices.sendOtp(wallet.walletPhoneNo, otp)
+            yield sms_services_1.default.sendOtp(walletPhoneNo, otp);
             return {
                 sendOTP: true,
                 isBlocked: false,

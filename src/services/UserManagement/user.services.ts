@@ -14,8 +14,9 @@ import jwt from 'jsonwebtoken'
 import config from '../../config'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
-import otpServices from '../otp/otp.services'
+import otpServices from '../Utility Services/otp.services'
 
+import SmsServices from '../Utility Services/Sms Service/sms.services'
 import {
   AssignPermissionInput,
   AssignRoleInput,
@@ -199,6 +200,12 @@ class UserManagementServices {
       const { password, ...userWithoutPassword } = user
       return userWithoutPassword
     })
+  }
+  async checkSuperAdminExists(): Promise<boolean> {
+    const superAdmin = await prisma.user.findFirst({
+      where: { role: UserType.SuperAdmin },
+    })
+    return !!superAdmin
   }
 
   async createAdmin(
@@ -666,14 +673,17 @@ class UserManagementServices {
 
     const hashedPassword = await this.hashPassword(newPassword)
 
-    // await smsServices.sendSms({ phoneNo: user.phoneNo, message: `Your new password is: ${newPassword}` })
-    const updatedUser = await prisma.user.update({
-      where: { phoneNo },
-      data: {
-        password: hashedPassword,
-        passwordSendsAt: new Date(),
-        totalPasswordResetRequests: { increment: 1 },
-      },
+    const updatedUser = await prisma.$transaction(async tx => {
+      await SmsServices.sendPassword(user.phoneNo, newPassword)
+      const updatedUser = await tx.user.update({
+        where: { phoneNo },
+        data: {
+          password: hashedPassword,
+          passwordSendsAt: new Date(),
+          totalPasswordResetRequests: { increment: 1 },
+        },
+      })
+      return updatedUser
     })
 
     const { password, ...userWithoutPassword } = updatedUser

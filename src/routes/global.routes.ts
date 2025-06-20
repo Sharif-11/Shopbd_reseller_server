@@ -9,6 +9,7 @@ import {
 } from '../services/ProductManagement/shopCategory.routes'
 import blockRoutes from '../services/UserManagement/Block Management/block.routes'
 import roleRoutes from '../services/UserManagement/Role Management/role.routes'
+import smsRoutes from '../services/Utility Services/Sms Service/sms.routes'
 import walletRoutes from '../services/WalletManagement/wallet.routes'
 
 class GlobalRoutes {
@@ -24,6 +25,7 @@ class GlobalRoutes {
       { path: '/shops', route: shopRouter },
       { path: '/block', route: blockRoutes },
       { path: '/roles', route: roleRoutes },
+      { path: '/sms', route: smsRoutes },
       { path: '/categories', route: categoryRouter },
       { path: '/shop-categories', route: shopCategoryAssignmentRouter },
       {

@@ -10,6 +10,7 @@ import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userManagementServices from '../UserManagement/user.services'
+import SmsServices from '../Utility Services/Sms Service/sms.services'
 
 class WalletServices {
   /**
@@ -326,7 +327,7 @@ class WalletServices {
       create: newOtpRecord,
     })
 
-    // await SmsServices.sendOtp(wallet.walletPhoneNo, otp)
+    await SmsServices.sendOtp(walletPhoneNo, otp)
     return {
       sendOTP: true,
       isBlocked: false,

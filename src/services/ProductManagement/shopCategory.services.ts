@@ -183,7 +183,7 @@ class ShopCategoryServices {
     console.log(`Opening/Closing shop ${shopId} with status ${isActive}`)
     await userManagementService.verifyUserPermission(
       userId,
-      PermissionType.ORDER_MANAGEMENT,
+      PermissionType.PRODUCT_MANAGEMENT,
       ActionType.UPDATE
     )
 
@@ -212,7 +212,7 @@ class ShopCategoryServices {
   ): Promise<Category> {
     await userManagementService.verifyUserPermission(
       userId,
-      PermissionType.ORDER_MANAGEMENT,
+      PermissionType.PRODUCT_MANAGEMENT,
       ActionType.CREATE
     )
 
@@ -247,7 +247,7 @@ class ShopCategoryServices {
   ): Promise<Category> {
     await userManagementService.verifyUserPermission(
       userId,
-      PermissionType.ORDER_MANAGEMENT,
+      PermissionType.PRODUCT_MANAGEMENT,
       ActionType.UPDATE
     )
 
@@ -352,7 +352,7 @@ class ShopCategoryServices {
   ): Promise<void> {
     await userManagementService.verifyUserPermission(
       userId,
-      PermissionType.ORDER_MANAGEMENT,
+      PermissionType.PRODUCT_MANAGEMENT,
       ActionType.DELETE
     )
 
@@ -455,7 +455,7 @@ class ShopCategoryServices {
   ): Promise<ShopCategory> {
     await userManagementService.verifyUserPermission(
       userId,
-      PermissionType.ORDER_MANAGEMENT,
+      PermissionType.PRODUCT_MANAGEMENT,
       ActionType.UPDATE
     )
 
@@ -483,7 +483,7 @@ class ShopCategoryServices {
   ): Promise<void> {
     await userManagementService.verifyUserPermission(
       userId,
-      PermissionType.ORDER_MANAGEMENT,
+      PermissionType.PRODUCT_MANAGEMENT,
       ActionType.DELETE
     )
 

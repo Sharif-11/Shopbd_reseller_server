@@ -521,6 +521,20 @@ class UserManagementController {
       next(error)
     }
   }
+  async checkSuperAdminExists(req: Request, res: Response, next: NextFunction) {
+    try {
+      const exists = await userManagementServices.checkSuperAdminExists()
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Super Admin existence checked successfully',
+        success: true,
+        data: { exists },
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new UserManagementController()

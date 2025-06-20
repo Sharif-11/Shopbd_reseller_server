@@ -32,7 +32,8 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = __importDefault(require("../../config"));
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
-const otp_services_1 = __importDefault(require("../otp/otp.services"));
+const otp_services_1 = __importDefault(require("../Utility Services/otp.services"));
+const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 class UserManagementServices {
     // create a private method to hash passwords
     hashPassword(password) {
@@ -179,6 +180,14 @@ class UserManagementServices {
                 const { password } = user, userWithoutPassword = __rest(user, ["password"]);
                 return userWithoutPassword;
             }));
+        });
+    }
+    checkSuperAdminExists() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const superAdmin = yield prisma_1.default.user.findFirst({
+                where: { role: client_1.UserType.SuperAdmin },
+            });
+            return !!superAdmin;
         });
     }
     createAdmin(currentAdminId, input) {
@@ -580,15 +589,18 @@ class UserManagementServices {
             const newPassword = this.generateRandomPassword();
             console.log('Generated new password:', newPassword);
             const hashedPassword = yield this.hashPassword(newPassword);
-            // await smsServices.sendSms({ phoneNo: user.phoneNo, message: `Your new password is: ${newPassword}` })
-            const updatedUser = yield prisma_1.default.user.update({
-                where: { phoneNo },
-                data: {
-                    password: hashedPassword,
-                    passwordSendsAt: new Date(),
-                    totalPasswordResetRequests: { increment: 1 },
-                },
-            });
+            const updatedUser = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                yield sms_services_1.default.sendPassword(user.phoneNo, newPassword);
+                const updatedUser = yield tx.user.update({
+                    where: { phoneNo },
+                    data: {
+                        password: hashedPassword,
+                        passwordSendsAt: new Date(),
+                        totalPasswordResetRequests: { increment: 1 },
+                    },
+                });
+                return updatedUser;
+            }));
             const { password } = updatedUser, userWithoutPassword = __rest(updatedUser, ["password"]);
             return userWithoutPassword;
         });

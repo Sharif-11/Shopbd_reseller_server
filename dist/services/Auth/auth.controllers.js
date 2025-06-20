@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const otp_services_1 = __importDefault(require("../otp/otp.services"));
+const otp_services_1 = __importDefault(require("../Utility Services/otp.services"));
 class AuthController {
     /**
      * Send OTP to a phone number

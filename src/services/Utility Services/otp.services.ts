@@ -1,6 +1,7 @@
 import config from '../../config'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
+import SmsServices from './Sms Service/sms.services'
 
 class OtpServices {
   /**
@@ -13,10 +14,10 @@ class OtpServices {
     this.validatePhoneNumber(phoneNo)
 
     // Check if user already exists
-    // const user = await prisma.user.findUnique({ where: { phoneNo } })
-    // if (user) {
-    //   throw new ApiError(400, 'Phone number already registered with a user')
-    // }
+    const user = await prisma.user.findUnique({ where: { phoneNo } })
+    if (user) {
+      throw new ApiError(400, 'Phone number already registered with a user')
+    }
 
     // Get or create OTP record
     let otpRecord = await this.getOtpRecord(phoneNo)
@@ -71,15 +72,20 @@ class OtpServices {
 
     // Generate and send new OTP
     const otp = this.generateRandomOtp(config.otpLength)
-    otpRecord = await this.updateOtpRecord(phoneNo, {
-      otp,
-      otpCreatedAt: new Date(),
-      otpExpiresAt: new Date(Date.now() + config.otpExpiresIn),
-      totalOTP: otpRecord.totalOTP + 1,
-      failedAttempts: 0, // Reset failed attempts on new OTP
+    await prisma.$transaction(async tx => {
+      await SmsServices.sendOtp(phoneNo, otp)
+      otpRecord = await tx.otp.update({
+        where: { phoneNo },
+        data: {
+          otp,
+          otpCreatedAt: new Date(),
+          otpExpiresAt: new Date(Date.now() + config.otpExpiresIn),
+          totalOTP: otpRecord.totalOTP + 1,
+          failedAttempts: 0,
+          updatedAt: new Date(),
+        },
+      })
     })
-
-    // await SmsServices.sendOtp(phoneNo, otp)
 
     return {
       sendOTP: true,

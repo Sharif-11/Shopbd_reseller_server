@@ -6,6 +6,7 @@ import helmet from 'helmet'
 import config from './config'
 import globalErrorHandler from './middlewares/globalErrorHandler'
 import GlobalRoutes from './routes/global.routes'
+import dbController from './services/Utility Services/db.controller'
 
 const app: Application = express()
 
@@ -69,6 +70,7 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   })
 })
+app.get('/reset-database', dbController.resetDatabase)
 
 // Handle 404
 app.all('*', (req, res) => {

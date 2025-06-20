@@ -120,7 +120,7 @@ class ShopCategoryServices {
     openOrCloseShop(userId, shopId, isActive) {
         return __awaiter(this, void 0, void 0, function* () {
             console.log(`Opening/Closing shop ${shopId} with status ${isActive}`);
-            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.UPDATE);
             // Verify shop exists
             const shopExists = yield prisma_1.default.shop.findUnique({ where: { shopId } });
             if (!shopExists)
@@ -136,7 +136,7 @@ class ShopCategoryServices {
     // ==========================================
     createCategory(userId, data) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.CREATE);
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.CREATE);
             // Validate parent exists if provided
             if (data.parentId) {
                 const parentExists = yield prisma_1.default.category.count({
@@ -158,7 +158,7 @@ class ShopCategoryServices {
     }
     updateCategory(userId, categoryId, data) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.UPDATE);
             // Prevent circular references
             return prisma_1.default.category.update({
                 where: { categoryId },
@@ -232,7 +232,7 @@ class ShopCategoryServices {
     }
     deleteCategory(userId_1, categoryId_1) {
         return __awaiter(this, arguments, void 0, function* (userId, categoryId, options = {}) {
-            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.DELETE);
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.DELETE);
             // First get the category with its children
             const category = yield prisma_1.default.category.findUnique({
                 where: { categoryId },
@@ -312,7 +312,7 @@ class ShopCategoryServices {
     // ==========================================
     assignCategoryToShop(userId, shopId, categoryId) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.UPDATE);
             // Verify shop and category exist
             const [shopExists, categoryExists] = yield Promise.all([
                 prisma_1.default.shop.findUnique({ where: { shopId } }),
@@ -332,7 +332,7 @@ class ShopCategoryServices {
     }
     removeCategoryFromShop(userId, shopId, categoryId) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.DELETE);
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.DELETE);
             // Check if category is used in any products in this shop
             const productsCount = yield prisma_1.default.product.count({
                 where: {

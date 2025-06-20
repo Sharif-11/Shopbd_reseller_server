@@ -10,6 +10,7 @@ const product_routes_1 = __importDefault(require("../services/ProductManagement/
 const shopCategory_routes_1 = require("../services/ProductManagement/shopCategory.routes");
 const block_routes_1 = __importDefault(require("../services/UserManagement/Block Management/block.routes"));
 const role_routes_1 = __importDefault(require("../services/UserManagement/Role Management/role.routes"));
+const sms_routes_1 = __importDefault(require("../services/Utility Services/Sms Service/sms.routes"));
 const wallet_routes_1 = __importDefault(require("../services/WalletManagement/wallet.routes"));
 class GlobalRoutes {
     constructor() {
@@ -21,6 +22,7 @@ class GlobalRoutes {
             { path: '/shops', route: shopCategory_routes_1.shopRouter },
             { path: '/block', route: block_routes_1.default },
             { path: '/roles', route: role_routes_1.default },
+            { path: '/sms', route: sms_routes_1.default },
             { path: '/categories', route: shopCategory_routes_1.categoryRouter },
             { path: '/shop-categories', route: shopCategory_routes_1.shopCategoryAssignmentRouter },
             {

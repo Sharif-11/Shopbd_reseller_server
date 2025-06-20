@@ -2,7 +2,10 @@
 import { Router } from 'express'
 import { isAuthenticated } from '../../middlewares/auth.middlewares'
 import validateRequest from '../../middlewares/validation.middleware'
-import userManagementControllers from '../UserManagement/user.controller'
+import {
+  default as userController,
+  default as userManagementControllers,
+} from '../UserManagement/user.controller'
 import UserManagementValidator from '../UserManagement/user.validator'
 import authControllers from './auth.controllers'
 import AuthValidator from './auth.validator'
@@ -50,6 +53,7 @@ class AuthRouter {
   }
 
   protected initializeUserManagementRoutes(): void {
+    this.router.get('/check-super-admin', userController.checkSuperAdminExists)
     // Super Admin routes
     this.router.post(
       '/first-super-admin',

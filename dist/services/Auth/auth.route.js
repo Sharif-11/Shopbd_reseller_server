@@ -26,6 +26,7 @@ class AuthRouter {
         this.initializeUserManagementRoutes();
     }
     initializeUserManagementRoutes() {
+        this.router.get('/check-super-admin', user_controller_1.default.checkSuperAdminExists);
         // Super Admin routes
         this.router.post('/first-super-admin', user_validator_1.default.createFirstSuperAdmin(), validation_middleware_1.default, user_controller_1.default.createFirstSuperAdmin);
         this.router.post('/super-admin', auth_middlewares_1.isAuthenticated, user_validator_1.default.createSuperAdmin(), validation_middleware_1.default, user_controller_1.default.createSuperAdmin);

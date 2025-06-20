@@ -512,5 +512,21 @@ class UserManagementController {
             }
         });
     }
+    checkSuperAdminExists(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const exists = yield user_services_1.default.checkSuperAdminExists();
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Super Admin existence checked successfully',
+                    success: true,
+                    data: { exists },
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new UserManagementController();

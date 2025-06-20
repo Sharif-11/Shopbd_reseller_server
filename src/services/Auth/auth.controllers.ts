@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express'
-import otpServices from '../otp/otp.services'
+import otpServices from '../Utility Services/otp.services'
 
 class AuthController {
   /**
