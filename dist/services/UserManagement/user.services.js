@@ -581,7 +581,8 @@ class UserManagementServices {
             if (isBlocked) {
                 throw new ApiError_1.default(403, 'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।');
             }
-            if (user.totalPasswordResetRequests >= config_1.default.maxForgotPasswordAttempts) {
+            if (user.totalPasswordResetRequests >= config_1.default.maxForgotPasswordAttempts &&
+                user.role !== client_1.UserType.SuperAdmin) {
                 if (user.role === 'Seller') {
                     // create a  block action for the seller and reset totalPasswordResetRequests within transaction
                     yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {

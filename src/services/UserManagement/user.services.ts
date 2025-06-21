@@ -669,7 +669,10 @@ class UserManagementServices {
         'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।',
       )
     }
-    if (user.totalPasswordResetRequests >= config.maxForgotPasswordAttempts) {
+    if (
+      user.totalPasswordResetRequests >= config.maxForgotPasswordAttempts &&
+      user.role !== UserType.SuperAdmin
+    ) {
       if (user.role === 'Seller') {
         // create a  block action for the seller and reset totalPasswordResetRequests within transaction
         await prisma.$transaction(async tx => {
