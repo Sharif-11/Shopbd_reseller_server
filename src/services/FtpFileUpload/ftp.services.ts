@@ -36,12 +36,23 @@ class FTPUploader {
    */
   public async upload(
     fileBuffer: Buffer,
-    remoteFileName: string
+    remoteFileName: string,
   ): Promise<string> {
     try {
       await this.connect()
       await this.uploadFile(fileBuffer, remoteFileName)
       return this.getFileUrl(remoteFileName)
+    } finally {
+      this.close()
+    }
+  }
+  public async deleteFile(remoteFileName: string): Promise<void> {
+    try {
+      await this.connect()
+      await this.client.remove(remoteFileName)
+    } catch (error) {
+      console.error(`Failed to delete file ${remoteFileName}:`, error)
+      throw error
     } finally {
       this.close()
     }
@@ -66,7 +77,7 @@ class FTPUploader {
    */
   private async uploadFile(
     fileBuffer: Buffer,
-    remoteFileName: string
+    remoteFileName: string,
   ): Promise<void> {
     const bufferStream = new stream.PassThrough()
     bufferStream.end(fileBuffer)

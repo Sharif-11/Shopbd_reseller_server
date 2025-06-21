@@ -7,6 +7,7 @@ import {
 } from '@prisma/client'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
+import { ftpUploader } from '../FtpFileUpload/ftp.services'
 import userManagementService from '../UserManagement/user.services'
 
 class ProductServices {
@@ -172,33 +173,16 @@ class ProductServices {
   async addImages(
     userId: string,
     productId: number,
-    images: { url: string; isPrimary?: boolean; hidden?: boolean }[],
+    images: { url: string; hidden?: boolean }[],
   ) {
     await this.verifyProductPermission(userId, ActionType.CREATE)
 
-    // Validation: Must have exactly one primary if adding images
-    const primaryCount = images.filter(img => img.isPrimary).length
-    if (images.length > 0 && primaryCount !== 1) {
-      throw new ApiError(400, 'Exactly one image must be marked as primary')
-    }
-
-    return prisma.$transaction(async tx => {
-      // Reset existing primary if needed
-      if (primaryCount > 0) {
-        await tx.productImage.updateMany({
-          where: { productId, isPrimary: true },
-          data: { isPrimary: false },
-        })
-      }
-
-      return tx.productImage.createMany({
-        data: images.map(img => ({
-          productId,
-          imageUrl: img.url,
-          isPrimary: img.isPrimary || false,
-          hidden: img.hidden || false,
-        })),
-      })
+    return prisma.productImage.createMany({
+      data: images.map(img => ({
+        productId,
+        imageUrl: img.url,
+        hidden: img.hidden || false,
+      })),
     })
   }
 
@@ -207,61 +191,19 @@ class ProductServices {
    * @param productId - Product ID
    */
   async getImages(productId: number): Promise<ProductImage[]> {
-    const images = await prisma.productImage.findMany({
+    // check if product exists
+    const product = await prisma.product.findUnique({
       where: { productId },
-      orderBy: { isPrimary: 'desc' },
     })
-
-    // Validation: Ensure exactly one primary exists if there are images
-    if (images.length > 0) {
-      const primaryCount = images.filter(img => img.isPrimary).length
-      if (primaryCount !== 1) {
-        await this.fixPrimaryImage(productId)
-        return this.getImages(productId) // Recursive call after fix
-      }
-    }
-
-    return images
+    if (!product) throw new ApiError(404, 'Product not found')
+    return prisma.productImage.findMany({
+      where: { productId },
+      orderBy: { createdAt: 'asc' }, // Default ordering by creation time
+    })
   }
-
   /**
    * Internal method to fix primary image state
    */
-  private async fixPrimaryImage(productId: number) {
-    await prisma.$transaction(async tx => {
-      const images = await tx.productImage.findMany({
-        where: { productId },
-      })
-
-      if (images.length === 0) return
-
-      const primaryCount = images.filter(img => img.isPrimary).length
-
-      // Case 1: No primary - set the first image as primary
-      if (primaryCount === 0) {
-        await tx.productImage.update({
-          where: { imageId: images[0].imageId },
-          data: { isPrimary: true },
-        })
-      }
-      // Case 2: Multiple primaries - keep the newest one
-      else if (primaryCount > 1) {
-        const primaryImages = images.filter(img => img.isPrimary)
-        const newestPrimary = primaryImages.reduce((prev, current) =>
-          prev.createdAt > current.createdAt ? prev : current,
-        )
-
-        await tx.productImage.updateMany({
-          where: {
-            productId,
-            imageId: { not: newestPrimary.imageId },
-            isPrimary: true,
-          },
-          data: { isPrimary: false },
-        })
-      }
-    })
-  }
 
   /**
    * Update image properties with primary validation
@@ -272,44 +214,16 @@ class ProductServices {
   async updateImage(
     userId: string,
     imageId: number,
-    data: { isPrimary?: boolean; hidden?: boolean },
+    data: { hidden?: boolean },
   ) {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
-    return prisma.$transaction(async tx => {
-      const image = await tx.productImage.findUnique({ where: { imageId } })
-      if (!image) throw new ApiError(404, 'Image not found')
+    const image = await prisma.productImage.findUnique({ where: { imageId } })
+    if (!image) throw new ApiError(404, 'Image not found')
 
-      // Handle primary image changes
-      if (data.isPrimary) {
-        await tx.productImage.updateMany({
-          where: {
-            productId: image.productId,
-            isPrimary: true,
-          },
-          data: { isPrimary: false },
-        })
-      }
-      // Prevent unsetting primary if it's the only image
-      else if (image.isPrimary && data.isPrimary === false) {
-        const otherImages = await tx.productImage.count({
-          where: {
-            productId: image.productId,
-            imageId: { not: imageId },
-          },
-        })
-        if (otherImages === 0) {
-          throw new ApiError(
-            400,
-            'Cannot unset primary - product must have at least one primary image',
-          )
-        }
-      }
-
-      return tx.productImage.update({
-        where: { imageId },
-        data,
-      })
+    return prisma.productImage.update({
+      where: { imageId },
+      data,
     })
   }
 
@@ -325,26 +239,30 @@ class ProductServices {
       const image = await tx.productImage.findUnique({ where: { imageId } })
       if (!image) throw new ApiError(404, 'Image not found')
 
-      const isPrimary = image.isPrimary
-      await tx.productImage.delete({ where: { imageId } })
+      // Extract filename from imageUrl
+      const fileName = this.extractFileNameFromUrl(image.imageUrl)
 
-      // If deleted image was primary, set a new primary
-      if (isPrimary) {
-        const remainingImages = await tx.productImage.findMany({
-          where: { productId: image.productId },
-          orderBy: { createdAt: 'asc' },
-        })
-
-        if (remainingImages.length > 0) {
-          await tx.productImage.update({
-            where: { imageId: remainingImages[0].imageId },
-            data: { isPrimary: true },
-          })
-        }
+      try {
+        // Delete from FTP first
+        await ftpUploader.deleteFile(fileName)
+      } catch (error) {
+        console.error('Failed to delete image from FTP:', error)
+        throw new ApiError(500, 'Failed to delete image from storage')
       }
 
+      await tx.productImage.delete({ where: { imageId } })
       return { success: true }
     })
+  }
+
+  private extractFileNameFromUrl(url: string): string {
+    try {
+      const urlObj = new URL(url)
+      const pathParts = urlObj.pathname.split('/')
+      return pathParts[pathParts.length - 1]
+    } catch (error) {
+      throw new ApiError(400, 'Invalid image URL format')
+    }
   }
 
   /**
@@ -354,7 +272,31 @@ class ProductServices {
    */
   async deleteAllImages(userId: string, productId: number) {
     await this.verifyProductPermission(userId, ActionType.DELETE)
-    return prisma.productImage.deleteMany({ where: { productId } })
+
+    return prisma.$transaction(async tx => {
+      const images = await tx.productImage.findMany({
+        where: { productId },
+      })
+
+      // Delete all images from FTP first
+      const deletePromises = images.map(async image => {
+        try {
+          const fileName = this.extractFileNameFromUrl(image.imageUrl)
+          await ftpUploader.deleteFile(fileName)
+        } catch (error) {
+          console.error(
+            `Failed to delete image ${image.imageId} from FTP:`,
+            error,
+          )
+          // Continue with other deletions even if one fails
+        }
+      })
+
+      await Promise.all(deletePromises)
+
+      // Then delete all database records
+      return tx.productImage.deleteMany({ where: { productId } })
+    })
   }
 
   // ==========================================

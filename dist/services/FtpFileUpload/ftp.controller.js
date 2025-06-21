@@ -20,6 +20,7 @@ class FTPController {
         this.sendSuccessResponse = this.sendSuccessResponse.bind(this);
         this.sendErrorResponse = this.sendErrorResponse.bind(this);
         this.handleUploadError = this.handleUploadError.bind(this);
+        this.deleteFile = this.deleteFile.bind(this);
     }
     /**
      * Handles file upload via HTTP POST
@@ -38,6 +39,32 @@ class FTPController {
             catch (error) {
                 // console.log('Error processing file upload:', error)
                 this.handleUploadError(res, error);
+            }
+        });
+    }
+    // Add this to your FTPController class
+    deleteFile(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { fileName } = req.params;
+            if (!fileName) {
+                return this.sendErrorResponse(res, 400, 'File name is required');
+            }
+            try {
+                yield this.uploader.deleteFile(fileName);
+                res.json({
+                    statusCode: 200,
+                    success: true,
+                    message: 'File deleted successfully',
+                    data: {
+                        fileName,
+                        deletedAt: new Date().toISOString(),
+                    },
+                });
+            }
+            catch (error) {
+                console.error('FTP delete error:', error);
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                this.sendErrorResponse(res, 500, `Failed to delete file: ${message}`);
             }
         });
     }

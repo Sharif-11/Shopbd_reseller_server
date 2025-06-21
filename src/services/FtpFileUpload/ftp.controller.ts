@@ -12,6 +12,7 @@ class FTPController {
     this.sendSuccessResponse = this.sendSuccessResponse.bind(this)
     this.sendErrorResponse = this.sendErrorResponse.bind(this)
     this.handleUploadError = this.handleUploadError.bind(this)
+    this.deleteFile = this.deleteFile.bind(this)
   }
 
   /**
@@ -30,6 +31,31 @@ class FTPController {
     } catch (error) {
       // console.log('Error processing file upload:', error)
       this.handleUploadError(res, error)
+    }
+  }
+  // Add this to your FTPController class
+  public async deleteFile(req: Request, res: Response) {
+    const { fileName } = req.params
+
+    if (!fileName) {
+      return this.sendErrorResponse(res, 400, 'File name is required')
+    }
+
+    try {
+      await this.uploader.deleteFile(fileName)
+      res.json({
+        statusCode: 200,
+        success: true,
+        message: 'File deleted successfully',
+        data: {
+          fileName,
+          deletedAt: new Date().toISOString(),
+        },
+      })
+    } catch (error) {
+      console.error('FTP delete error:', error)
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      this.sendErrorResponse(res, 500, `Failed to delete file: ${message}`)
     }
   }
 
@@ -78,7 +104,7 @@ class FTPController {
   private sendErrorResponse(
     res: Response,
     statusCode: number,
-    message: string
+    message: string,
   ) {
     res.status(statusCode).json({
       statusCode,

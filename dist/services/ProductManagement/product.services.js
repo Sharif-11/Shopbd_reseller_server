@@ -26,6 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
+const ftp_services_1 = require("../FtpFileUpload/ftp.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 class ProductServices {
     // ==========================================
@@ -144,28 +145,13 @@ class ProductServices {
     addImages(userId, productId, images) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.CREATE);
-            // Validation: Must have exactly one primary if adding images
-            const primaryCount = images.filter(img => img.isPrimary).length;
-            if (images.length > 0 && primaryCount !== 1) {
-                throw new ApiError_1.default(400, 'Exactly one image must be marked as primary');
-            }
-            return prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                // Reset existing primary if needed
-                if (primaryCount > 0) {
-                    yield tx.productImage.updateMany({
-                        where: { productId, isPrimary: true },
-                        data: { isPrimary: false },
-                    });
-                }
-                return tx.productImage.createMany({
-                    data: images.map(img => ({
-                        productId,
-                        imageUrl: img.url,
-                        isPrimary: img.isPrimary || false,
-                        hidden: img.hidden || false,
-                    })),
-                });
-            }));
+            return prisma_1.default.productImage.createMany({
+                data: images.map(img => ({
+                    productId,
+                    imageUrl: img.url,
+                    hidden: img.hidden || false,
+                })),
+            });
         });
     }
     /**
@@ -174,56 +160,21 @@ class ProductServices {
      */
     getImages(productId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const images = yield prisma_1.default.productImage.findMany({
+            // check if product exists
+            const product = yield prisma_1.default.product.findUnique({
                 where: { productId },
-                orderBy: { isPrimary: 'desc' },
             });
-            // Validation: Ensure exactly one primary exists if there are images
-            if (images.length > 0) {
-                const primaryCount = images.filter(img => img.isPrimary).length;
-                if (primaryCount !== 1) {
-                    yield this.fixPrimaryImage(productId);
-                    return this.getImages(productId); // Recursive call after fix
-                }
-            }
-            return images;
+            if (!product)
+                throw new ApiError_1.default(404, 'Product not found');
+            return prisma_1.default.productImage.findMany({
+                where: { productId },
+                orderBy: { createdAt: 'asc' }, // Default ordering by creation time
+            });
         });
     }
     /**
      * Internal method to fix primary image state
      */
-    fixPrimaryImage(productId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                const images = yield tx.productImage.findMany({
-                    where: { productId },
-                });
-                if (images.length === 0)
-                    return;
-                const primaryCount = images.filter(img => img.isPrimary).length;
-                // Case 1: No primary - set the first image as primary
-                if (primaryCount === 0) {
-                    yield tx.productImage.update({
-                        where: { imageId: images[0].imageId },
-                        data: { isPrimary: true },
-                    });
-                }
-                // Case 2: Multiple primaries - keep the newest one
-                else if (primaryCount > 1) {
-                    const primaryImages = images.filter(img => img.isPrimary);
-                    const newestPrimary = primaryImages.reduce((prev, current) => prev.createdAt > current.createdAt ? prev : current);
-                    yield tx.productImage.updateMany({
-                        where: {
-                            productId,
-                            imageId: { not: newestPrimary.imageId },
-                            isPrimary: true,
-                        },
-                        data: { isPrimary: false },
-                    });
-                }
-            }));
-        });
-    }
     /**
      * Update image properties with primary validation
      * @param userId - Authenticated user ID
@@ -233,37 +184,13 @@ class ProductServices {
     updateImage(userId, imageId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.UPDATE);
-            return prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                const image = yield tx.productImage.findUnique({ where: { imageId } });
-                if (!image)
-                    throw new ApiError_1.default(404, 'Image not found');
-                // Handle primary image changes
-                if (data.isPrimary) {
-                    yield tx.productImage.updateMany({
-                        where: {
-                            productId: image.productId,
-                            isPrimary: true,
-                        },
-                        data: { isPrimary: false },
-                    });
-                }
-                // Prevent unsetting primary if it's the only image
-                else if (image.isPrimary && data.isPrimary === false) {
-                    const otherImages = yield tx.productImage.count({
-                        where: {
-                            productId: image.productId,
-                            imageId: { not: imageId },
-                        },
-                    });
-                    if (otherImages === 0) {
-                        throw new ApiError_1.default(400, 'Cannot unset primary - product must have at least one primary image');
-                    }
-                }
-                return tx.productImage.update({
-                    where: { imageId },
-                    data,
-                });
-            }));
+            const image = yield prisma_1.default.productImage.findUnique({ where: { imageId } });
+            if (!image)
+                throw new ApiError_1.default(404, 'Image not found');
+            return prisma_1.default.productImage.update({
+                where: { imageId },
+                data,
+            });
         });
     }
     /**
@@ -278,24 +205,30 @@ class ProductServices {
                 const image = yield tx.productImage.findUnique({ where: { imageId } });
                 if (!image)
                     throw new ApiError_1.default(404, 'Image not found');
-                const isPrimary = image.isPrimary;
-                yield tx.productImage.delete({ where: { imageId } });
-                // If deleted image was primary, set a new primary
-                if (isPrimary) {
-                    const remainingImages = yield tx.productImage.findMany({
-                        where: { productId: image.productId },
-                        orderBy: { createdAt: 'asc' },
-                    });
-                    if (remainingImages.length > 0) {
-                        yield tx.productImage.update({
-                            where: { imageId: remainingImages[0].imageId },
-                            data: { isPrimary: true },
-                        });
-                    }
+                // Extract filename from imageUrl
+                const fileName = this.extractFileNameFromUrl(image.imageUrl);
+                try {
+                    // Delete from FTP first
+                    yield ftp_services_1.ftpUploader.deleteFile(fileName);
                 }
+                catch (error) {
+                    console.error('Failed to delete image from FTP:', error);
+                    throw new ApiError_1.default(500, 'Failed to delete image from storage');
+                }
+                yield tx.productImage.delete({ where: { imageId } });
                 return { success: true };
             }));
         });
+    }
+    extractFileNameFromUrl(url) {
+        try {
+            const urlObj = new URL(url);
+            const pathParts = urlObj.pathname.split('/');
+            return pathParts[pathParts.length - 1];
+        }
+        catch (error) {
+            throw new ApiError_1.default(400, 'Invalid image URL format');
+        }
     }
     /**
      * Delete all images for a product
@@ -305,7 +238,25 @@ class ProductServices {
     deleteAllImages(userId, productId) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.DELETE);
-            return prisma_1.default.productImage.deleteMany({ where: { productId } });
+            return prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                const images = yield tx.productImage.findMany({
+                    where: { productId },
+                });
+                // Delete all images from FTP first
+                const deletePromises = images.map((image) => __awaiter(this, void 0, void 0, function* () {
+                    try {
+                        const fileName = this.extractFileNameFromUrl(image.imageUrl);
+                        yield ftp_services_1.ftpUploader.deleteFile(fileName);
+                    }
+                    catch (error) {
+                        console.error(`Failed to delete image ${image.imageId} from FTP:`, error);
+                        // Continue with other deletions even if one fails
+                    }
+                }));
+                yield Promise.all(deletePromises);
+                // Then delete all database records
+                return tx.productImage.deleteMany({ where: { productId } });
+            }));
         });
     }
     // ==========================================

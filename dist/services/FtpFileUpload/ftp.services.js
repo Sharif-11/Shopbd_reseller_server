@@ -73,6 +73,21 @@ class FTPUploader {
             }
         });
     }
+    deleteFile(remoteFileName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.connect();
+                yield this.client.remove(remoteFileName);
+            }
+            catch (error) {
+                console.error(`Failed to delete file ${remoteFileName}:`, error);
+                throw error;
+            }
+            finally {
+                this.close();
+            }
+        });
+    }
     /**
      * Connects to FTP server
      */

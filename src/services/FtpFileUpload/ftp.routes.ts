@@ -30,7 +30,13 @@ class FTPRouter {
     this.router.post(
       '/upload',
       this.upload.single('image') as RequestHandler, // Expect a single file with field name 'image'
-      ftpController.uploadFile
+      ftpController.uploadFile,
+    )
+    // Add this to your initializeRoutes method in FTPRouter
+    this.router.delete(
+      '/delete/:fileName',
+
+      ftpController.deleteFile,
     )
   }
 
