@@ -63,16 +63,22 @@ class BlockService {
     /**
      * Update block actions for a user with individual attributes
      */
-    updateUserBlockActions(adminId, userPhoneNo, actions) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.BLOCK);
-            const user = yield prisma_1.default.user.findUnique({
+    updateUserBlockActions(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, userPhoneNo, actions, bySystem = false, tx = prisma_1.default, // Default to global prisma client
+         }) {
+            if (!bySystem) {
+                console.log(`Admin ${adminId} is updating block actions for user ${userPhoneNo}`);
+                yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.BLOCK);
+            }
+            // Always use the provided tx client (or prisma if none provided)
+            const user = yield tx.user.findUnique({
                 where: { phoneNo: userPhoneNo },
             });
             if (!user) {
                 throw new ApiError_1.default(404, 'User not found');
             }
-            return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+            // Define the core operation that works with transactions
+            const operation = (tx) => __awaiter(this, void 0, void 0, function* () {
                 // Find or create the main block record
                 let block = yield tx.block.findFirst({
                     where: { userPhoneNo },
@@ -82,14 +88,13 @@ class BlockService {
                         data: {
                             userName: user.name,
                             userPhoneNo,
-                            isActive: false, // Will be activated if any actions are added
+                            isActive: false,
                         },
                     });
                 }
                 // Process each action
                 for (const action of actions) {
                     if (action.active) {
-                        // Upsert the action (create or update)
                         yield tx.blockAction.upsert({
                             where: {
                                 blockId_actionType: {
@@ -110,7 +115,6 @@ class BlockService {
                         });
                     }
                     else {
-                        // Remove the action if it exists
                         yield tx.blockAction.deleteMany({
                             where: {
                                 blockId: block.blockId,
@@ -119,7 +123,6 @@ class BlockService {
                         });
                     }
                 }
-                // Update the block's active status based on whether it has any actions
                 const actionCount = yield tx.blockAction.count({
                     where: { blockId: block.blockId },
                 });
@@ -130,8 +133,12 @@ class BlockService {
                         updatedAt: new Date(),
                     },
                 });
-                return this.getUserBlockStatus(adminId, userPhoneNo);
-            }));
+                if (!bySystem)
+                    return this.getUserBlockStatus(adminId, userPhoneNo);
+            });
+            // If we received a tx parameter, use it directly (part of existing transaction)
+            // Otherwise, create a new transaction
+            return tx === prisma_1.default ? prisma_1.default.$transaction(operation) : operation(tx);
         });
     }
     /**

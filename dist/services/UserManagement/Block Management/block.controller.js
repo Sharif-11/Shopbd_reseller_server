@@ -65,7 +65,11 @@ class BlockController {
                 const { phoneNo } = req.params;
                 const { actions } = req.body;
                 console.log(actions);
-                const result = yield block_services_1.blockServices.updateUserBlockActions(adminId, phoneNo, actions);
+                const result = yield block_services_1.blockServices.updateUserBlockActions({
+                    adminId: adminId,
+                    userPhoneNo: phoneNo,
+                    actions,
+                });
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Block actions updated successfully',

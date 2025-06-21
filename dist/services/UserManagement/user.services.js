@@ -34,6 +34,7 @@ const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
 const otp_services_1 = __importDefault(require("../Utility Services/otp.services"));
 const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
+const block_services_1 = require("./Block Management/block.services");
 class UserManagementServices {
     // create a private method to hash passwords
     hashPassword(password) {
@@ -576,7 +577,34 @@ class UserManagementServices {
             if (!user) {
                 throw new ApiError_1.default(404, 'User not found');
             }
+            const isBlocked = yield block_services_1.blockServices.isUserBlocked(user.phoneNo, client_1.BlockActionType.PASSWORD_RESET);
+            if (isBlocked) {
+                throw new ApiError_1.default(403, 'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।');
+            }
             if (user.totalPasswordResetRequests >= config_1.default.maxForgotPasswordAttempts) {
+                if (user.role === 'Seller') {
+                    // create a  block action for the seller and reset totalPasswordResetRequests within transaction
+                    yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                        yield block_services_1.blockServices.updateUserBlockActions({
+                            adminId: user.userId,
+                            userPhoneNo: user.phoneNo,
+                            bySystem: true,
+                            actions: [
+                                {
+                                    actionType: client_1.BlockActionType.PASSWORD_RESET,
+                                    active: true,
+                                    reason: 'Exceeded maximum password reset attempts',
+                                },
+                            ],
+                            tx,
+                        });
+                        yield tx.user.update({
+                            where: { phoneNo },
+                            data: { totalPasswordResetRequests: 0 },
+                        });
+                    }));
+                    throw new ApiError_1.default(403, 'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।');
+                }
                 throw new ApiError_1.default(403, 'Maximum password reset requests exceeded');
             }
             // if passwordSendsAt is within the last 5 minutes, throw an error
@@ -871,6 +899,12 @@ class UserManagementServices {
                         },
                     },
                 },
+            });
+            console.log('Verifying user permission:', {
+                userId,
+                permission,
+                action,
+                phoneNo: user === null || user === void 0 ? void 0 : user.phoneNo,
             });
             if (!user) {
                 throw new ApiError_1.default(404, 'User not found');

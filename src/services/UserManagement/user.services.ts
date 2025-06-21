@@ -4,6 +4,7 @@
 
 import {
   ActionType,
+  BlockActionType,
   PermissionType,
   Prisma,
   User,
@@ -17,6 +18,7 @@ import prisma from '../../utils/prisma'
 import otpServices from '../Utility Services/otp.services'
 
 import SmsServices from '../Utility Services/Sms Service/sms.services'
+import { blockServices } from './Block Management/block.services'
 import {
   AssignPermissionInput,
   AssignRoleInput,
@@ -54,7 +56,7 @@ class UserManagementServices {
   private generateAccessToken(
     userId: string,
     role: string,
-    phoneNo: string
+    phoneNo: string,
   ): string {
     const payload = { userId, role, phoneNo }
     return jwt.sign(payload, config.jwtSecret as string) // Token expires in 1 hour
@@ -133,12 +135,12 @@ class UserManagementServices {
    */
   async createSuperAdmin(
     currentAdminId: string,
-    input: CreateSuperAdminInput
+    input: CreateSuperAdminInput,
   ): Promise<Omit<User, 'password'>> {
     // Verify current user is super admin
     const currentAdmin = await this.verifyUserRole(
       currentAdminId,
-      UserType.SuperAdmin
+      UserType.SuperAdmin,
     )
 
     const hashedPassword = await this.hashPassword(input.password)
@@ -210,12 +212,12 @@ class UserManagementServices {
 
   async createAdmin(
     currentAdminId: string,
-    input: CreateAdminInput
+    input: CreateAdminInput,
   ): Promise<Omit<User, 'password'>> {
     // Verify current user is super admin
     const currentAdmin = await this.verifyUserRole(
       currentAdminId,
-      UserType.SuperAdmin
+      UserType.SuperAdmin,
     )
 
     const hashedPassword = await this.hashPassword(input.password)
@@ -282,7 +284,7 @@ class UserManagementServices {
   // Helper method for input validation
   private async validateUserInput(
     phoneNo: string,
-    email?: string
+    email?: string,
   ): Promise<void> {
     // Check if phone number is already registered
     const existingUser = await prisma.user.findUnique({
@@ -657,7 +659,44 @@ class UserManagementServices {
     if (!user) {
       throw new ApiError(404, 'User not found')
     }
+    const isBlocked = await blockServices.isUserBlocked(
+      user.phoneNo,
+      BlockActionType.PASSWORD_RESET,
+    )
+    if (isBlocked) {
+      throw new ApiError(
+        403,
+        'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।',
+      )
+    }
     if (user.totalPasswordResetRequests >= config.maxForgotPasswordAttempts) {
+      if (user.role === 'Seller') {
+        // create a  block action for the seller and reset totalPasswordResetRequests within transaction
+        await prisma.$transaction(async tx => {
+          await blockServices.updateUserBlockActions({
+            adminId: user.userId,
+            userPhoneNo: user.phoneNo,
+            bySystem: true,
+            actions: [
+              {
+                actionType: BlockActionType.PASSWORD_RESET,
+                active: true,
+                reason: 'Exceeded maximum password reset attempts',
+              },
+            ],
+            tx,
+          })
+          await tx.user.update({
+            where: { phoneNo },
+            data: { totalPasswordResetRequests: 0 },
+          })
+        })
+        throw new ApiError(
+          403,
+          'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।',
+        )
+      }
+
       throw new ApiError(403, 'Maximum password reset requests exceeded')
     }
     // if passwordSendsAt is within the last 5 minutes, throw an error
@@ -814,7 +853,7 @@ class UserManagementServices {
     if (existingReferral) {
       throw new ApiError(
         400,
-        'রেফারেল কোড ইতোমধ্যে ব্যবহৃত, অনুগ্রহ করে অন্য একটি বেছে নিন'
+        'রেফারেল কোড ইতোমধ্যে ব্যবহৃত, অনুগ্রহ করে অন্য একটি বেছে নিন',
       )
     }
 
@@ -835,7 +874,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       creatorId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.CREATE
+      ActionType.CREATE,
     )
 
     return await prisma.role.create({
@@ -854,7 +893,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
     console.log('assignPermissionToRole input:', input)
     return await prisma.rolePermission.upsert({
@@ -884,12 +923,12 @@ class UserManagementServices {
       roleId: string
       permissions: PermissionType[] // Changed from permission to permissions (array)
       actions: ActionType[]
-    }
+    },
   ) {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     // Ensure actions is always an array
@@ -916,7 +955,7 @@ class UserManagementServices {
             actions,
           },
         })
-      })
+      }),
     )
 
     return results
@@ -929,7 +968,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     return await prisma.userRole.create({
@@ -957,7 +996,7 @@ class UserManagementServices {
    */
   public async verifyUserRole(
     userId: string,
-    requiredRole: UserType
+    requiredRole: UserType,
   ): Promise<User> {
     const user = await prisma.user.findUnique({
       where: { userId },
@@ -981,7 +1020,7 @@ class UserManagementServices {
   public async verifyUserPermission(
     userId: string,
     permission: PermissionType,
-    action: ActionType
+    action: ActionType,
   ): Promise<User> {
     const user = await prisma.user.findUnique({
       where: { userId },
@@ -996,6 +1035,12 @@ class UserManagementServices {
           },
         },
       },
+    })
+    console.log('Verifying user permission:', {
+      userId,
+      permission,
+      action,
+      phoneNo: user?.phoneNo,
     })
 
     if (!user) {
@@ -1046,7 +1091,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.READ
+      ActionType.READ,
     )
     const skip = (page - 1) * limit
 

@@ -34,7 +34,7 @@ class BlockController {
 
       const blockedActions = await blockServices.getUserBlockStatus(
         adminId!,
-        phoneNo
+        phoneNo,
       )
 
       res.status(200).json({
@@ -58,11 +58,11 @@ class BlockController {
       const { actions } = req.body
       console.log(actions)
 
-      const result = await blockServices.updateUserBlockActions(
-        adminId!,
-        phoneNo,
-        actions
-      )
+      const result = await blockServices.updateUserBlockActions({
+        adminId: adminId!,
+        userPhoneNo: phoneNo,
+        actions,
+      })
 
       res.status(200).json({
         statusCode: 200,
@@ -84,7 +84,7 @@ class BlockController {
 
       const isBlocked = await blockServices.isUserBlocked(
         phoneNo,
-        actionType as BlockActionType
+        actionType as BlockActionType,
       )
 
       res.status(200).json({

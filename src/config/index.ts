@@ -58,7 +58,7 @@ const config: IConfig = {
   maximumOtpRequests: 5,
   nodeEnv: process.env.NODE_ENV || 'development',
   smsCharge: 1,
-  maxForgotPasswordAttempts: 2,
+  maxForgotPasswordAttempts: 3,
   maximumWallets: 2,
   maximumWithdrawAmount: 10000,
   deliveryChargeInsideDhaka: 80,

@@ -1,4 +1,9 @@
-import { ActionType, BlockActionType, PermissionType } from '@prisma/client'
+import {
+  ActionType,
+  BlockActionType,
+  PermissionType,
+  Prisma,
+} from '@prisma/client'
 import ApiError from '../../../utils/ApiError'
 import prisma from '../../../utils/prisma'
 import userManagementServices from '../../UserManagement/user.services'
@@ -11,7 +16,7 @@ class BlockService {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      'READ'
+      'READ',
     )
     const blocks = Object.values(BlockActionType)
 
@@ -23,7 +28,7 @@ class BlockService {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      'READ'
+      'READ',
     )
 
     const user = await prisma.user.findUnique({
@@ -59,23 +64,37 @@ class BlockService {
   /**
    * Update block actions for a user with individual attributes
    */
-  public async updateUserBlockActions(
-    adminId: string,
-    userPhoneNo: string,
+  public async updateUserBlockActions({
+    adminId,
+    userPhoneNo,
+    actions,
+    bySystem = false,
+    tx = prisma, // Default to global prisma client
+  }: {
+    adminId: string
+    userPhoneNo: string
     actions: Array<{
       actionType: BlockActionType
       active: boolean
       reason?: string
       expiresAt?: Date | null
     }>
-  ) {
-    await userManagementServices.verifyUserPermission(
-      adminId,
-      PermissionType.USER_MANAGEMENT,
-      ActionType.BLOCK
-    )
+    bySystem?: boolean
+    tx?: Prisma.TransactionClient | typeof prisma // Allow passing a transaction client
+  }) {
+    if (!bySystem) {
+      console.log(
+        `Admin ${adminId} is updating block actions for user ${userPhoneNo}`,
+      )
+      await userManagementServices.verifyUserPermission(
+        adminId,
+        PermissionType.USER_MANAGEMENT,
+        ActionType.BLOCK,
+      )
+    }
 
-    const user = await prisma.user.findUnique({
+    // Always use the provided tx client (or prisma if none provided)
+    const user = await tx.user.findUnique({
       where: { phoneNo: userPhoneNo },
     })
 
@@ -83,7 +102,8 @@ class BlockService {
       throw new ApiError(404, 'User not found')
     }
 
-    return await prisma.$transaction(async tx => {
+    // Define the core operation that works with transactions
+    const operation = async (tx: Prisma.TransactionClient) => {
       // Find or create the main block record
       let block = await tx.block.findFirst({
         where: { userPhoneNo },
@@ -94,7 +114,7 @@ class BlockService {
           data: {
             userName: user.name,
             userPhoneNo,
-            isActive: false, // Will be activated if any actions are added
+            isActive: false,
           },
         })
       }
@@ -102,7 +122,6 @@ class BlockService {
       // Process each action
       for (const action of actions) {
         if (action.active) {
-          // Upsert the action (create or update)
           await tx.blockAction.upsert({
             where: {
               blockId_actionType: {
@@ -122,7 +141,6 @@ class BlockService {
             },
           })
         } else {
-          // Remove the action if it exists
           await tx.blockAction.deleteMany({
             where: {
               blockId: block.blockId,
@@ -132,7 +150,6 @@ class BlockService {
         }
       }
 
-      // Update the block's active status based on whether it has any actions
       const actionCount = await tx.blockAction.count({
         where: { blockId: block.blockId },
       })
@@ -144,9 +161,12 @@ class BlockService {
           updatedAt: new Date(),
         },
       })
+      if (!bySystem) return this.getUserBlockStatus(adminId, userPhoneNo)
+    }
 
-      return this.getUserBlockStatus(adminId, userPhoneNo)
-    })
+    // If we received a tx parameter, use it directly (part of existing transaction)
+    // Otherwise, create a new transaction
+    return tx === prisma ? prisma.$transaction(operation) : operation(tx)
   }
 
   /**
