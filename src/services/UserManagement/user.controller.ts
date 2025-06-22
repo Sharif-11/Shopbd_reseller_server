@@ -41,7 +41,7 @@ class UserManagementController {
           name,
           password,
           email,
-        }
+        },
       )
 
       res.status(201).json({
@@ -159,7 +159,7 @@ class UserManagementController {
 
       const user = await userManagementServices.demoteSuperAdminToAdmin(
         currentAdminId!,
-        superAdminId
+        superAdminId,
       )
 
       res.status(200).json({
@@ -186,7 +186,7 @@ class UserManagementController {
 
       const user = await userManagementServices.promoteAdminToSuperAdmin(
         currentAdminId!,
-        adminId
+        adminId,
       )
 
       res.status(200).json({
@@ -385,7 +385,7 @@ class UserManagementController {
   async assignPermissionToRole(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const adminId = req.user?.userId
@@ -417,7 +417,7 @@ class UserManagementController {
   async assignMultiplePermissionsToRole(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const adminId = req.user?.userId
@@ -479,7 +479,7 @@ class UserManagementController {
   async addReferralCodeToSeller(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { referralCode } = req.body
@@ -488,7 +488,7 @@ class UserManagementController {
       const updatedSeller =
         await userManagementServices.addReferralCodeToSeller(
           sellerId!,
-          referralCode
+          referralCode,
         )
 
       res.status(200).json({

@@ -515,9 +515,10 @@ class ProductServices {
                         category: { select: { name: true } },
                         ProductImage: {
                             where: { hidden: false },
-                            select: { imageUrl: true },
-                            orderBy: { isPrimary: 'desc' },
-                            take: 1,
+                            select: { imageUrl: true, imageId: true },
+                        },
+                        shop: {
+                            select: { shopName: true, shopLocation: true, shopId: true },
                         },
                     },
                     orderBy: { createdAt: 'desc' },

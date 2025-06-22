@@ -23,12 +23,12 @@ class ShopCategoryServices {
       deliveryChargeOutside: Prisma.Decimal | number
       shopDescription?: string
       shopIcon?: string
-    }
+    },
   ) {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.CREATE
+      ActionType.CREATE,
     )
     const shop = await prisma.shop.create({
       data: {
@@ -62,7 +62,7 @@ class ShopCategoryServices {
   async getAllShops(
     page = 1,
     limit = 10,
-    shopName?: string
+    shopName?: string,
   ): Promise<{
     shops: Shop[]
     total: number
@@ -100,7 +100,7 @@ class ShopCategoryServices {
     userId: string,
     page = 1,
     limit = 10,
-    shopName?: string
+    shopName?: string,
   ): Promise<{
     shops: Shop[]
     total: number
@@ -111,7 +111,7 @@ class ShopCategoryServices {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.READ
+      ActionType.READ,
     )
 
     const skip = (page - 1) * limit
@@ -158,12 +158,12 @@ class ShopCategoryServices {
       shopDescription?: string | null
       shopIcon?: string | null
       isActive?: boolean
-    }
+    },
   ): Promise<Shop> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     // Verify shop exists
@@ -178,13 +178,13 @@ class ShopCategoryServices {
   async openOrCloseShop(
     userId: string,
     shopId: number,
-    isActive: boolean
+    isActive: boolean,
   ): Promise<Shop> {
     console.log(`Opening/Closing shop ${shopId} with status ${isActive}`)
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     // Verify shop exists
@@ -208,12 +208,12 @@ class ShopCategoryServices {
       description?: string
       categoryIcon?: string
       parentId?: number | null // Add parentId to creation
-    }
+    },
   ): Promise<Category> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.CREATE
+      ActionType.CREATE,
     )
 
     // Validate parent exists if provided
@@ -243,12 +243,12 @@ class ShopCategoryServices {
       name?: string
       description?: string | null
       categoryIcon?: string | null
-    }
+    },
   ): Promise<Category> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     // Prevent circular references
@@ -262,7 +262,7 @@ class ShopCategoryServices {
   // Helper method to check if a category is a descendant of another
   private async isDescendant(
     parentId: number,
-    potentialChildId: number
+    potentialChildId: number,
   ): Promise<boolean> {
     let currentId = potentialChildId
     while (currentId) {
@@ -305,7 +305,7 @@ class ShopCategoryServices {
     page = 1,
     limit = 10,
     name?: string,
-    subCategories = false // Whether to include subcategories in the result
+    subCategories = false, // Whether to include subcategories in the result
   ): Promise<{
     categories: Category[]
     total: number
@@ -348,12 +348,12 @@ class ShopCategoryServices {
     options: {
       deleteChildren?: boolean // Whether to delete child categories
       moveChildrenToParent?: boolean // Alternative: move children to parent category
-    } = {}
+    } = {},
   ): Promise<void> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.DELETE
+      ActionType.DELETE,
     )
 
     // First get the category with its children
@@ -379,7 +379,7 @@ class ShopCategoryServices {
       if (productsCount > 0) {
         throw new ApiError(
           400,
-          'Cannot delete category tree with associated products'
+          'Cannot delete category tree with associated products',
         )
       }
     } else {
@@ -391,7 +391,7 @@ class ShopCategoryServices {
       if (productsCount > 0) {
         throw new ApiError(
           400,
-          'Cannot delete category with associated products'
+          'Cannot delete category with associated products',
         )
       }
 
@@ -399,7 +399,7 @@ class ShopCategoryServices {
       if (category.subCategories.length > 0) {
         throw new ApiError(
           400,
-          'Category has child categories. Set deleteChildren or moveChildrenToParent option'
+          'Category has child categories. Set deleteChildren or moveChildrenToParent option',
         )
       }
     }
@@ -451,12 +451,12 @@ class ShopCategoryServices {
   async assignCategoryToShop(
     userId: string,
     shopId: number,
-    categoryId: number
+    categoryId: number,
   ): Promise<ShopCategory> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     // Verify shop and category exist
@@ -479,12 +479,12 @@ class ShopCategoryServices {
   async removeCategoryFromShop(
     userId: string,
     shopId: number,
-    categoryId: number
+    categoryId: number,
   ): Promise<void> {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.DELETE
+      ActionType.DELETE,
     )
 
     // Check if category is used in any products in this shop
@@ -498,7 +498,7 @@ class ShopCategoryServices {
     if (productsCount > 0) {
       throw new ApiError(
         400,
-        'Cannot remove category with associated products in this shop'
+        'Cannot remove category with associated products in this shop',
       )
     }
 

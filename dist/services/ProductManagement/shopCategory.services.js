@@ -204,8 +204,7 @@ class ShopCategoryServices {
         });
     }
     getAllCategories() {
-        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, name, subCategories = false // Whether to include subcategories in the result
-        ) {
+        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, name, subCategories = false) {
             const skip = (page - 1) * limit;
             const where = Object.assign({}, (name && {
                 name: { contains: name, mode: 'insensitive' },

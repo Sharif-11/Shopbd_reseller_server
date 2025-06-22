@@ -188,13 +188,6 @@ class ProductValidator {
                 .isArray({ min: 1 })
                 .withMessage('অন্তত একটি ইমেজ প্রয়োজন')
                 .custom(images => {
-                const primaryCount = images.filter((img) => img.isPrimary).length;
-                if (primaryCount !== 1) {
-                    throw new Error('ঠিক একটি ইমেজ প্রাইমারি হিসেবে চিহ্নিত হতে হবে');
-                }
-                return true;
-            })
-                .custom(images => {
                 if (!images.every((img) => img.url)) {
                     throw new Error('প্রতিটি ইমেজে URL থাকতে হবে');
                 }
