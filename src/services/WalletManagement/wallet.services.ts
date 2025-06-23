@@ -1,16 +1,9 @@
-import {
-  BlockActionType,
-  PermissionType,
-  UserType,
-  Wallet,
-  WalletType,
-} from '@prisma/client'
+import { BlockActionType, UserType, Wallet, WalletType } from '@prisma/client'
 import config from '../../config'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userManagementServices from '../UserManagement/user.services'
-import SmsServices from '../Utility Services/Sms Service/sms.services'
 
 class WalletServices {
   /**
@@ -36,7 +29,7 @@ class WalletServices {
    */
   async isDuplicateWallet(
     walletName: string,
-    walletPhoneNo: string
+    walletPhoneNo: string,
   ): Promise<boolean> {
     const existingWallet = await prisma.wallet.findFirst({
       where: {
@@ -56,14 +49,14 @@ class WalletServices {
       walletName: string
       walletPhoneNo: string
       walletType: WalletType
-    }
+    },
   ): Promise<Wallet> {
     // Check if creator is blocked
 
     const user = await userManagementServices.getUserById(creatorId)
     const isBlocked = await blockServices.isUserBlocked(
       user.phoneNo,
-      BlockActionType.WALLET_ADDITION
+      BlockActionType.WALLET_ADDITION,
     )
     if (isBlocked) {
       throw new ApiError(403, 'User is blocked from adding wallets')
@@ -75,7 +68,7 @@ class WalletServices {
       // Only SuperAdmin can create system wallets
       await userManagementServices.verifyUserRole(
         creatorId,
-        UserType.SuperAdmin
+        UserType.SuperAdmin,
       )
       // Check for duplicate system wallet name or phone combination
 
@@ -88,22 +81,14 @@ class WalletServices {
       })
     }
 
-    // SELLER wallet logic
-    // Verify creator has permission to create wallets
-    await userManagementServices.verifyUserPermission(
-      creatorId,
-      PermissionType.WALLET_ADDITION,
-      'CREATE'
-    )
-
     if (!user || user.role !== 'Seller') {
       throw new ApiError(400, 'Wallets can only be created for sellers')
     }
-
+    console.log(`wallet length: ${JSON.stringify(user.Wallet)}`)
     if (user.Wallet.length >= config.maximumWallets) {
       throw new ApiError(
         400,
-        `Seller can have maximum ${config.maximumWallets} wallets`
+        `Seller can have maximum ${config.maximumWallets} wallets`,
       )
     }
 
@@ -115,7 +100,7 @@ class WalletServices {
       if (!walletOtp || !walletOtp.isVerified) {
         throw new ApiError(
           400,
-          'Wallet phone number must be verified before creating a wallet'
+          'Wallet phone number must be verified before creating a wallet',
         )
       }
     }
@@ -148,29 +133,42 @@ class WalletServices {
    */
   async getSellerWallets(
     requesterId: string,
-    phoneNo: string
+    phoneNo: string,
   ): Promise<Wallet[]> {
+    // await userManagementServices.verifyUserPermission(
+    //   requesterId,
+    //   'WALLET_MANAGEMENT',
+    //   'READ',
+    // )
     // Admin/SuperAdmin can view any seller's wallets
-    try {
-      // verify if requester is allowed to view seller's wallets
-      await userManagementServices.verifyUserPermission(
-        requesterId,
-        'WALLET_MANAGEMENT',
-        'READ'
-      )
-    } catch {
-      const user = await userManagementServices.getUserByPhoneNo(phoneNo)
-      if (!user) {
-        throw new ApiError(404, 'Seller not found')
-      }
-      // Regular users can only view their own wallets
-      if (requesterId !== user.userId) {
+
+    const user = await userManagementServices.getUserByPhoneNo(phoneNo)
+    const requester = await userManagementServices.getUserById(requesterId)
+    if (!user) {
+      throw new ApiError(404, 'Seller not found')
+    }
+    // Regular users can only view their own wallets
+    if (requesterId !== user.userId) {
+      if (
+        !requester ||
+        !(requester.role === 'Admin' || requester.role === 'SuperAdmin')
+      ) {
         throw new ApiError(403, 'Unauthorized to view these wallets')
+      } else {
+        console.log(
+          `Requester is ${requester.role}, allowing access to seller wallets`,
+        )
+        // If requester is not the owner, verify permission
+        await userManagementServices.verifyUserPermission(
+          requesterId,
+          'WALLET_MANAGEMENT',
+          'READ',
+        )
       }
     }
 
     return await prisma.wallet.findMany({
-      where: { walletPhoneNo: phoneNo, walletType: 'SELLER' },
+      where: { walletType: 'SELLER', userId: user.userId },
     })
   }
 
@@ -189,7 +187,7 @@ class WalletServices {
     if (wallet.walletType === 'SYSTEM') {
       await userManagementServices.verifyUserRole(
         requesterId,
-        UserType.SuperAdmin
+        UserType.SuperAdmin,
       )
       return wallet
     }
@@ -199,7 +197,7 @@ class WalletServices {
       await userManagementServices.verifyUserPermission(
         requesterId,
         'WALLET_MANAGEMENT',
-        'READ'
+        'READ',
       )
     }
 
@@ -219,7 +217,7 @@ class WalletServices {
     updates: {
       walletName?: string
       walletPhoneNo?: string
-    }
+    },
   ): Promise<Wallet> {
     const wallet = await this.getWalletById(updaterId, walletId)
 
@@ -227,14 +225,14 @@ class WalletServices {
     if (wallet.walletType === 'SYSTEM') {
       await userManagementServices.verifyUserRole(
         updaterId,
-        UserType.SuperAdmin
+        UserType.SuperAdmin,
       )
     } else {
       // For seller wallets, verify update permission
       await userManagementServices.verifyUserPermission(
         updaterId,
         'WALLET_MANAGEMENT',
-        'UPDATE'
+        'UPDATE',
       )
     }
 
@@ -254,14 +252,14 @@ class WalletServices {
     if (wallet.walletType === 'SYSTEM') {
       await userManagementServices.verifyUserRole(
         deleterId,
-        UserType.SuperAdmin
+        UserType.SuperAdmin,
       )
     } else {
       // For seller wallets, verify delete permission
       await userManagementServices.verifyUserPermission(
         deleterId,
         'WALLET_MANAGEMENT',
-        'DELETE'
+        'DELETE',
       )
     }
 
@@ -279,6 +277,10 @@ class WalletServices {
    */
   async initiateVerification(requesterId: string, walletPhoneNo: string) {
     // check is there any existing wallet with this phone number
+    const requester = await userManagementServices.getUserById(requesterId)
+    if (!requester) {
+      throw new ApiError(404, 'Requester not found')
+    }
 
     const otpRecord = await prisma.walletOtp.findUnique({
       where: { phoneNo: walletPhoneNo },
@@ -287,13 +289,15 @@ class WalletServices {
       return { alreadyVerified: true }
     }
     // Check if requester is alowed to create wallets
-    await userManagementServices.verifyUserPermission(
-      requesterId,
-      'WALLET_ADDITION',
-      'CREATE'
-    )
-
     // check if otp already exists and valid
+    const isBlocked = await blockServices.isUserBlocked(
+      requester.phoneNo,
+      BlockActionType.WALLET_ADDITION,
+    )
+    if (isBlocked) {
+      throw new ApiError(403, 'User is blocked from adding wallets')
+    }
+
     if (otpRecord && otpRecord.otpExpiresAt > new Date()) {
       return {
         sendOTP: false,
@@ -304,6 +308,30 @@ class WalletServices {
     }
     // check totalOtp exceeds limit
     if (otpRecord && otpRecord.totalOTP >= config.maximumOtpRequests) {
+      // create a block record and reset total OTP
+      await prisma.$transaction(async tx => {
+        await tx.walletOtp.update({
+          where: { phoneNo: walletPhoneNo },
+          data: {
+            totalOTP: 0,
+          },
+        })
+        // Create a block record
+        await blockServices.updateUserBlockActions({
+          bySystem: true,
+          tx,
+          adminId: requesterId, // Use requesterId as adminId for block creation
+          userPhoneNo: requester.phoneNo,
+          actions: [
+            {
+              actionType: BlockActionType.WALLET_ADDITION,
+              active: true,
+              expiresAt: new Date(Date.now() + config.otpBlockDuration),
+            },
+          ],
+        })
+      })
+
       throw new ApiError(403, 'Maximum OTP requests exceeded for this wallet')
     }
 
@@ -327,7 +355,8 @@ class WalletServices {
       create: newOtpRecord,
     })
 
-    await SmsServices.sendOtp(walletPhoneNo, otp)
+    // await SmsServices.sendOtp(walletPhoneNo, otp)
+    console.log(`Sending OTP ${otp} to ${walletPhoneNo}`)
     return {
       sendOTP: true,
       isBlocked: false,
@@ -340,6 +369,19 @@ class WalletServices {
    * Verify OTP for seller wallet
    */
   async verifyWallet(requesterId: string, walletPhoneNo: string, otp: string) {
+    // Check if requester is allowed to verify wallets
+
+    const user = await userManagementServices.getUserById(requesterId)
+    const isBlocked = await blockServices.isUserBlocked(
+      user.phoneNo,
+      BlockActionType.WALLET_ADDITION,
+    )
+    if (isBlocked) {
+      throw new ApiError(
+        403,
+        'আপনি ওয়ালেট যাচাইকরণ থেকে ব্লক করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন',
+      )
+    }
     const otpRecord = await prisma.walletOtp.findUnique({
       where: { phoneNo: walletPhoneNo },
     })
@@ -357,7 +399,7 @@ class WalletServices {
     if (otpRecord.isBlocked) {
       throw new ApiError(
         403,
-        'Wallet verification is blocked due to too many attempts'
+        'Wallet verification is blocked due to too many attempts',
       )
     }
 
@@ -370,22 +412,46 @@ class WalletServices {
     }
 
     if (otpRecord.otp !== otp) {
-      // Increment failed attempts and block if too many
-      const updatedRecord = await prisma.walletOtp.update({
-        where: { phoneNo: walletPhoneNo },
-        data: {
-          failedAttempts: { increment: 1 },
-          isBlocked: otpRecord.failedAttempts + 1 >= config.maximumOtpAttempts,
-        },
-      })
-
-      if (updatedRecord.isBlocked) {
+      if (otpRecord.failedAttempts + 1 >= config.maximumOtpAttempts) {
+        console.log(`Blocking wallet verification for user: ${user?.phoneNo}`)
+        // we need to create a block record and reset the otp  failed attempts within a transaction
+        await prisma.$transaction(async tx => {
+          await tx.walletOtp.update({
+            where: { phoneNo: walletPhoneNo },
+            data: {
+              failedAttempts: 0,
+            },
+          })
+          // Create a block record
+          await blockServices.updateUserBlockActions({
+            userPhoneNo: user.phoneNo,
+            actions: [
+              {
+                actionType: BlockActionType.WALLET_ADDITION,
+                active: true,
+                expiresAt: new Date(Date.now() + config.otpBlockDuration),
+                reason: 'Too many failed OTP attempts',
+              },
+            ],
+            bySystem: true,
+            tx,
+            adminId: requesterId, // Use requesterId as adminId for block creation
+          })
+        })
         throw new ApiError(
           403,
-          'Too many failed attempts. Wallet verification blocked.'
+          'অনেকবার ভুল চেষ্টা করেছেন। ওয়ালেট যাচাইকরণ ২৪ ঘন্টার জন্য ব্লক করা হয়েছে',
         )
+      } else {
+        // Increment failed attempts
+        await prisma.walletOtp.update({
+          where: { phoneNo: walletPhoneNo },
+          data: {
+            failedAttempts: otpRecord.failedAttempts + 1,
+          },
+        })
+        throw new ApiError(400, 'Invalid OTP')
       }
-      throw new ApiError(400, 'Invalid OTP')
     }
 
     // Mark as verified
@@ -405,13 +471,13 @@ class WalletServices {
     // Verify admin role
     await userManagementServices.verifyUserRole(
       adminId,
-      UserType.Admin || UserType.SuperAdmin
+      UserType.Admin || UserType.SuperAdmin,
     )
     // verify permission
     await userManagementServices.verifyUserPermission(
       adminId,
       'WALLET_MANAGEMENT',
-      'UPDATE'
+      'UPDATE',
     )
 
     // Reset wallet verification

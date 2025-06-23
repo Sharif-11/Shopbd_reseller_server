@@ -34,7 +34,7 @@ const config = {
     negativeBalanceLimit: -10,
     minimumOrderCompletedToBeVerified: 1,
     forgotPasswordRequestInterval: 5 * 60 * 1000, // 5 minutes
-    defaultSellerPermissions: [client_1.PermissionType.WALLET_ADDITION],
+    defaultSellerPermissions: [],
     defaultAdminPermissions: [
         client_1.PermissionType.WALLET_MANAGEMENT,
         client_1.PermissionType.ORDER_MANAGEMENT,

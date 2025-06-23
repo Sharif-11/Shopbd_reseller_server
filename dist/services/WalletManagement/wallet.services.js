@@ -18,7 +18,6 @@ const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
-const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 class WalletServices {
     /**
      * Generate Random Otp
@@ -76,12 +75,10 @@ class WalletServices {
                     },
                 });
             }
-            // SELLER wallet logic
-            // Verify creator has permission to create wallets
-            yield user_services_1.default.verifyUserPermission(creatorId, client_1.PermissionType.WALLET_ADDITION, 'CREATE');
             if (!user || user.role !== 'Seller') {
                 throw new ApiError_1.default(400, 'Wallets can only be created for sellers');
             }
+            console.log(`wallet length: ${JSON.stringify(user.Wallet)}`);
             if (user.Wallet.length >= config_1.default.maximumWallets) {
                 throw new ApiError_1.default(400, `Seller can have maximum ${config_1.default.maximumWallets} wallets`);
             }
@@ -122,23 +119,31 @@ class WalletServices {
      */
     getSellerWallets(requesterId, phoneNo) {
         return __awaiter(this, void 0, void 0, function* () {
+            // await userManagementServices.verifyUserPermission(
+            //   requesterId,
+            //   'WALLET_MANAGEMENT',
+            //   'READ',
+            // )
             // Admin/SuperAdmin can view any seller's wallets
-            try {
-                // verify if requester is allowed to view seller's wallets
-                yield user_services_1.default.verifyUserPermission(requesterId, 'WALLET_MANAGEMENT', 'READ');
+            const user = yield user_services_1.default.getUserByPhoneNo(phoneNo);
+            const requester = yield user_services_1.default.getUserById(requesterId);
+            if (!user) {
+                throw new ApiError_1.default(404, 'Seller not found');
             }
-            catch (_a) {
-                const user = yield user_services_1.default.getUserByPhoneNo(phoneNo);
-                if (!user) {
-                    throw new ApiError_1.default(404, 'Seller not found');
-                }
-                // Regular users can only view their own wallets
-                if (requesterId !== user.userId) {
+            // Regular users can only view their own wallets
+            if (requesterId !== user.userId) {
+                if (!requester ||
+                    !(requester.role === 'Admin' || requester.role === 'SuperAdmin')) {
                     throw new ApiError_1.default(403, 'Unauthorized to view these wallets');
+                }
+                else {
+                    console.log(`Requester is ${requester.role}, allowing access to seller wallets`);
+                    // If requester is not the owner, verify permission
+                    yield user_services_1.default.verifyUserPermission(requesterId, 'WALLET_MANAGEMENT', 'READ');
                 }
             }
             return yield prisma_1.default.wallet.findMany({
-                where: { walletPhoneNo: phoneNo, walletType: 'SELLER' },
+                where: { walletType: 'SELLER', userId: user.userId },
             });
         });
     }
@@ -216,6 +221,10 @@ class WalletServices {
     initiateVerification(requesterId, walletPhoneNo) {
         return __awaiter(this, void 0, void 0, function* () {
             // check is there any existing wallet with this phone number
+            const requester = yield user_services_1.default.getUserById(requesterId);
+            if (!requester) {
+                throw new ApiError_1.default(404, 'Requester not found');
+            }
             const otpRecord = yield prisma_1.default.walletOtp.findUnique({
                 where: { phoneNo: walletPhoneNo },
             });
@@ -223,8 +232,11 @@ class WalletServices {
                 return { alreadyVerified: true };
             }
             // Check if requester is alowed to create wallets
-            yield user_services_1.default.verifyUserPermission(requesterId, 'WALLET_ADDITION', 'CREATE');
             // check if otp already exists and valid
+            const isBlocked = yield block_services_1.blockServices.isUserBlocked(requester.phoneNo, client_1.BlockActionType.WALLET_ADDITION);
+            if (isBlocked) {
+                throw new ApiError_1.default(403, 'User is blocked from adding wallets');
+            }
             if (otpRecord && otpRecord.otpExpiresAt > new Date()) {
                 return {
                     sendOTP: false,
@@ -235,6 +247,29 @@ class WalletServices {
             }
             // check totalOtp exceeds limit
             if (otpRecord && otpRecord.totalOTP >= config_1.default.maximumOtpRequests) {
+                // create a block record and reset total OTP
+                yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    yield tx.walletOtp.update({
+                        where: { phoneNo: walletPhoneNo },
+                        data: {
+                            totalOTP: 0,
+                        },
+                    });
+                    // Create a block record
+                    yield block_services_1.blockServices.updateUserBlockActions({
+                        bySystem: true,
+                        tx,
+                        adminId: requesterId, // Use requesterId as adminId for block creation
+                        userPhoneNo: requester.phoneNo,
+                        actions: [
+                            {
+                                actionType: client_1.BlockActionType.WALLET_ADDITION,
+                                active: true,
+                                expiresAt: new Date(Date.now() + config_1.default.otpBlockDuration),
+                            },
+                        ],
+                    });
+                }));
                 throw new ApiError_1.default(403, 'Maximum OTP requests exceeded for this wallet');
             }
             // Generate and send OTP
@@ -256,7 +291,8 @@ class WalletServices {
                 update: newOtpRecord,
                 create: newOtpRecord,
             });
-            yield sms_services_1.default.sendOtp(walletPhoneNo, otp);
+            // await SmsServices.sendOtp(walletPhoneNo, otp)
+            console.log(`Sending OTP ${otp} to ${walletPhoneNo}`);
             return {
                 sendOTP: true,
                 isBlocked: false,
@@ -270,6 +306,12 @@ class WalletServices {
      */
     verifyWallet(requesterId, walletPhoneNo, otp) {
         return __awaiter(this, void 0, void 0, function* () {
+            // Check if requester is allowed to verify wallets
+            const user = yield user_services_1.default.getUserById(requesterId);
+            const isBlocked = yield block_services_1.blockServices.isUserBlocked(user.phoneNo, client_1.BlockActionType.WALLET_ADDITION);
+            if (isBlocked) {
+                throw new ApiError_1.default(403, 'আপনি ওয়ালেট যাচাইকরণ থেকে ব্লক করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন');
+            }
             const otpRecord = yield prisma_1.default.walletOtp.findUnique({
                 where: { phoneNo: walletPhoneNo },
             });
@@ -291,18 +333,44 @@ class WalletServices {
                 throw new ApiError_1.default(400, 'OTP has expired');
             }
             if (otpRecord.otp !== otp) {
-                // Increment failed attempts and block if too many
-                const updatedRecord = yield prisma_1.default.walletOtp.update({
-                    where: { phoneNo: walletPhoneNo },
-                    data: {
-                        failedAttempts: { increment: 1 },
-                        isBlocked: otpRecord.failedAttempts + 1 >= config_1.default.maximumOtpAttempts,
-                    },
-                });
-                if (updatedRecord.isBlocked) {
-                    throw new ApiError_1.default(403, 'Too many failed attempts. Wallet verification blocked.');
+                if (otpRecord.failedAttempts + 1 >= config_1.default.maximumOtpAttempts) {
+                    console.log(`Blocking wallet verification for user: ${user === null || user === void 0 ? void 0 : user.phoneNo}`);
+                    // we need to create a block record and reset the otp  failed attempts within a transaction
+                    yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                        yield tx.walletOtp.update({
+                            where: { phoneNo: walletPhoneNo },
+                            data: {
+                                failedAttempts: 0,
+                            },
+                        });
+                        // Create a block record
+                        yield block_services_1.blockServices.updateUserBlockActions({
+                            userPhoneNo: user.phoneNo,
+                            actions: [
+                                {
+                                    actionType: client_1.BlockActionType.WALLET_ADDITION,
+                                    active: true,
+                                    expiresAt: new Date(Date.now() + config_1.default.otpBlockDuration),
+                                    reason: 'Too many failed OTP attempts',
+                                },
+                            ],
+                            bySystem: true,
+                            tx,
+                            adminId: requesterId, // Use requesterId as adminId for block creation
+                        });
+                    }));
+                    throw new ApiError_1.default(403, 'অনেকবার ভুল চেষ্টা করেছেন। ওয়ালেট যাচাইকরণ ২৪ ঘন্টার জন্য ব্লক করা হয়েছে');
                 }
-                throw new ApiError_1.default(400, 'Invalid OTP');
+                else {
+                    // Increment failed attempts
+                    yield prisma_1.default.walletOtp.update({
+                        where: { phoneNo: walletPhoneNo },
+                        data: {
+                            failedAttempts: otpRecord.failedAttempts + 1,
+                        },
+                    });
+                    throw new ApiError_1.default(400, 'Invalid OTP');
+                }
             }
             // Mark as verified
             yield prisma_1.default.walletOtp.update({
