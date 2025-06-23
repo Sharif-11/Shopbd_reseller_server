@@ -1,7 +1,6 @@
 import config from '../../config'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
-import SmsServices from './Sms Service/sms.services'
 
 class OtpServices {
   /**
@@ -37,7 +36,7 @@ class OtpServices {
       const timeLeft = this.getRemainingBlockTime(otpRecord)
       throw new ApiError(
         403,
-        `Too many OTP requests. Try again in ${timeLeft} seconds`
+        `Too many OTP requests. Try again in ${timeLeft} seconds`,
       )
     }
 
@@ -45,7 +44,7 @@ class OtpServices {
     if (otpRecord.isBlocked) {
       throw new ApiError(
         403,
-        'This phone number is permanently blocked from OTP requests'
+        'This phone number is permanently blocked from OTP requests',
       )
     }
 
@@ -66,14 +65,14 @@ class OtpServices {
       await this.blockOtpRecord(phoneNo)
       throw new ApiError(
         403,
-        'Daily OTP request limit exceeded. Phone number blocked'
+        'Daily OTP request limit exceeded. Phone number blocked',
       )
     }
 
     // Generate and send new OTP
     const otp = this.generateRandomOtp(config.otpLength)
     await prisma.$transaction(async tx => {
-      await SmsServices.sendOtp(phoneNo, otp)
+      // await SmsServices.sendOtp(phoneNo, otp)
       otpRecord = await tx.otp.update({
         where: { phoneNo },
         data: {
@@ -118,7 +117,7 @@ class OtpServices {
       const timeLeft = this.getRemainingBlockTime(otpRecord)
       throw new ApiError(
         403,
-        `Too many failed attempts. Try again in ${timeLeft} seconds`
+        `Too many failed attempts. Try again in ${timeLeft} seconds`,
       )
     }
 
@@ -153,7 +152,7 @@ class OtpServices {
           403,
           `Too many failed attempts. Try again in ${
             config.otpBlockDuration / 1000
-          } seconds`
+          } seconds`,
         )
       }
 

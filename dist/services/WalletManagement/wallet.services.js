@@ -225,6 +225,12 @@ class WalletServices {
             if (!requester) {
                 throw new ApiError_1.default(404, 'Requester not found');
             }
+            if (requester.phoneNo === walletPhoneNo) {
+                return {
+                    alreadyVerified: true,
+                    message: 'Phone number already verified',
+                };
+            }
             const otpRecord = yield prisma_1.default.walletOtp.findUnique({
                 where: { phoneNo: walletPhoneNo },
             });

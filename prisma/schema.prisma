@@ -349,3 +349,21 @@ model ProductVariant {
 }
 
 // ======================
+// Transaction Management
+// ======================
+
+model Transaction {
+  id             String          @id @default(cuid())
+  createdAt      DateTime        @default(now()) @db.Timestamp(6) // Timestamp for when the transaction was created
+  userId         String // Foreign key to User table
+  userName       String // Name of the transaction (e.g., "Sell Commission", "Team Commission", etc.)
+  userPhoneNo    String // Phone number of the user
+
+  amount         Decimal         @db.Decimal(15, 2) // Amount of the transaction (suitable for financial transactions)
+  reason         String // Reason for the transaction (e.g., "Sell Commission", "Team Commission", etc.)
+  reference      Json? // Reference details for credit transactions (e.g., "Referred Person")
+
+ 
+
+  @@map("transactions")
+}
