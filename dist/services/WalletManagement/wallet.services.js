@@ -410,5 +410,20 @@ class WalletServices {
             return { message: 'Wallet verification reset successfully' };
         });
     }
+    checkWalletOwnership(requesterId, walletPhoneNo, walletName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const wallet = yield prisma_1.default.wallet.findFirst({
+                where: {
+                    walletPhoneNo,
+                    userId: requesterId,
+                    walletName, // Optional: Check wallet name if needed
+                },
+            });
+            if (!wallet) {
+                throw new ApiError_1.default(404, 'Wallet not found or not owned by user');
+            }
+            return true;
+        });
+    }
 }
 exports.default = new WalletServices();

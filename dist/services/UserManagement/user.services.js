@@ -683,6 +683,27 @@ class UserManagementServices {
             return userWithoutPassword;
         });
     }
+    getUserByIdWithLock(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield prisma_1.default.$executeRaw `SELECT * FROM "users" WHERE "userId" = ${userId} FOR UPDATE`;
+            const user = yield prisma_1.default.user.findUnique({
+                where: { userId },
+                include: {
+                    userRoles: {
+                        include: {
+                            role: true,
+                        },
+                    },
+                    referredBy: true,
+                    Wallet: true,
+                },
+            });
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            return user;
+        });
+    }
     getUserByPhoneNo(phoneNo) {
         return __awaiter(this, void 0, void 0, function* () {
             const user = yield prisma_1.default.user.findUnique({

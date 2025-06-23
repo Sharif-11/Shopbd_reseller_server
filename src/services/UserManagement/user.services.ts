@@ -780,6 +780,25 @@ class UserManagementServices {
     const { password, ...userWithoutPassword } = user
     return userWithoutPassword
   }
+  async getUserByIdWithLock(userId: string) {
+    await prisma.$executeRaw`SELECT * FROM "users" WHERE "userId" = ${userId} FOR UPDATE`
+    const user = await prisma.user.findUnique({
+      where: { userId },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+        referredBy: true,
+        Wallet: true,
+      },
+    })
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    return user
+  }
   async getUserByPhoneNo(phoneNo: string) {
     const user = await prisma.user.findUnique({
       where: { phoneNo },

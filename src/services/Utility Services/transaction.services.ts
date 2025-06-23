@@ -49,7 +49,7 @@ class TransactionService {
     userPhoneNo?: string
     amount: number
     reason: string
-    reference: Record<string, any>
+    reference?: Record<string, any>
   }) {
     // Here we need to ensure that either userId or userPhoneNo is provided
     if (!userId && !userPhoneNo) {
@@ -157,3 +157,4 @@ class TransactionService {
     return transactions
   }
 }
+export const transactionServices = new TransactionService()

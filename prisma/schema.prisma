@@ -77,6 +77,33 @@ enum BlockActionType {
   ALL
 }
 
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  REJECTED
+  FAILED
+}
+
+enum PaymentType {
+  ORDER_PAYMENT
+  WITHDRAWAL_PAYMENT
+  DUE_PAYMENT
+}
+
+enum SenderType {
+  SELLER
+  SYSTEM
+  CUSTOMER
+}
+
+enum WithdrawStatus {
+  PENDING
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
 // ======================
 // MODELS
 // ======================
@@ -166,31 +193,32 @@ model UserRole {
 }
 
 model Block {
-  blockId     String       @id @default(cuid())
+  blockId     String        @id @default(cuid())
   userName    String
   userPhoneNo String
   actions     BlockAction[] // One-to-many relationship with BlockAction
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@index([userPhoneNo], name: "blockUserPhoneIndex")
   @@map("blocks")
 }
 
 model BlockAction {
-  actionId    String            @id @default(cuid())
-  block       Block             @relation(fields: [blockId], references: [blockId])
-  blockId     String
-  actionType  BlockActionType
-  reason      String?
-  expiresAt   DateTime?
-  createdAt   DateTime          @default(now())
+  actionId   String          @id @default(cuid())
+  block      Block           @relation(fields: [blockId], references: [blockId])
+  blockId    String
+  actionType BlockActionType
+  reason     String?
+  expiresAt  DateTime?
+  createdAt  DateTime        @default(now())
 
   // Properly define the composite unique constraint
   @@unique([blockId, actionType])
   @@map("block_actions")
 }
+
 // ======================
 // RELATIONSHIP DIAGRAM
 // ======================
@@ -247,7 +275,7 @@ enum WalletType {
 // ======================
 
 model Shop {
-  shopId                Int         @id  @default(autoincrement())
+  shopId                Int            @id @default(autoincrement())
   shopName              String
   shopLocation          String
   shopIcon              String? // New optional field for shop icon
@@ -269,15 +297,15 @@ model Category {
   name           String
   categoryIcon   String?
   description    String?
-  parentId       Int?           // Reference to parent category
+  parentId       Int? // Reference to parent category
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   Product        Product[]
   shopCategories ShopCategory[]
-  
+
   // Self-referential relationship for parent-child
-  parentCategory         Category?      @relation("CategoryHierarchy", fields: [parentId], references: [categoryId])
-  subCategories       Category[]     @relation("CategoryHierarchy")
+  parentCategory Category?  @relation("CategoryHierarchy", fields: [parentId], references: [categoryId])
+  subCategories  Category[] @relation("CategoryHierarchy")
 
   @@map("categories")
 }
@@ -348,22 +376,77 @@ model ProductVariant {
   @@map("product_variants")
 }
 
+//=======================
+// Withdraw MANAGEMENT
+// ======================
+
+model Withdraw {
+  withdrawId     String        @id @default(cuid())
+  requestedAt    DateTime      @default(now()) // Timestamp when the withdrawal was requested
+  processedAt    DateTime? // Timestamp when the withdrawal was processed
+  withdrawStatus WithdrawStatus @default(PENDING) // Status of the withdrawal
+
+  userId              String // Foreign key to User table
+  userName            String // Name of the user associated with the withdrawal
+  userPhoneNo         String // Phone number of the user associated with the withdrawal
+  amount              Decimal  @db.Decimal(15, 2) // Amount requested for withdrawal
+  transactionFee      Decimal? @db.Decimal(15, 2) // Transaction fee, if applicable
+  actualAmount        Decimal? @db.Decimal(15, 2) // Actual amount after
+  transactionId       String? // Transaction ID for the withdrawal, if applicable
+  walletName          String // Name of the wallet associated with the withdrawal
+  walletPhoneNo       String // Phone number associated with the wallet
+  systemWalletPhoneNo String? // Phone number associated with the system wallet (if applicable)
+  paymentId           String? // Foreign key to Payment table, if applicable
+  remarks             String? // Optional remarks or notes about the withdrawal
+
+  @@map("withdraws")
+}
+
+// ======================
+// Payment MANAGEMENT
+// ======================
+
+model Payment {
+  paymentId     String        @id @default(cuid())
+  paymentDate   DateTime      @default(now()) // Date of the payment
+  paymentStatus PaymentStatus @default(PENDING) // Status of the payment
+  paymentType   PaymentType // Type of payment (e.g., ORDER_PAYMENT, WITHDRAWAL_PAYMENT, DUE_PAYMENT)
+  processedAt   DateTime? // Timestamp when the payment was processed
+
+  sender SenderType // Type of sender (e.g., SELLER, SYSTEM, CUSTOMER)
+
+  userWalletName      String // Name of the wallet associated with the payment
+  userWalletPhoneNo   String // Phone number associated with the wallet
+  systemWalletName    String? // Name of the system wallet (if applicable)
+  systemWalletPhoneNo String? // Phone number associated with the system wallet (if applicable)
+
+  amount         Decimal  @db.Decimal(15, 2) // Amount of the payment
+  transactionId  String?  @unique
+  transactionFee Decimal? @db.Decimal(15, 2) // Transaction fee, if applicable
+  actualAmount   Decimal? @db.Decimal(15, 2) // Actual amount after fees, if applicable
+
+  userName    String // Name of the user associated with the payment
+  userPhoneNo String // Phone number of the user associated with the payment
+
+  remarks String? // Optional remarks or notes about the payment
+
+  @@map("payments")
+}
+
 // ======================
 // Transaction Management
 // ======================
 
 model Transaction {
-  id             String          @id @default(cuid())
-  createdAt      DateTime        @default(now()) @db.Timestamp(6) // Timestamp for when the transaction was created
-  userId         String // Foreign key to User table
-  userName       String // Name of the transaction (e.g., "Sell Commission", "Team Commission", etc.)
-  userPhoneNo    String // Phone number of the user
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now()) @db.Timestamp(6) // Timestamp for when the transaction was created
+  userId      String // Foreign key to User table
+  userName    String // Name of the transaction (e.g., "Sell Commission", "Team Commission", etc.)
+  userPhoneNo String // Phone number of the user
 
-  amount         Decimal         @db.Decimal(15, 2) // Amount of the transaction (suitable for financial transactions)
-  reason         String // Reason for the transaction (e.g., "Sell Commission", "Team Commission", etc.)
-  reference      Json? // Reference details for credit transactions (e.g., "Referred Person")
-
- 
+  amount    Decimal @db.Decimal(15, 2) // Amount of the transaction (suitable for financial transactions)
+  reason    String // Reason for the transaction (e.g., "Sell Commission", "Team Commission", etc.)
+  reference Json? // Reference details for credit transactions (e.g., "Referred Person")
 
   @@map("transactions")
 }

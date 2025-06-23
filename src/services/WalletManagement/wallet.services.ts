@@ -499,6 +499,23 @@ class WalletServices {
 
     return { message: 'Wallet verification reset successfully' }
   }
+  async checkWalletOwnership(
+    requesterId: string,
+    walletPhoneNo: string,
+    walletName: string,
+  ): Promise<boolean> {
+    const wallet = await prisma.wallet.findFirst({
+      where: {
+        walletPhoneNo,
+        userId: requesterId,
+        walletName, // Optional: Check wallet name if needed
+      },
+    })
+    if (!wallet) {
+      throw new ApiError(404, 'Wallet not found or not owned by user')
+    }
+    return true
+  }
 }
 
 export default new WalletServices()
