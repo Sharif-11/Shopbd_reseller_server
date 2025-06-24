@@ -104,7 +104,7 @@ class WithdrawService {
         });
     }
     cancelWithdraw(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ userId, withdrawId }) {
+        return __awaiter(this, arguments, void 0, function* ({ userId, withdrawId, }) {
             const withdraw = yield this.getWithdrawById(withdrawId);
             if (withdraw.userId !== userId) {
                 throw new ApiError_1.default(403, 'You are not authorized to cancel this withdraw request');
@@ -119,6 +119,7 @@ class WithdrawService {
     }
     approveWithdraw(_a) {
         return __awaiter(this, arguments, void 0, function* ({ adminId, withdrawId, systemWalletPhoneNo, transactionId, }) {
+            var _b;
             // check permissions
             yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.WITHDRAWAL_MANAGEMENT, 'APPROVE');
             const withdraw = yield this.getWithdrawById(withdrawId);
@@ -126,6 +127,11 @@ class WithdrawService {
             // check if withdraw is already approved
             if (withdraw.withdrawStatus !== 'PENDING') {
                 throw new ApiError_1.default(400, 'Only pending withdraw requests can be completed');
+            }
+            // check user balance
+            const user = yield user_services_1.default.getUserByIdWithLock(withdraw.userId);
+            if ((((_b = user.balance) === null || _b === void 0 ? void 0 : _b.toNumber()) || 0) < withdraw.amount.toNumber()) {
+                throw new ApiError_1.default(400, 'Insufficient balance for withdrawal');
             }
             const updatedWithdraw = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 var _a;
@@ -167,7 +173,7 @@ class WithdrawService {
         });
     }
     rejectWithdraw(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ adminId, withdrawId, remarks }) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, withdrawId, remarks, }) {
             // check permissions
             yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.WITHDRAWAL_MANAGEMENT, 'REJECT');
             const withdraw = yield this.getWithdrawById(withdrawId);
@@ -179,8 +185,9 @@ class WithdrawService {
                 where: { withdrawId },
                 data: {
                     withdrawStatus: 'REJECTED',
-                    processedAt: new Date(),
                     remarks,
+                    processedAt: new Date(),
+                    transactionId: null, // No transaction ID for rejected withdraws
                 },
             });
             return updatedWithdraw;
@@ -188,17 +195,36 @@ class WithdrawService {
     }
     // Method to get all withdraw requests with pagination and filtering
     getWithdrawForSeller(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ sellerId, page, limit, search, status }) {
+        return __awaiter(this, arguments, void 0, function* ({ sellerId, page, limit, search, status, }) {
             const offset = (page || 1) - 1;
             const take = limit || 10;
-            const where = Object.assign({ sellerId, withdrawStatus: status ? (Array.isArray(status) ? { in: status } : status) : undefined }, (search && {
+            const where = Object.assign({ sellerId, withdrawStatus: status
+                    ? Array.isArray(status)
+                        ? { in: status }
+                        : status
+                    : undefined }, (search && {
                 OR: [
-                    { userName: { contains: search, mode: client_1.Prisma.QueryMode.insensitive } },
-                    { userPhoneNo: { contains: search, mode: client_1.Prisma.QueryMode.insensitive } },
-                    { walletPhoneNo: { contains: search, mode: client_1.Prisma.QueryMode.insensitive } },
                     {
-                        walletName: { contains: search, mode: client_1.Prisma.QueryMode.insensitive },
-                    }
+                        userName: { contains: search, mode: client_1.Prisma.QueryMode.insensitive },
+                    },
+                    {
+                        userPhoneNo: {
+                            contains: search,
+                            mode: client_1.Prisma.QueryMode.insensitive,
+                        },
+                    },
+                    {
+                        walletPhoneNo: {
+                            contains: search,
+                            mode: client_1.Prisma.QueryMode.insensitive,
+                        },
+                    },
+                    {
+                        walletName: {
+                            contains: search,
+                            mode: client_1.Prisma.QueryMode.insensitive,
+                        },
+                    },
                 ],
             }));
             const withdraws = yield prisma_1.default.withdraw.findMany({
@@ -212,16 +238,31 @@ class WithdrawService {
     }
     // Method to get all withdraw requests for admin with pagination and filtering
     getWithdrawForAdmin(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ adminId, page, limit, search, status }) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, page, limit, search, status, }) {
             // check permissions
             yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.WITHDRAWAL_MANAGEMENT, 'READ');
             const offset = (page || 1) - 1;
             const take = limit || 10;
-            const where = Object.assign({ withdrawStatus: status ? (Array.isArray(status) ? { in: status } : status) : undefined }, (search && {
+            const where = Object.assign({ withdrawStatus: status
+                    ? Array.isArray(status)
+                        ? { in: status }
+                        : status
+                    : undefined }, (search && {
                 OR: [
-                    { userName: { contains: search, mode: client_1.Prisma.QueryMode.insensitive } },
-                    { userPhoneNo: { contains: search, mode: client_1.Prisma.QueryMode.insensitive } }, {
-                        walletPhoneNo: { contains: search, mode: client_1.Prisma.QueryMode.insensitive },
+                    {
+                        userName: { contains: search, mode: client_1.Prisma.QueryMode.insensitive },
+                    },
+                    {
+                        userPhoneNo: {
+                            contains: search,
+                            mode: client_1.Prisma.QueryMode.insensitive,
+                        },
+                    },
+                    {
+                        walletPhoneNo: {
+                            contains: search,
+                            mode: client_1.Prisma.QueryMode.insensitive,
+                        },
                     },
                 ],
             }));

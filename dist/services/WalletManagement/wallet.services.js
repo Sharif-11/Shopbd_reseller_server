@@ -262,10 +262,8 @@ class WalletServices {
                         },
                     });
                     // Create a block record
-                    yield block_services_1.blockServices.updateUserBlockActions({
-                        bySystem: true,
+                    yield block_services_1.blockServices.createBlockRecordBySystem({
                         tx,
-                        adminId: requesterId, // Use requesterId as adminId for block creation
                         userPhoneNo: requester.phoneNo,
                         actions: [
                             {
@@ -350,7 +348,7 @@ class WalletServices {
                             },
                         });
                         // Create a block record
-                        yield block_services_1.blockServices.updateUserBlockActions({
+                        yield block_services_1.blockServices.createBlockRecordBySystem({
                             userPhoneNo: user.phoneNo,
                             actions: [
                                 {
@@ -360,9 +358,7 @@ class WalletServices {
                                     reason: 'Too many failed OTP attempts',
                                 },
                             ],
-                            bySystem: true,
                             tx,
-                            adminId: requesterId, // Use requesterId as adminId for block creation
                         });
                     }));
                     throw new ApiError_1.default(403, 'অনেকবার ভুল চেষ্টা করেছেন। ওয়ালেট যাচাইকরণ ২৪ ঘন্টার জন্য ব্লক করা হয়েছে');

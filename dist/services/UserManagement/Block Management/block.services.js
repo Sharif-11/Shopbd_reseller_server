@@ -64,12 +64,9 @@ class BlockService {
      * Update block actions for a user with individual attributes
      */
     updateUserBlockActions(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ adminId, userPhoneNo, actions, bySystem = false, tx = prisma_1.default, // Default to global prisma client
+        return __awaiter(this, arguments, void 0, function* ({ adminId, userPhoneNo, actions, tx = prisma_1.default, // Default to global prisma client
          }) {
-            if (!bySystem) {
-                console.log(`Admin ${adminId} is updating block actions for user ${userPhoneNo}`);
-                yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.BLOCK);
-            }
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.BLOCK);
             // Always use the provided tx client (or prisma if none provided)
             const user = yield tx.user.findUnique({
                 where: { phoneNo: userPhoneNo },
@@ -133,12 +130,57 @@ class BlockService {
                         updatedAt: new Date(),
                     },
                 });
-                if (!bySystem)
-                    return this.getUserBlockStatus(adminId, userPhoneNo);
+                return this.getUserBlockStatus(adminId, userPhoneNo);
             });
             // If we received a tx parameter, use it directly (part of existing transaction)
             // Otherwise, create a new transaction
             return tx === prisma_1.default ? prisma_1.default.$transaction(operation) : operation(tx);
+        });
+    }
+    createBlockRecordBySystem(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ userPhoneNo, tx, actions, }) {
+            const user = yield tx.user.findUnique({
+                where: {
+                    phoneNo: userPhoneNo,
+                },
+            });
+            if (!user) {
+                throw new ApiError_1.default(404, 'User Not Found');
+            }
+            let createdBlockRecord = yield tx.block.findFirst({
+                where: {
+                    userPhoneNo,
+                },
+            });
+            if (createdBlockRecord) {
+                // activate the  block record.
+                yield tx.block.update({
+                    where: { blockId: createdBlockRecord.blockId },
+                    data: {
+                        isActive: true,
+                    },
+                });
+            }
+            else {
+                createdBlockRecord = yield tx.block.create({
+                    data: {
+                        userName: user.name,
+                        userPhoneNo,
+                        isActive: true,
+                    },
+                });
+            }
+            // create block actions
+            for (const action of actions) {
+                yield tx.blockAction.create({
+                    data: {
+                        blockId: createdBlockRecord.blockId,
+                        actionType: action.actionType,
+                        reason: action.reason,
+                        expiresAt: action.expiresAt,
+                    },
+                });
+            }
         });
     }
     /**

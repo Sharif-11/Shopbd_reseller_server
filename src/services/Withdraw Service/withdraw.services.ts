@@ -1,4 +1,9 @@
-import { BlockActionType, PermissionType, Prisma, WithdrawStatus } from '@prisma/client'
+import {
+  BlockActionType,
+  PermissionType,
+  Prisma,
+  WithdrawStatus,
+} from '@prisma/client'
 
 import Decimal from 'decimal.js'
 
@@ -13,7 +18,6 @@ import walletServices from '../WalletManagement/wallet.services'
 import { calculateTransactionFee, WalletName } from './withdraw.utils'
 
 class WithdrawService {
-
   public async getWithdrawById(withdrawId: string) {
     const withdraw = await prisma.withdraw.findUnique({
       where: { withdrawId },
@@ -46,11 +50,11 @@ class WithdrawService {
     // check user block status
     const isBlocked = await blockServices.isUserBlocked(
       user.phoneNo,
-      BlockActionType.WITHDRAW_REQUEST,
+      BlockActionType.WITHDRAW_REQUEST
     )
     if (isBlocked) {
       throw new Error(
-        'You are blocked from making withdraw requests. Please contact support.',
+        'You are blocked from making withdraw requests. Please contact support.'
       )
     }
     // check if user has sufficient balance
@@ -67,7 +71,7 @@ class WithdrawService {
     await walletServices.checkWalletOwnership(
       user.userId,
       walletPhoneNo,
-      walletName,
+      walletName
     )
     // check if user has a pending withdraw request
     const existingWithdraw = await prisma.withdraw.findFirst({
@@ -79,7 +83,7 @@ class WithdrawService {
     if (existingWithdraw) {
       throw new ApiError(
         400,
-        'You already have a pending withdraw request. Please wait for it to be processed.',
+        'You already have a pending withdraw request. Please wait for it to be processed.'
       )
     }
     // check if user  request two withdraws within 24 hours
@@ -90,13 +94,13 @@ class WithdrawService {
       },
       orderBy: { requestedAt: 'desc' },
     })
-     const timeDifference = lastWithdraw
+    const timeDifference = lastWithdraw
       ? new Date().getTime() - new Date(lastWithdraw.requestedAt).getTime()
       : null
     if (timeDifference && timeDifference < 24 * 60 * 60 * 1000) {
       throw new ApiError(
         400,
-        'You can only request one withdraw every 24 hours. Please try again later.',
+        'You can only request one withdraw every 24 hours. Please try again later.'
       )
     }
 
@@ -114,12 +118,21 @@ class WithdrawService {
     })
     return withdraw
   }
-  public async cancelWithdraw({userId,withdrawId}:{userId:string,withdrawId:string}) {
+  public async cancelWithdraw({
+    userId,
+    withdrawId,
+  }: {
+    userId: string
+    withdrawId: string
+  }) {
     const withdraw = await this.getWithdrawById(withdrawId)
     if (withdraw.userId !== userId) {
-      throw new ApiError(403, 'You are not authorized to cancel this withdraw request')
+      throw new ApiError(
+        403,
+        'You are not authorized to cancel this withdraw request'
+      )
     }
-    if( withdraw.withdrawStatus !== 'PENDING') {
+    if (withdraw.withdrawStatus !== 'PENDING') {
       throw new ApiError(400, 'Only pending withdraw requests can be cancelled')
     }
     return await prisma.withdraw.delete({
@@ -141,13 +154,18 @@ class WithdrawService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.WITHDRAWAL_MANAGEMENT,
-      'APPROVE',
+      'APPROVE'
     )
     const withdraw = await this.getWithdrawById(withdrawId)
     await paymentService.checkExistingTransactionId(transactionId)
     // check if withdraw is already approved
     if (withdraw.withdrawStatus !== 'PENDING') {
       throw new ApiError(400, 'Only pending withdraw requests can be completed')
+    }
+    // check user balance
+    const user = await userServices.getUserByIdWithLock(withdraw.userId)
+    if ((user.balance?.toNumber() || 0) < withdraw.amount.toNumber()) {
+      throw new ApiError(400, 'Insufficient balance for withdrawal')
     }
     const updatedWithdraw = await prisma.$transaction(async tx => {
       const payment = await paymentService.createWithdrawPayment({
@@ -161,7 +179,6 @@ class WithdrawService {
         transactionId,
         userWalletName: withdraw.walletName,
         userWalletPhoneNo: withdraw.walletPhoneNo,
-        
       })
       // update withdraw status
       const updatedWithdraw = await tx.withdraw.update({
@@ -172,7 +189,6 @@ class WithdrawService {
           processedAt: new Date(),
           transactionId,
           systemWalletPhoneNo,
-          
         },
       })
       // deduct balance from user
@@ -181,7 +197,6 @@ class WithdrawService {
         userId: withdraw.userId,
         amount: -withdraw.amount.toNumber(),
         reason: 'ব্যালেন্স উত্তোলন',
-       
       })
       return updatedWithdraw
     })
@@ -194,7 +209,7 @@ class WithdrawService {
   public async rejectWithdraw({
     adminId,
     withdrawId,
-    remarks
+    remarks,
   }: {
     adminId: string
     withdrawId: string
@@ -204,7 +219,7 @@ class WithdrawService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.WITHDRAWAL_MANAGEMENT,
-      'REJECT',
+      'REJECT'
     )
     const withdraw = await this.getWithdrawById(withdrawId)
     // check if withdraw is already approved
@@ -215,10 +230,12 @@ class WithdrawService {
       where: { withdrawId },
       data: {
         withdrawStatus: 'REJECTED',
-        processedAt: new Date(),
         remarks,
+        processedAt: new Date(),
+        transactionId: null, // No transaction ID for rejected withdraws
       },
     })
+
     return updatedWithdraw
   }
   // Method to get all withdraw requests with pagination and filtering
@@ -227,7 +244,7 @@ class WithdrawService {
     page,
     limit,
     search,
-    status
+    status,
   }: {
     sellerId: string
     page?: number
@@ -239,15 +256,34 @@ class WithdrawService {
     const take = limit || 10
     const where = {
       sellerId,
-      withdrawStatus: status ? (Array.isArray(status) ? { in: status } : status) : undefined,
+      withdrawStatus: status
+        ? Array.isArray(status)
+          ? { in: status }
+          : status
+        : undefined,
       ...(search && {
         OR: [
-          { userName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-          { userPhoneNo: { contains: search, mode: Prisma.QueryMode.insensitive } },
-          { walletPhoneNo: { contains: search, mode: Prisma.QueryMode.insensitive } },
           {
-            walletName: { contains: search, mode: Prisma.QueryMode.insensitive },
-          }
+            userName: { contains: search, mode: Prisma.QueryMode.insensitive },
+          },
+          {
+            userPhoneNo: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            walletPhoneNo: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            walletName: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
         ],
       }),
     }
@@ -265,7 +301,7 @@ class WithdrawService {
     page,
     limit,
     search,
-    status
+    status,
   }: {
     page?: number
     limit?: number
@@ -277,19 +313,33 @@ class WithdrawService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.WITHDRAWAL_MANAGEMENT,
-      'READ',
+      'READ'
     )
     const offset = (page || 1) - 1
     const take = limit || 10
     const where: Prisma.WithdrawWhereInput = {
-      withdrawStatus: status ? (Array.isArray(status) ? { in: status } : status) : undefined,
+      withdrawStatus: status
+        ? Array.isArray(status)
+          ? { in: status }
+          : status
+        : undefined,
       ...(search && {
         OR: [
-          { userName: { contains: search, mode: Prisma.QueryMode.insensitive } },
-          { userPhoneNo: { contains: search, mode: Prisma.QueryMode.insensitive } },{
-            walletPhoneNo: { contains: search, mode: Prisma.QueryMode.insensitive },
+          {
+            userName: { contains: search, mode: Prisma.QueryMode.insensitive },
           },
-        
+          {
+            userPhoneNo: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
+          {
+            walletPhoneNo: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
         ],
       }),
     }

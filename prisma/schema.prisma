@@ -104,6 +104,35 @@ enum WithdrawStatus {
   CANCELLED
 }
 
+enum OrderType {
+  SELLER_ORDER
+  CUSTOMER_ORDER
+}
+
+enum OrderStatus {
+  UNPAID
+  PAID
+  CONFIRMED
+  DELIVERED
+  COMPLETED
+  RETURNED
+  REFUNDED
+  FAILED
+  CANCELLED
+  REJECTED
+}
+
+enum OrderUser {
+  SELLER
+  CUSTOMER
+  SYSTEM
+}
+
+enum PaymentMethod {
+  WALLET
+  BALANCE
+}
+
 // ======================
 // MODELS
 // ======================
@@ -376,13 +405,87 @@ model ProductVariant {
   @@map("product_variants")
 }
 
+// ======================
+// ORDER MANAGEMENT
+// ======================
+model Order {
+  orderId     Int         @id @default(autoincrement())
+  orderType   OrderType   @default(SELLER_ORDER) // Type of order, defaulting to SELLER_ORDER
+  orderStatus OrderStatus // Status of the order
+  createdAt   DateTime    @default(now()) // Timestamp for when the order was created
+  updatedAt   DateTime    @updatedAt // Timestamp for when the order was last updated
+
+  cancelled       Boolean    @default(false) // Flag to indicate if the order is cancelled
+  cancelledAt     DateTime? // Timestamp for when the order was cancelled
+  cancelledBy     OrderUser? // Phone number of the user who cancelled the order
+  cancelledReason String? // Reason for cancellation
+
+  customerName     String // Name of the customer
+  customerPhoneNo  String // Phone number of the customer
+  customerAddress  String // Address of the customer
+  customerZilla    String // Zilla of the customer
+  customerUpazilla String // Upazilla of the customer
+  customerComments String? // Comments from the customer
+
+  shopId         Int // Foreign key to Shop table
+  shopName       String // Name of the shop associated with the order
+  shopLocation   String // Location of the shop associated with the order
+  deliveryCharge Decimal @db.Decimal(10, 2) // Delivery charge for the order
+
+  sellerId       String? // Foreign key to User table (seller)
+  sellerName     String? // Name of the seller associated with the order
+  sellerPhoneNo  String? // Phone number of the seller associated with the order
+  sellerVerified Boolean? @default(false) // Flag to indicate if the seller is verified
+  sellerShopName String? // Name of the seller's shop
+  sellerBalance  Decimal? @default(0.0) @db.Decimal(15, 2) // Balance of the seller
+
+  courierName String? // Name of the courier service
+  trackingUrl String? // URL for tracking the order
+
+  isDeliveryChargePaid Boolean       @default(false) // Flag to indicate if the delivery charge is paid
+  deliveryChargePaidAt DateTime? // Timestamp when the delivery charge was paid
+  paymentType          PaymentMethod
+  paymentVerified      Boolean       @default(false) // Flag to indicate if the payment is verified
+  Payment              Payment?      @relation("OrderPayment")
+
+  totalProductQuantity     Int     @default(0) // Total quantity of products in the order
+  totalProductSellingPrice Decimal @db.Decimal(15, 2) // Total selling price of products in the order
+  totalProductBasePrice    Decimal @db.Decimal(15, 2) // Total base price of products in the order
+  totalCommission          Decimal @db.Decimal(15, 2) // Total commission for the order
+  amountPaidByCustomer     Decimal @db.Decimal(15, 2) // Total amount paid by the customer
+  actualCommission         Decimal @db.Decimal(15, 2) // Actual commission after deductions
+  cashOnAmount             Decimal @db.Decimal(15, 2) // Amount to be collected on delivery
+
+  OrderProduct OrderProduct[]
+}
+
+model OrderProduct {
+  orderProductId Int @id @default(autoincrement())
+  orderId        Int
+
+  productId           Int
+  productName         String
+  productImage        String?
+  productBasePrice    Decimal @db.Decimal(15, 2) // Base price of the product
+  productSellingPrice Decimal @db.Decimal(15, 2) // Selling price of the product
+  productQuantity     Int     @default(1) // Quantity of the product in the order
+  productVariant      String? // Variant of the product, if applicable
+
+  totalProductBasePrice    Decimal @db.Decimal(15, 2) // Total base price for the product
+  totalProductSellingPrice Decimal @db.Decimal(15, 2) // Total selling price for the product
+  totalProductQuantity     Int     @default(0) // Total quantity of
+
+  // define relationships
+  order Order @relation(fields: [orderId], references: [orderId])
+}
+
 //=======================
 // Withdraw MANAGEMENT
 // ======================
 
 model Withdraw {
-  withdrawId     String        @id @default(cuid())
-  requestedAt    DateTime      @default(now()) // Timestamp when the withdrawal was requested
+  withdrawId     String         @id @default(cuid())
+  requestedAt    DateTime       @default(now()) // Timestamp when the withdrawal was requested
   processedAt    DateTime? // Timestamp when the withdrawal was processed
   withdrawStatus WithdrawStatus @default(PENDING) // Status of the withdrawal
 
@@ -429,6 +532,9 @@ model Payment {
   userPhoneNo String // Phone number of the user associated with the payment
 
   remarks String? // Optional remarks or notes about the payment
+
+  orderId Int?   @unique
+  Order   Order? @relation("OrderPayment", fields: [orderId], references: [orderId])
 
   @@map("payments")
 }

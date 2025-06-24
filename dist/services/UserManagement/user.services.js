@@ -586,10 +586,8 @@ class UserManagementServices {
                 if (user.role === 'Seller') {
                     // create a  block action for the seller and reset totalPasswordResetRequests within transaction
                     yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                        yield block_services_1.blockServices.updateUserBlockActions({
-                            adminId: user.userId,
+                        yield block_services_1.blockServices.createBlockRecordBySystem({
                             userPhoneNo: user.phoneNo,
-                            bySystem: true,
                             actions: [
                                 {
                                     actionType: client_1.BlockActionType.PASSWORD_RESET,
