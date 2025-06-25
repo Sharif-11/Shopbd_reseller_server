@@ -19,7 +19,7 @@ class ProductServices {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      action,
+      action
     )
   }
 
@@ -36,7 +36,7 @@ class ProductServices {
       description: string
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
-    },
+    }
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.CREATE)
 
@@ -91,7 +91,7 @@ class ProductServices {
       description: string
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
-    },
+    }
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -104,7 +104,7 @@ class ProductServices {
   async togglePublishStatus(
     userId: string,
     productId: number,
-    publish: boolean,
+    publish: boolean
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -119,23 +119,20 @@ class ProductServices {
   // ==========================================
 
   async getProductVariants(
-    productId: number,
+    productId: number
   ): Promise<{ [key: string]: string[] }> {
     const variants = await prisma.productVariant.findMany({
       where: { productId },
     })
 
     // Group variants by name
-    const groupedVariants = variants.reduce(
-      (acc, variant) => {
-        if (!acc[variant.name]) {
-          acc[variant.name] = []
-        }
-        acc[variant.name].push(variant.value)
-        return acc
-      },
-      {} as { [key: string]: string[] },
-    )
+    const groupedVariants = variants.reduce((acc, variant) => {
+      if (!acc[variant.name]) {
+        acc[variant.name] = []
+      }
+      acc[variant.name].push(variant.value)
+      return acc
+    }, {} as { [key: string]: string[] })
 
     return groupedVariants
   }
@@ -143,7 +140,7 @@ class ProductServices {
   async replaceVariants(
     userId: string,
     productId: number,
-    variants: { name: string; value: string }[],
+    variants: { name: string; value: string }[]
   ) {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -173,7 +170,7 @@ class ProductServices {
   async addImages(
     userId: string,
     productId: number,
-    images: { url: string; hidden?: boolean }[],
+    images: { url: string; hidden?: boolean }[]
   ) {
     await this.verifyProductPermission(userId, ActionType.CREATE)
 
@@ -214,7 +211,7 @@ class ProductServices {
   async updateImage(
     userId: string,
     imageId: number,
-    data: { hidden?: boolean },
+    data: { hidden?: boolean }
   ) {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -286,7 +283,7 @@ class ProductServices {
         } catch (error) {
           console.error(
             `Failed to delete image ${image.imageId} from FTP:`,
-            error,
+            error
           )
           // Continue with other deletions even if one fails
         }
@@ -304,7 +301,7 @@ class ProductServices {
   // ==========================================
   async getProductDetailForAdmin(
     userId: string,
-    productId: number,
+    productId: number
   ): Promise<
     Product & {
       shop: { shopName: string }
@@ -331,16 +328,13 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce(
-      (acc, variant) => {
-        if (!acc[variant.name]) {
-          acc[variant.name] = []
-        }
-        acc[variant.name].push(variant.value)
-        return acc
-      },
-      {} as Record<string, string[]>,
-    )
+    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
+      if (!acc[variant.name]) {
+        acc[variant.name] = []
+      }
+      acc[variant.name].push(variant.value)
+      return acc
+    }, {} as Record<string, string[]>)
 
     return {
       ...product,
@@ -381,16 +375,13 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found or not published')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce(
-      (acc, variant) => {
-        if (!acc[variant.name]) {
-          acc[variant.name] = []
-        }
-        acc[variant.name].push(variant.value)
-        return acc
-      },
-      {} as Record<string, string[]>,
-    )
+    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
+      if (!acc[variant.name]) {
+        acc[variant.name] = []
+      }
+      acc[variant.name].push(variant.value)
+      return acc
+    }, {} as Record<string, string[]>)
 
     const { basePrice, ...productData } = product
     return {
@@ -432,7 +423,7 @@ class ProductServices {
         ProductVariant: true,
         ProductImage: {
           where: { hidden: false },
-          select: { imageUrl: true },
+          select: { imageUrl: true, imageId: true },
           orderBy: { isPrimary: 'desc' },
         },
       },
@@ -441,16 +432,13 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found in your shop')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce(
-      (acc, variant) => {
-        if (!acc[variant.name]) {
-          acc[variant.name] = []
-        }
-        acc[variant.name].push(variant.value)
-        return acc
-      },
-      {} as Record<string, string[]>,
-    )
+    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
+      if (!acc[variant.name]) {
+        acc[variant.name] = []
+      }
+      acc[variant.name].push(variant.value)
+      return acc
+    }, {} as Record<string, string[]>)
 
     return {
       product: {
@@ -472,7 +460,7 @@ class ProductServices {
       shopId?: number // Now optional
       published?: boolean
     },
-    pagination: { page: number; limit: number },
+    pagination: { page: number; limit: number }
   ) {
     await this.verifyProductPermission(adminId, ActionType.READ)
     const where: Prisma.ProductWhereInput = {
@@ -534,7 +522,7 @@ class ProductServices {
       maxPrice?: number
       categoryId: number
     },
-    pagination: { page: number; limit: number },
+    pagination: { page: number; limit: number }
   ) {
     const where: Prisma.ProductWhereInput = {
       published: true,
@@ -613,7 +601,7 @@ class ProductServices {
       categoryId: number
       shopId: number
     },
-    pagination: { page: number; limit: number },
+    pagination: { page: number; limit: number }
   ) {
     const where: Prisma.ProductWhereInput = {
       published: true,
