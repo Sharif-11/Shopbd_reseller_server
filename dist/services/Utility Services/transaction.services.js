@@ -36,7 +36,7 @@ class TransactionService {
         });
     }
     createTransaction(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ tx, userId, userPhoneNo, amount, reason, reference, }) {
+        return __awaiter(this, arguments, void 0, function* ({ tx, userId, userPhoneNo, amount, reason, reference, transactionType, }) {
             // Here we need to ensure that either userId or userPhoneNo is provided
             if (!userId && !userPhoneNo) {
                 throw new Error('Either userId or userPhoneNo must be provided');
@@ -57,14 +57,14 @@ class TransactionService {
             if (!user) {
                 throw new Error('User not found');
             }
-            if (amount < 0) {
+            if (transactionType === 'Debit') {
                 yield this.deductBalance({
                     userId: user.userId,
                     amount: Math.abs(amount),
                     tx,
                 });
             }
-            if (amount > 0) {
+            if (transactionType === 'Credit') {
                 yield this.addBalance({
                     userId: user.userId,
                     amount,
@@ -77,11 +77,12 @@ class TransactionService {
                     userId: user.userId,
                     userPhoneNo: user.phoneNo,
                     userName: user.name,
-                    amount,
+                    amount: transactionType === 'Credit' ? amount : -amount,
                     reason,
                     reference,
                 },
             });
+            return transaction;
         });
     }
     // Additional methods for transaction retrieval, etc. can be added here

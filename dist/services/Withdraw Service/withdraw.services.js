@@ -162,8 +162,9 @@ class WithdrawService {
                 yield transaction_services_1.transactionServices.createTransaction({
                     tx,
                     userId: withdraw.userId,
-                    amount: -withdraw.amount.toNumber(),
+                    amount: withdraw.amount.toNumber(),
                     reason: 'ব্যালেন্স উত্তোলন',
+                    transactionType: 'Debit',
                 });
                 return updatedWithdraw;
             }));

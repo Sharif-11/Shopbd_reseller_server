@@ -13,8 +13,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
+const config_1 = __importDefault(require("../../config"));
+const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
+const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
+const transaction_services_1 = require("../Utility Services/transaction.services");
 class PaymentService {
     checkExistingTransactionId(transactionId_1) {
         return __awaiter(this, arguments, void 0, function* (transactionId, tx = undefined) {
@@ -53,6 +57,10 @@ class PaymentService {
     }
     createPayment(_a) {
         return __awaiter(this, arguments, void 0, function* ({ tx, paymentType, sender, userWalletName, userWalletPhoneNo, systemWalletPhoneNo, amount, transactionId, userName, userPhoneNo, }) {
+            const isBlocked = yield block_services_1.blockServices.isUserBlocked(userPhoneNo, client_1.BlockActionType.PAYMENT_REQUEST);
+            if (isBlocked) {
+                throw new ApiError_1.default(400, 'You are blocked from payment request. Please contact support');
+            }
             yield this.checkExistingTransactionId(transactionId, tx);
             const payment = yield (tx || prisma_1.default).payment.create({
                 data: {
@@ -85,19 +93,98 @@ class PaymentService {
             if (payment.transactionId !== transactionId) {
                 throw new Error('Transaction ID does not match');
             }
+            let updatedPayment = null;
             // update payment status
-            const updatedPayment = yield (tx || prisma_1.default).payment.update({
-                where: { paymentId },
-                data: {
-                    paymentStatus: 'COMPLETED',
-                    processedAt: new Date(),
-                },
-            });
+            if (payment.paymentType === 'DUE_PAYMENT') {
+                updatedPayment = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    // update payment status and create a transaction
+                    const result = yield tx.payment.update({
+                        where: { paymentId },
+                        data: {
+                            paymentStatus: 'COMPLETED',
+                            processedAt: new Date(),
+                        },
+                    });
+                    // create a transaction
+                    yield transaction_services_1.transactionServices.createTransaction({
+                        tx,
+                        amount: payment.amount.toNumber(),
+                        userPhoneNo: payment.userPhoneNo,
+                        reason: 'বকেয়া পরিশোধ',
+                        transactionType: 'Credit',
+                    });
+                }));
+                return updatedPayment;
+            }
+            else {
+                updatedPayment = yield (tx || prisma_1.default).payment.update({
+                    where: { paymentId },
+                    data: {
+                        paymentStatus: 'COMPLETED',
+                        processedAt: new Date(),
+                    },
+                });
+            }
             return updatedPayment;
         });
     }
     rejectPaymentByAdmin(_a) {
-        return __awaiter(this, arguments, void 0, function* ({}) { });
+        return __awaiter(this, arguments, void 0, function* ({ adminId, userPhoneNo, paymentId, remarks, }) {
+            // verify permission
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.PAYMENT_MANAGEMENT, 'REJECT');
+            // check user is blocked
+            // check if payment exists
+            const payment = yield prisma_1.default.payment.findUnique({
+                where: { paymentId },
+            });
+            if (!payment) {
+                throw new Error('Payment not found');
+            }
+            // count total rejected payments for the user
+            const totalRejectedPayments = yield prisma_1.default.payment.count({
+                where: {
+                    userPhoneNo,
+                    paymentStatus: 'REJECTED',
+                },
+            });
+            if (totalRejectedPayments >= config_1.default.maxRejectedPaymentLimit) {
+                // block user if they have 3 or more rejected payments
+                yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    // delete all those rejected payments
+                    yield tx.payment.deleteMany({
+                        where: {
+                            userPhoneNo,
+                            paymentStatus: 'REJECTED',
+                        },
+                    });
+                    // block user
+                    yield block_services_1.blockServices.createBlockRecordBySystem({
+                        actions: [
+                            {
+                                actionType: client_1.BlockActionType.PAYMENT_REQUEST,
+                                active: true,
+                                reason: 'Too many rejected payments',
+                                expiresAt: null, // no expiration for this block
+                            },
+                        ],
+                        userPhoneNo,
+                        tx,
+                    });
+                }));
+                return null;
+            }
+            else {
+                return yield prisma_1.default.payment.update({
+                    where: { paymentId },
+                    data: {
+                        paymentStatus: 'REJECTED',
+                        remarks,
+                        processedAt: new Date(),
+                        transactionId: null, // clear transactionId on rejection
+                    },
+                });
+            }
+        });
     }
     getAllPaymentsOfAUser(_a) {
         return __awaiter(this, arguments, void 0, function* ({ userPhoneNo, paymentStatus, page, limit, search, }) {

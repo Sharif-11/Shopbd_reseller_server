@@ -484,10 +484,11 @@ model OrderProduct {
 // ======================
 
 model Withdraw {
-  withdrawId     String         @id @default(cuid())
-  requestedAt    DateTime       @default(now()) // Timestamp when the withdrawal was requested
-  processedAt    DateTime? // Timestamp when the withdrawal was processed
-  withdrawStatus WithdrawStatus @default(PENDING) // Status of the withdrawal
+  withdrawId      String         @id @default(cuid())
+  requestedAt     DateTime       @default(now()) // Timestamp when the withdrawal was requested
+  processedAt     DateTime? // Timestamp when the withdrawal was processed
+  withdrawStatus  WithdrawStatus @default(PENDING) // Status of the withdrawal
+ 
 
   userId              String // Foreign key to User table
   userName            String // Name of the user associated with the withdrawal

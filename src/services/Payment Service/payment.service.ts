@@ -1,12 +1,17 @@
 import {
+  BlockActionType,
   PaymentStatus,
   PaymentType,
   PermissionType,
   Prisma,
   SenderType,
 } from '@prisma/client'
+import config from '../../config'
+import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
+import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
+import { transactionServices } from '../Utility Services/transaction.services'
 
 class PaymentService {
   public async checkExistingTransactionId(
@@ -88,6 +93,16 @@ class PaymentService {
     userName: string
     userPhoneNo: string
   }) {
+    const isBlocked = await blockServices.isUserBlocked(
+      userPhoneNo,
+      BlockActionType.PAYMENT_REQUEST
+    )
+    if (isBlocked) {
+      throw new ApiError(
+        400,
+        'You are blocked from payment request. Please contact support'
+      )
+    }
     await this.checkExistingTransactionId(transactionId, tx)
     const payment = await (tx || prisma).payment.create({
       data: {
@@ -132,17 +147,110 @@ class PaymentService {
     if (payment.transactionId !== transactionId) {
       throw new Error('Transaction ID does not match')
     }
+    let updatedPayment = null
     // update payment status
-    const updatedPayment = await (tx || prisma).payment.update({
-      where: { paymentId },
-      data: {
-        paymentStatus: 'COMPLETED',
-        processedAt: new Date(),
-      },
-    })
+    if (payment.paymentType === 'DUE_PAYMENT') {
+      updatedPayment = await prisma.$transaction(async tx => {
+        // update payment status and create a transaction
+        const result = await tx.payment.update({
+          where: { paymentId },
+          data: {
+            paymentStatus: 'COMPLETED',
+            processedAt: new Date(),
+          },
+        })
+        // create a transaction
+        await transactionServices.createTransaction({
+          tx,
+          amount: payment.amount.toNumber(),
+          userPhoneNo: payment.userPhoneNo,
+          reason: 'বকেয়া পরিশোধ',
+          transactionType: 'Credit',
+        })
+      })
+      return updatedPayment
+    } else {
+      updatedPayment = await (tx || prisma).payment.update({
+        where: { paymentId },
+        data: {
+          paymentStatus: 'COMPLETED',
+          processedAt: new Date(),
+        },
+      })
+    }
     return updatedPayment
   }
-  public async rejectPaymentByAdmin({}: {}) {}
+  public async rejectPaymentByAdmin({
+    adminId,
+    userPhoneNo,
+    paymentId,
+    remarks,
+  }: {
+    adminId: string
+    paymentId: string
+    remarks: string
+    userPhoneNo: string
+  }) {
+    // verify permission
+    await userServices.verifyUserPermission(
+      adminId,
+      PermissionType.PAYMENT_MANAGEMENT,
+      'REJECT'
+    )
+    // check user is blocked
+
+    // check if payment exists
+    const payment = await prisma.payment.findUnique({
+      where: { paymentId },
+    })
+    if (!payment) {
+      throw new Error('Payment not found')
+    }
+    // count total rejected payments for the user
+    const totalRejectedPayments = await prisma.payment.count({
+      where: {
+        userPhoneNo,
+        paymentStatus: 'REJECTED',
+      },
+    })
+    if (totalRejectedPayments >= config.maxRejectedPaymentLimit) {
+      // block user if they have 3 or more rejected payments
+      await prisma.$transaction(async tx => {
+        // delete all those rejected payments
+        await tx.payment.deleteMany({
+          where: {
+            userPhoneNo,
+            paymentStatus: 'REJECTED',
+          },
+        })
+
+        // block user
+        await blockServices.createBlockRecordBySystem({
+          actions: [
+            {
+              actionType: BlockActionType.PAYMENT_REQUEST,
+              active: true,
+              reason: 'Too many rejected payments',
+              expiresAt: null, // no expiration for this block
+            },
+          ],
+          userPhoneNo,
+          tx,
+        })
+      })
+      return null
+    } else {
+      return await prisma.payment.update({
+        where: { paymentId },
+        data: {
+          paymentStatus: 'REJECTED',
+          remarks,
+          processedAt: new Date(),
+          transactionId: null, // clear transactionId on rejection
+        },
+      })
+    }
+  }
   public async getAllPaymentsOfAUser({
     userPhoneNo,
     paymentStatus,
