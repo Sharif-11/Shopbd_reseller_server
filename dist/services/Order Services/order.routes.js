@@ -22,6 +22,7 @@ class OrderRouter {
         this.router.post('/seller/payment', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.orderPaymentBySeller(), validation_middleware_1.default, order_controllers_1.default.orderPaymentBySeller);
         this.router.post('/seller/cancel', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.cancelOrderBySeller(), validation_middleware_1.default, order_controllers_1.default.cancelOrderBySeller);
         this.router.post('/seller/confirm/:orderId', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.confirmOrderBySeller(), validation_middleware_1.default, order_controllers_1.default.confirmOrderBySeller);
+        this.router.post('/seller/re-order/:orderId', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_controllers_1.default.reorderFailedOrder);
     }
     getRouter() {
         return this.router;

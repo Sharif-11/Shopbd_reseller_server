@@ -218,7 +218,7 @@ class SmsServices {
     static notifyOrderShipped(_a) {
         return __awaiter(this, arguments, void 0, function* ({ sellerPhoneNo, orderId, trackingUrl, }) {
             const message = `Your order (#${orderId}) has been shipped. Track it here: ${trackingUrl}`;
-            return this.sendMessage(sellerPhoneNo, message);
+            return this.sendSingleSms(sellerPhoneNo, message);
         });
     }
     /**
@@ -227,7 +227,7 @@ class SmsServices {
     static notifyOrderCompleted(_a) {
         return __awaiter(this, arguments, void 0, function* ({ sellerPhoneNo, orderId, orderAmount, commission, }) {
             const message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK. Your commission: ${commission} TK.`;
-            return this.sendMessage(sellerPhoneNo, message);
+            return this.sendSingleSms(sellerPhoneNo, message);
         });
     }
     /**

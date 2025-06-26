@@ -137,5 +137,27 @@ class OrderController {
             }
         });
     }
+    reorderFailedOrder(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { orderId } = req.params;
+                const order = yield order_service_1.orderService.reorderFailedOrder({
+                    userId: userId,
+                    orderId: Number(orderId),
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order reordered successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new OrderController();

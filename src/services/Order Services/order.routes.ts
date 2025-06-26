@@ -60,6 +60,13 @@ class OrderRouter {
       validateRequest,
       orderControllers.confirmOrderBySeller
     )
+    this.router.post(
+      '/seller/re-order/:orderId',
+      isAuthenticated,
+      verifyRole('Seller'),
+
+      orderControllers.reorderFailedOrder
+    )
   }
 
   public getRouter(): Router {

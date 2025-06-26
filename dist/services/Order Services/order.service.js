@@ -22,6 +22,7 @@ const product_services_1 = __importDefault(require("../ProductManagement/product
 const shopCategory_services_1 = __importDefault(require("../ProductManagement/shopCategory.services"));
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
+const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 const transaction_services_1 = require("../Utility Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 class OrderService {
@@ -180,7 +181,8 @@ class OrderService {
                 throw new ApiError_1.default(400, 'Order already cancelled by you');
             }
             const { balance: sellerBalance, isVerified: sellerVerified } = user;
-            if (paymentMethod === 'BALANCE' && sellerBalance < order.deliveryCharge) {
+            if (paymentMethod === 'BALANCE' &&
+                user.balance.toNumber() < order.deliveryCharge.toNumber()) {
                 throw new ApiError_1.default(400, 'Insufficient balance in your wallet to pay for the order');
             }
             else if (paymentMethod === 'BALANCE') {
@@ -276,9 +278,15 @@ class OrderService {
                 throw new ApiError_1.default(400, 'Order already cancelled by you');
             }
             if (order.orderStatus === 'UNPAID') {
-                return yield prisma_1.default.order.delete({
+                return yield prisma_1.default.order.update({
                     where: { orderId },
-                    include: { OrderProduct: true },
+                    data: {
+                        cancelled: true,
+                        cancelledReason: reason,
+                        cancelledBy: 'SELLER',
+                        cancelledAt: new Date(),
+                        orderStatus: 'CANCELLED',
+                    },
                 });
             }
             else {
@@ -323,8 +331,80 @@ class OrderService {
                 where: { orderId },
                 data: {
                     orderStatus: 'CONFIRMED',
+                    cashOnAmount: order.totalProductSellingPrice.add(order.deliveryCharge.toNumber()),
                 },
             });
+        });
+    }
+    confirmOrderByAdmin(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ tx, orderId, }) {
+            const order = yield (tx || prisma_1.default).order.findUnique({
+                where: { orderId },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (order.orderStatus !== 'PAID') {
+                throw new ApiError_1.default(400, 'Only paid orders can be confirmed');
+            }
+            return yield (tx || prisma_1.default).order.update({
+                where: { orderId },
+                data: {
+                    orderStatus: 'CONFIRMED',
+                },
+            });
+        });
+    }
+    deliverOrderByAdmin(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, orderId, trackingUrl, }) {
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId },
+                include: { OrderProduct: true },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (order.orderStatus !== 'CONFIRMED') {
+                throw new ApiError_1.default(400, 'Only confirmed orders can be delivered');
+            }
+            yield sms_services_1.default.notifyOrderShipped({
+                sellerPhoneNo: order.sellerPhoneNo,
+                orderId: order.orderId,
+                trackingUrl: trackingUrl || '',
+            });
+            return yield prisma_1.default.order.update({
+                where: { orderId },
+                data: {
+                    orderStatus: 'DELIVERED',
+                    trackingUrl,
+                },
+            });
+        });
+    }
+    reorderFailedOrder(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ userId, orderId, }) {
+            const user = yield user_services_1.default.getUserById(userId);
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (order.orderStatus !== 'FAILED') {
+                throw new ApiError_1.default(400, 'Only failed orders can be reordered');
+            }
+            const updatedOrder = yield prisma_1.default.order.update({
+                where: { orderId },
+                data: {
+                    orderStatus: 'CONFIRMED',
+                    trackingUrl: null,
+                },
+            });
+            return updatedOrder;
         });
     }
 }

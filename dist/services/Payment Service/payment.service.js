@@ -16,6 +16,7 @@ const client_1 = require("@prisma/client");
 const config_1 = __importDefault(require("../../config"));
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
+const order_service_1 = require("../Order Services/order.service");
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 const transaction_services_1 = require("../Utility Services/transaction.services");
@@ -79,11 +80,11 @@ class PaymentService {
         });
     }
     verifyPaymentByAdmin(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ adminId, tx, paymentId, transactionId, }) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, paymentId, transactionId, }) {
             // verify permission
             yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.PAYMENT_MANAGEMENT, 'APPROVE');
             // check if payment exists
-            const payment = yield (tx || prisma_1.default).payment.findUnique({
+            const payment = yield prisma_1.default.payment.findUnique({
                 where: { paymentId },
             });
             if (!payment) {
@@ -116,14 +117,38 @@ class PaymentService {
                 }));
                 return updatedPayment;
             }
+            else if (payment.paymentType === 'ORDER_PAYMENT') {
+                const updatedPayment = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    const order = yield tx.order.findFirst({
+                        where: { Payment: { paymentId } },
+                    });
+                    if (!order) {
+                        throw new Error('Order not found for this payment');
+                    }
+                    // update payment status
+                    const updatedPayment = yield tx.payment.update({
+                        where: { paymentId },
+                        data: {
+                            paymentStatus: 'COMPLETED',
+                            processedAt: new Date(),
+                        },
+                    });
+                    // update order status
+                    yield order_service_1.orderService.confirmOrderByAdmin({
+                        tx,
+                        orderId: order.orderId,
+                    });
+                }));
+            }
             else {
-                updatedPayment = yield (tx || prisma_1.default).payment.update({
+                updatedPayment = yield prisma_1.default.payment.update({
                     where: { paymentId },
                     data: {
                         paymentStatus: 'COMPLETED',
                         processedAt: new Date(),
                     },
                 });
+                // check if there any order associated with this payment
             }
             return updatedPayment;
         });

@@ -139,6 +139,26 @@ class OrderController {
       next(error)
     }
   }
+  async reorderFailedOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { orderId } = req.params
+
+      const order = await orderService.reorderFailedOrder({
+        userId: userId!,
+        orderId: Number(orderId),
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order reordered successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new OrderController()

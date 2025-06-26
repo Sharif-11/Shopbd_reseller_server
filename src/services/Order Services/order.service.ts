@@ -1,4 +1,11 @@
-import { BlockActionType, OrderStatus, PaymentMethod } from '@prisma/client'
+import {
+  ActionType,
+  BlockActionType,
+  OrderStatus,
+  PaymentMethod,
+  PermissionType,
+  Prisma,
+} from '@prisma/client'
 import config from '../../config'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
@@ -7,6 +14,7 @@ import productServices from '../ProductManagement/product.services'
 import shopCategoryServices from '../ProductManagement/shopCategory.services'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
+import SmsServices from '../Utility Services/Sms Service/sms.services'
 import { transactionServices } from '../Utility Services/transaction.services'
 import walletServices from '../WalletManagement/wallet.services'
 import { OrderData } from './order.types'
@@ -236,7 +244,10 @@ class OrderService {
     }
 
     const { balance: sellerBalance, isVerified: sellerVerified } = user
-    if (paymentMethod === 'BALANCE' && sellerBalance! < order.deliveryCharge) {
+    if (
+      paymentMethod === 'BALANCE' &&
+      user.balance!.toNumber() < order.deliveryCharge.toNumber()
+    ) {
       throw new ApiError(
         400,
         'Insufficient balance in your wallet to pay for the order'
@@ -282,6 +293,7 @@ class OrderService {
       if (amount < order.deliveryCharge.toNumber()) {
         throw new ApiError(400, 'Insufficient amount to pay for the order')
       }
+
       const updatedOrder = await prisma.$transaction(async tx => {
         const payment = await paymentService.createPayment({
           tx,
@@ -343,9 +355,15 @@ class OrderService {
     }
 
     if (order.orderStatus === 'UNPAID') {
-      return await prisma.order.delete({
+      return await prisma.order.update({
         where: { orderId },
-        include: { OrderProduct: true },
+        data: {
+          cancelled: true,
+          cancelledReason: reason,
+          cancelledBy: 'SELLER',
+          cancelledAt: new Date(),
+          orderStatus: 'CANCELLED',
+        },
       })
     } else {
       return await prisma.order.update({
@@ -399,8 +417,103 @@ class OrderService {
       where: { orderId },
       data: {
         orderStatus: 'CONFIRMED',
+        cashOnAmount: order.totalProductSellingPrice.add(
+          order.deliveryCharge.toNumber()
+        ),
       },
     })
+  }
+  public async confirmOrderByAdmin({
+    tx,
+    orderId,
+  }: {
+    tx?: Prisma.TransactionClient
+    orderId: number
+  }) {
+    const order = await (tx || prisma).order.findUnique({
+      where: { orderId },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+    if (order.orderStatus !== 'PAID') {
+      throw new ApiError(400, 'Only paid orders can be confirmed')
+    }
+    return await (tx || prisma).order.update({
+      where: { orderId },
+      data: {
+        orderStatus: 'CONFIRMED',
+      },
+    })
+  }
+  public async deliverOrderByAdmin({
+    adminId,
+    orderId,
+    trackingUrl,
+  }: {
+    adminId: string
+    orderId: number
+    trackingUrl?: string
+  }) {
+    await userServices.verifyUserPermission(
+      adminId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.UPDATE
+    )
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+      include: { OrderProduct: true },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+    if (order.orderStatus !== 'CONFIRMED') {
+      throw new ApiError(400, 'Only confirmed orders can be delivered')
+    }
+    await SmsServices.notifyOrderShipped({
+      sellerPhoneNo: order.sellerPhoneNo!,
+      orderId: order.orderId,
+      trackingUrl: trackingUrl || '',
+    })
+    return await prisma.order.update({
+      where: { orderId },
+      data: {
+        orderStatus: 'DELIVERED',
+        trackingUrl,
+      },
+    })
+  }
+  public async reorderFailedOrder({
+    userId,
+    orderId,
+  }: {
+    userId: string
+    orderId: number
+  }) {
+    const user = await userServices.getUserById(userId)
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+
+    if (order.orderStatus !== 'FAILED') {
+      throw new ApiError(400, 'Only failed orders can be reordered')
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { orderId },
+      data: {
+        orderStatus: 'CONFIRMED',
+        trackingUrl: null,
+      },
+    })
+    return updatedOrder
   }
 }
 export const orderService = new OrderService()

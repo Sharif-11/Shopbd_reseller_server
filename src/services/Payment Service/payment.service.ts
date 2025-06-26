@@ -9,6 +9,7 @@ import {
 import config from '../../config'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
+import { orderService } from '../Order Services/order.service'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
 import { transactionServices } from '../Utility Services/transaction.services'
@@ -121,12 +122,10 @@ class PaymentService {
   }
   public async verifyPaymentByAdmin({
     adminId,
-    tx,
     paymentId,
     transactionId,
   }: {
     adminId: string
-    tx?: Prisma.TransactionClient
     paymentId: string
     transactionId: string
   }) {
@@ -137,7 +136,7 @@ class PaymentService {
       'APPROVE'
     )
     // check if payment exists
-    const payment = await (tx || prisma).payment.findUnique({
+    const payment = await prisma.payment.findUnique({
       where: { paymentId },
     })
     if (!payment) {
@@ -169,14 +168,37 @@ class PaymentService {
         })
       })
       return updatedPayment
+    } else if (payment.paymentType === 'ORDER_PAYMENT') {
+      const updatedPayment = await prisma.$transaction(async tx => {
+        const order = await tx.order.findFirst({
+          where: { Payment: { paymentId } },
+        })
+        if (!order) {
+          throw new Error('Order not found for this payment')
+        }
+        // update payment status
+        const updatedPayment = await tx.payment.update({
+          where: { paymentId },
+          data: {
+            paymentStatus: 'COMPLETED',
+            processedAt: new Date(),
+          },
+        })
+        // update order status
+        await orderService.confirmOrderByAdmin({
+          tx,
+          orderId: order.orderId,
+        })
+      })
     } else {
-      updatedPayment = await (tx || prisma).payment.update({
+      updatedPayment = await prisma.payment.update({
         where: { paymentId },
         data: {
           paymentStatus: 'COMPLETED',
           processedAt: new Date(),
         },
       })
+      // check if there any order associated with this payment
     }
     return updatedPayment
   }

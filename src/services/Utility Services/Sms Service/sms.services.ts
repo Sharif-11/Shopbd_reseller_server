@@ -298,12 +298,12 @@ class SmsServices {
     orderId,
     trackingUrl,
   }: {
-    sellerPhoneNo: string | string[]
+    sellerPhoneNo: string
     orderId: number
     trackingUrl: string
   }): Promise<SmsResponse | BulkSmsResponse> {
     const message = `Your order (#${orderId}) has been shipped. Track it here: ${trackingUrl}`
-    return this.sendMessage(sellerPhoneNo, message)
+    return this.sendSingleSms(sellerPhoneNo, message)
   }
 
   /**
@@ -315,13 +315,13 @@ class SmsServices {
     orderAmount,
     commission,
   }: {
-    sellerPhoneNo: string | string[]
+    sellerPhoneNo: string
     orderId: number
     orderAmount: number
     commission: number
   }): Promise<SmsResponse | BulkSmsResponse> {
     const message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK. Your commission: ${commission} TK.`
-    return this.sendMessage(sellerPhoneNo, message)
+    return this.sendSingleSms(sellerPhoneNo, message)
   }
 
   /**
