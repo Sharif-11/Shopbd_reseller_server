@@ -11,6 +11,7 @@ import blockRoutes from '../services/UserManagement/Block Management/block.route
 import roleRoutes from '../services/UserManagement/Role Management/role.routes'
 import smsRoutes from '../services/Utility Services/Sms Service/sms.routes'
 import walletRoutes from '../services/WalletManagement/wallet.routes'
+import orderRoutes from '../services/Order Services/order.routes'
 
 class GlobalRoutes {
   private router: Router
@@ -35,6 +36,10 @@ class GlobalRoutes {
       {
         path: '/ftp',
         route: ftpRoutes,
+      },
+      {
+        path: '/orders',
+        route: orderRoutes,
       },
       // { path: '/admin', route: adminRouter },
       // { path: '/sellers', route: sellerRouter },

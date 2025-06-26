@@ -12,6 +12,7 @@ const block_routes_1 = __importDefault(require("../services/UserManagement/Block
 const role_routes_1 = __importDefault(require("../services/UserManagement/Role Management/role.routes"));
 const sms_routes_1 = __importDefault(require("../services/Utility Services/Sms Service/sms.routes"));
 const wallet_routes_1 = __importDefault(require("../services/WalletManagement/wallet.routes"));
+const order_routes_1 = __importDefault(require("../services/Order Services/order.routes"));
 class GlobalRoutes {
     constructor() {
         this.router = (0, express_1.Router)();
@@ -32,6 +33,10 @@ class GlobalRoutes {
             {
                 path: '/ftp',
                 route: ftp_routes_1.default,
+            },
+            {
+                path: '/orders',
+                route: order_routes_1.default,
             },
             // { path: '/admin', route: adminRouter },
             // { path: '/sellers', route: sellerRouter },

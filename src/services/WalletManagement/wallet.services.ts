@@ -513,6 +513,25 @@ class WalletServices {
     }
     return true
   }
+  async verifySystemWalletOwnership({
+    systemWalletName,
+    systemWalletPhoneNo,
+  }: {
+    systemWalletName: string
+    systemWalletPhoneNo: string
+  }) {
+    const wallet = await prisma.wallet.findFirst({
+      where: {
+        walletName: systemWalletName,
+        walletPhoneNo: systemWalletPhoneNo,
+        walletType: 'SYSTEM',
+      },
+    })
+    if (!wallet) {
+      throw new ApiError(404, 'System wallet not found')
+    }
+    return wallet
+  }
 }
 
 export default new WalletServices()

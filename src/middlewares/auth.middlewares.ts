@@ -34,9 +34,16 @@ export const isAuthenticated = async (
     next(new ApiError(401, 'Unauthorized'))
   }
 }
-export const verifyRole = (role: UserType) => {
+export const verifyRole = (role: UserType | UserType[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (req.user?.role !== role) {
+    if (!req.user?.role) {
+      return next(new ApiError(401, 'Unauthorized'))
+    }
+    if (
+      Array.isArray(role)
+        ? !role.includes(req.user?.role as UserType)
+        : req.user?.role !== role
+    ) {
       return next(new ApiError(403, 'Forbidden'))
     }
     next()

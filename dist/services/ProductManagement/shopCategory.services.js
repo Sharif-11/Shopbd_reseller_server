@@ -131,6 +131,14 @@ class ShopCategoryServices {
             });
         });
     }
+    checkShopStatus(shopId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const shop = yield prisma_1.default.shop.findUnique({ where: { shopId } });
+            if (!shop)
+                throw new ApiError_1.default(404, 'Shop not found');
+            return shop;
+        });
+    }
     // ==========================================
     // CATEGORY MANAGEMENT
     // ==========================================
@@ -204,7 +212,8 @@ class ShopCategoryServices {
         });
     }
     getAllCategories() {
-        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, name, subCategories = false) {
+        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, name, subCategories = false // Whether to include subcategories in the result
+        ) {
             const skip = (page - 1) * limit;
             const where = Object.assign({}, (name && {
                 name: { contains: name, mode: 'insensitive' },

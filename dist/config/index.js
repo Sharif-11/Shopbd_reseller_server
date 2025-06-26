@@ -45,6 +45,7 @@ const config = {
     ftpPassword: process.env.FTP_PASSWORD || '',
     ftpBaseUrl: process.env.FTP_BASE_URL || '',
     maxRejectedPaymentLimit: 3,
+    extraDeliveryCharge: 10,
     // cloudinaryKey: process.env.CLOUDINARY_KEY,
     // cloudinarySecret: process.env.CLOUDINARY_SECRET,
     // cloudinaryName: process.env.CLOUDINARY_NAME,

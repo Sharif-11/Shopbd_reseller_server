@@ -44,8 +44,13 @@ const isAuthenticated = (req, res, next) => __awaiter(void 0, void 0, void 0, fu
 exports.isAuthenticated = isAuthenticated;
 const verifyRole = (role) => {
     return (req, res, next) => {
-        var _a;
-        if (((_a = req.user) === null || _a === void 0 ? void 0 : _a.role) !== role) {
+        var _a, _b, _c;
+        if (!((_a = req.user) === null || _a === void 0 ? void 0 : _a.role)) {
+            return next(new ApiError_1.default(401, 'Unauthorized'));
+        }
+        if (Array.isArray(role)
+            ? !role.includes((_b = req.user) === null || _b === void 0 ? void 0 : _b.role)
+            : ((_c = req.user) === null || _c === void 0 ? void 0 : _c.role) !== role) {
             return next(new ApiError_1.default(403, 'Forbidden'));
         }
         next();

@@ -193,6 +193,74 @@ class ProductServices {
             });
         });
     }
+    verifyOrderProducts(productsData) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // here for each product we need to check existence of products, image visibility and whether the selling price is greater or equal to base price
+            const productIds = productsData.map(p => p.id);
+            const products = yield prisma_1.default.product.findMany({
+                where: {
+                    productId: { in: productIds },
+                    ProductImage: {
+                        some: { hidden: false }, // Ensure at least one visible image exists
+                    },
+                },
+                include: {
+                    ProductImage: {
+                        where: { hidden: false },
+                        select: { imageUrl: true, imageId: true },
+                    },
+                },
+            });
+            // Check each product for validity
+            for (const product of productsData) {
+                const foundProduct = products.find(p => p.productId === product.id);
+                if (!foundProduct) {
+                    throw new ApiError_1.default(404, `Product with ID ${product.id} not found`);
+                }
+                // Check if the selling price is greater than or equal to base price
+                if (product.sellingPrice < foundProduct.basePrice.toNumber()) {
+                    throw new ApiError_1.default(400, `Selling price for product ${product.id} must be greater than or equal to base price`);
+                }
+                const image = foundProduct.ProductImage.some(img => img.imageId === product.imageId);
+                if (!image) {
+                    throw new ApiError_1.default(404, `Invalid image ID ${product.imageId} for product ${product.id}`);
+                }
+            }
+            // now we need to re arrange the productsData compatible with the OrderProduct interface
+            const orderProducts = productsData.map(product => {
+                const foundProduct = products.find(p => p.productId === product.id);
+                if (!foundProduct) {
+                    throw new ApiError_1.default(404, `Product with ID ${product.id} not found`);
+                }
+                return {
+                    productId: foundProduct.productId,
+                    productName: foundProduct.name,
+                    productImage: product.imageUrl,
+                    productVariant: product.selectedVariants
+                        ? JSON.stringify(product.selectedVariants)
+                        : null,
+                    productQuantity: product.quantity,
+                    productSellingPrice: new client_1.Prisma.Decimal(product.sellingPrice),
+                    productBasePrice: foundProduct.basePrice,
+                    totalProductQuantity: product.quantity,
+                    totalProductSellingPrice: new client_1.Prisma.Decimal(product.sellingPrice * product.quantity),
+                    totalProductBasePrice: new client_1.Prisma.Decimal(foundProduct.basePrice.toNumber() * product.quantity),
+                };
+            });
+            // order summary
+            const totalProductQuantity = orderProducts.reduce((sum, product) => sum + product.totalProductQuantity, 0);
+            const totalProductSellingPrice = orderProducts.reduce((sum, product) => sum.add(product.totalProductSellingPrice), new client_1.Prisma.Decimal(0));
+            const totalProductBasePrice = orderProducts.reduce((sum, product) => sum.add(product.totalProductBasePrice), new client_1.Prisma.Decimal(0));
+            const totalCommission = totalProductSellingPrice.sub(totalProductBasePrice);
+            return {
+                totalProductQuantity,
+                totalProductSellingPrice,
+                totalProductBasePrice,
+                totalCommission,
+                products: orderProducts,
+            };
+        });
+    }
     /**
      * Delete an image with primary validation
      * @param userId - Authenticated user ID
@@ -349,7 +417,7 @@ class ProductServices {
                     ProductVariant: true,
                     ProductImage: {
                         where: { hidden: false },
-                        select: { imageUrl: true },
+                        select: { imageUrl: true, imageId: true },
                         orderBy: { isPrimary: 'desc' },
                     },
                 },

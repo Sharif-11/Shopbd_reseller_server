@@ -444,17 +444,18 @@ model Order {
 
   isDeliveryChargePaid Boolean       @default(false) // Flag to indicate if the delivery charge is paid
   deliveryChargePaidAt DateTime? // Timestamp when the delivery charge was paid
-  paymentType          PaymentMethod
+  paymentType          PaymentMethod?
   paymentVerified      Boolean       @default(false) // Flag to indicate if the payment is verified
   Payment              Payment?      @relation("OrderPayment")
+  paymentId          String?       @unique // Foreign key to Payment table, if applicable
 
   totalProductQuantity     Int     @default(0) // Total quantity of products in the order
   totalProductSellingPrice Decimal @db.Decimal(15, 2) // Total selling price of products in the order
   totalProductBasePrice    Decimal @db.Decimal(15, 2) // Total base price of products in the order
   totalCommission          Decimal @db.Decimal(15, 2) // Total commission for the order
-  amountPaidByCustomer     Decimal @db.Decimal(15, 2) // Total amount paid by the customer
-  actualCommission         Decimal @db.Decimal(15, 2) // Actual commission after deductions
-  cashOnAmount             Decimal @db.Decimal(15, 2) // Amount to be collected on delivery
+  amountPaidByCustomer     Decimal? @db.Decimal(15, 2) // Total amount paid by the customer
+  actualCommission         Decimal? @db.Decimal(15, 2) // Actual commission after deductions
+  cashOnAmount             Decimal? @db.Decimal(15, 2) // Amount to be collected on delivery
 
   OrderProduct OrderProduct[]
 }
