@@ -6,13 +6,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_route_1 = __importDefault(require("../services/Auth/auth.route"));
 const ftp_routes_1 = __importDefault(require("../services/FtpFileUpload/ftp.routes"));
+const order_routes_1 = __importDefault(require("../services/Order Services/order.routes"));
+const payment_routes_1 = __importDefault(require("../services/Payment Service/payment.routes"));
 const product_routes_1 = __importDefault(require("../services/ProductManagement/product.routes"));
 const shopCategory_routes_1 = require("../services/ProductManagement/shopCategory.routes");
 const block_routes_1 = __importDefault(require("../services/UserManagement/Block Management/block.routes"));
 const role_routes_1 = __importDefault(require("../services/UserManagement/Role Management/role.routes"));
 const sms_routes_1 = __importDefault(require("../services/Utility Services/Sms Service/sms.routes"));
 const wallet_routes_1 = __importDefault(require("../services/WalletManagement/wallet.routes"));
-const order_routes_1 = __importDefault(require("../services/Order Services/order.routes"));
+const withdraw_routes_1 = __importDefault(require("../services/Withdraw Service/withdraw.routes"));
 class GlobalRoutes {
     constructor() {
         this.router = (0, express_1.Router)();
@@ -37,6 +39,14 @@ class GlobalRoutes {
             {
                 path: '/orders',
                 route: order_routes_1.default,
+            },
+            {
+                path: '/withdraws',
+                route: withdraw_routes_1.default,
+            },
+            {
+                path: '/payments',
+                route: payment_routes_1.default,
             },
             // { path: '/admin', route: adminRouter },
             // { path: '/sellers', route: sellerRouter },

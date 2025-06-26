@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import authRoute from '../services/Auth/auth.route'
 import ftpRoutes from '../services/FtpFileUpload/ftp.routes'
+import orderRoutes from '../services/Order Services/order.routes'
+import paymentRoutes from '../services/Payment Service/payment.routes'
 import productRoutes from '../services/ProductManagement/product.routes'
 import {
   categoryRouter,
@@ -11,7 +13,7 @@ import blockRoutes from '../services/UserManagement/Block Management/block.route
 import roleRoutes from '../services/UserManagement/Role Management/role.routes'
 import smsRoutes from '../services/Utility Services/Sms Service/sms.routes'
 import walletRoutes from '../services/WalletManagement/wallet.routes'
-import orderRoutes from '../services/Order Services/order.routes'
+import withdrawRoutes from '../services/Withdraw Service/withdraw.routes'
 
 class GlobalRoutes {
   private router: Router
@@ -40,6 +42,14 @@ class GlobalRoutes {
       {
         path: '/orders',
         route: orderRoutes,
+      },
+      {
+        path: '/withdraws',
+        route: withdrawRoutes,
+      },
+      {
+        path: '/payments',
+        route: paymentRoutes,
       },
       // { path: '/admin', route: adminRouter },
       // { path: '/sellers', route: sellerRouter },

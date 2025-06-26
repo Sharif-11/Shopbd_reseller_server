@@ -199,7 +199,7 @@ class WithdrawService {
         return __awaiter(this, arguments, void 0, function* ({ sellerId, page, limit, search, status, }) {
             const offset = (page || 1) - 1;
             const take = limit || 10;
-            const where = Object.assign({ sellerId, withdrawStatus: status
+            const where = Object.assign({ userId: sellerId, withdrawStatus: status
                     ? Array.isArray(status)
                         ? { in: status }
                         : status
@@ -226,15 +226,30 @@ class WithdrawService {
                             mode: client_1.Prisma.QueryMode.insensitive,
                         },
                     },
+                    {
+                        transactionId: {
+                            contains: search,
+                            mode: client_1.Prisma.QueryMode.insensitive,
+                        },
+                    },
                 ],
             }));
             const withdraws = yield prisma_1.default.withdraw.findMany({
                 where,
                 skip: offset * take,
                 take,
-                orderBy: { processedAt: 'desc', requestedAt: 'desc' },
+                orderBy: { requestedAt: 'desc' },
             });
-            return withdraws;
+            const totalWithdraws = yield prisma_1.default.withdraw.count({
+                where,
+            });
+            return {
+                withdraws,
+                totalWithdraws,
+                totalPages: Math.ceil(totalWithdraws / take),
+                currentPage: page || 1,
+                pageSize: take,
+            };
         });
     }
     // Method to get all withdraw requests for admin with pagination and filtering

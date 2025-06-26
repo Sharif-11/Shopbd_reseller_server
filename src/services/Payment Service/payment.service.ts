@@ -311,7 +311,7 @@ class PaymentService {
       where,
       skip,
       take: limit || 10,
-      orderBy: { processedAt: 'desc', paymentDate: 'desc' },
+      orderBy: { paymentDate: 'desc' },
     })
     const totalCount = await prisma.payment.count({ where })
     return {

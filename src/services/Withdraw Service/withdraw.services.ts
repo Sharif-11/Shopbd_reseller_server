@@ -256,7 +256,7 @@ class WithdrawService {
     const offset = (page || 1) - 1
     const take = limit || 10
     const where = {
-      sellerId,
+      userId: sellerId,
       withdrawStatus: status
         ? Array.isArray(status)
           ? { in: status }
@@ -285,6 +285,12 @@ class WithdrawService {
               mode: Prisma.QueryMode.insensitive,
             },
           },
+          {
+            transactionId: {
+              contains: search,
+              mode: Prisma.QueryMode.insensitive,
+            },
+          },
         ],
       }),
     }
@@ -292,9 +298,18 @@ class WithdrawService {
       where,
       skip: offset * take,
       take,
-      orderBy: { processedAt: 'desc', requestedAt: 'desc' },
+      orderBy: { requestedAt: 'desc' },
     })
-    return withdraws
+    const totalWithdraws = await prisma.withdraw.count({
+      where,
+    })
+    return {
+      withdraws,
+      totalWithdraws,
+      totalPages: Math.ceil(totalWithdraws / take),
+      currentPage: page || 1,
+      pageSize: take,
+    }
   }
   // Method to get all withdraw requests for admin with pagination and filtering
   public async getWithdrawForAdmin({
