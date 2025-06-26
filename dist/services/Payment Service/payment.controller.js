@@ -126,29 +126,16 @@ class PaymentController {
      */
     rejectPaymentByAdmin(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
-            var _a, _b;
+            var _a;
             try {
                 const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { paymentId } = req.params;
                 const { remarks } = req.body;
-                const userPhoneNo = (_b = req.user) === null || _b === void 0 ? void 0 : _b.phoneNo;
-                if (!userPhoneNo) {
-                    throw new Error('User phone number not found in request');
-                }
                 const payment = yield payment_service_1.default.rejectPaymentByAdmin({
                     adminId: adminId,
                     paymentId,
                     remarks,
-                    userPhoneNo,
                 });
-                if (!payment) {
-                    return res.status(200).json({
-                        statusCode: 200,
-                        message: 'User blocked due to too many rejected payments',
-                        success: true,
-                        data: null,
-                    });
-                }
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Payment rejected successfully',

@@ -128,27 +128,12 @@ class PaymentController {
       const adminId = req.user?.userId
       const { paymentId } = req.params
       const { remarks } = req.body
-      const userPhoneNo = req.user?.phoneNo
-
-      if (!userPhoneNo) {
-        throw new Error('User phone number not found in request')
-      }
 
       const payment = await paymentServices.rejectPaymentByAdmin({
         adminId: adminId!,
         paymentId,
         remarks,
-        userPhoneNo,
       })
-
-      if (!payment) {
-        return res.status(200).json({
-          statusCode: 200,
-          message: 'User blocked due to too many rejected payments',
-          success: true,
-          data: null,
-        })
-      }
 
       res.status(200).json({
         statusCode: 200,

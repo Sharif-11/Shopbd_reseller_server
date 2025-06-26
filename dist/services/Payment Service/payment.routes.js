@@ -17,6 +17,10 @@ class PaymentRouter {
         // Payment creation routes
         // Admin payment management routes
         this.router.post('/admin/verify/:paymentId', auth_middlewares_1.isAuthenticated, payment_validator_1.default.verifyPaymentByAdmin(), validation_middleware_1.default, payment_controller_1.default.verifyPaymentByAdmin);
+        this.router.post('/admin/reject/:paymentId', auth_middlewares_1.isAuthenticated, 
+        // PaymentValidator.rejectPaymentByAdmin(),
+        // validateRequest,
+        payment_controller_1.default.rejectPaymentByAdmin);
         // Payment retrieval routes
         this.router.get('/user/:userPhoneNo', auth_middlewares_1.isAuthenticated, payment_validator_1.default.getAllPaymentsOfAUser(), validation_middleware_1.default, payment_controller_1.default.getAllPaymentsOfAUser);
         this.router.get('/admin', auth_middlewares_1.isAuthenticated, payment_validator_1.default.getAllPaymentsForAdmin(), validation_middleware_1.default, payment_controller_1.default.getAllPaymentsForAdmin);

@@ -407,5 +407,29 @@ class OrderService {
             return updatedOrder;
         });
     }
+    rejectOrderByAdmin(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ tx, orderId, }) {
+            const order = yield (tx || prisma_1.default).order.findUnique({
+                where: { orderId },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (order.orderStatus === 'CANCELLED') {
+                return yield (tx || prisma_1.default).order.update({
+                    where: { orderId },
+                    data: {
+                        orderStatus: 'CANCELLED',
+                    },
+                });
+            }
+            return yield (tx || prisma_1.default).order.update({
+                where: { orderId },
+                data: {
+                    orderStatus: 'REJECTED',
+                },
+            });
+        });
+    }
 }
 exports.orderService = new OrderService();

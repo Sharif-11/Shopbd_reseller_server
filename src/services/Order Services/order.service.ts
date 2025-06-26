@@ -515,5 +515,33 @@ class OrderService {
     })
     return updatedOrder
   }
+  public async rejectOrderByAdmin({
+    tx,
+    orderId,
+  }: {
+    tx?: Prisma.TransactionClient
+    orderId: number
+  }) {
+    const order = await (tx || prisma).order.findUnique({
+      where: { orderId },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+    if (order.orderStatus === 'CANCELLED') {
+      return await (tx || prisma).order.update({
+        where: { orderId },
+        data: {
+          orderStatus: 'CANCELLED',
+        },
+      })
+    }
+    return await (tx || prisma).order.update({
+      where: { orderId },
+      data: {
+        orderStatus: 'REJECTED',
+      },
+    })
+  }
 }
 export const orderService = new OrderService()

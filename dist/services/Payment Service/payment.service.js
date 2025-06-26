@@ -20,6 +20,7 @@ const order_service_1 = require("../Order Services/order.service");
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 const transaction_services_1 = require("../Utility Services/transaction.services");
+const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 class PaymentService {
     checkExistingTransactionId(transactionId_1) {
         return __awaiter(this, arguments, void 0, function* (transactionId, tx = undefined) {
@@ -44,6 +45,10 @@ class PaymentService {
             if (!user) {
                 throw new ApiError_1.default(404, 'User not found');
             }
+            const systemWallet = yield wallet_services_1.default.checkSystemWalletOwnership({
+                systemWalletPhoneNo,
+                systemWalletName: walletName,
+            });
             const payment = yield prisma_1.default.payment.create({
                 data: {
                     userName: user.name,
@@ -105,12 +110,14 @@ class PaymentService {
                     userPhoneNo,
                 },
             });
+            return payment;
         });
     }
     verifyPaymentByAdmin(_a) {
         return __awaiter(this, arguments, void 0, function* ({ adminId, paymentId, transactionId, }) {
             // verify permission
             yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.PAYMENT_MANAGEMENT, 'APPROVE');
+            console.log({ paymentId, transactionId });
             // check if payment exists
             const payment = yield prisma_1.default.payment.findUnique({
                 where: { paymentId },
@@ -182,7 +189,7 @@ class PaymentService {
         });
     }
     rejectPaymentByAdmin(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ adminId, userPhoneNo, paymentId, remarks, }) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, paymentId, remarks, }) {
             // verify permission
             yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.PAYMENT_MANAGEMENT, 'REJECT');
             // check user is blocked
@@ -196,17 +203,27 @@ class PaymentService {
             // count total rejected payments for the user
             const totalRejectedPayments = yield prisma_1.default.payment.count({
                 where: {
-                    userPhoneNo,
+                    userPhoneNo: payment.userPhoneNo,
                     paymentStatus: 'REJECTED',
                 },
             });
+            console.log({ totalRejectedPayments });
             if (totalRejectedPayments >= config_1.default.maxRejectedPaymentLimit) {
                 // block user if they have 3 or more rejected payments
                 yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    if (payment.paymentType === 'ORDER_PAYMENT') {
+                        const order = yield order_service_1.orderService.rejectOrderByAdmin({
+                            tx,
+                            orderId: payment.orderId,
+                        });
+                        if (order.orderStatus !== 'REJECTED') {
+                            return;
+                        }
+                    }
                     // delete all those rejected payments
                     yield tx.payment.deleteMany({
                         where: {
-                            userPhoneNo,
+                            userPhoneNo: payment.userPhoneNo,
                             paymentStatus: 'REJECTED',
                         },
                     });
@@ -220,22 +237,41 @@ class PaymentService {
                                 expiresAt: null, // no expiration for this block
                             },
                         ],
-                        userPhoneNo,
+                        userPhoneNo: payment.userPhoneNo,
                         tx,
                     });
                 }));
                 return null;
             }
             else {
-                return yield prisma_1.default.payment.update({
-                    where: { paymentId },
-                    data: {
-                        paymentStatus: 'REJECTED',
-                        remarks,
-                        processedAt: new Date(),
-                        transactionId: null, // clear transactionId on rejection
-                    },
-                });
+                if (payment.paymentType === 'ORDER_PAYMENT') {
+                    return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                        yield order_service_1.orderService.rejectOrderByAdmin({
+                            tx,
+                            orderId: payment.orderId,
+                        });
+                        return yield tx.payment.update({
+                            where: { paymentId },
+                            data: {
+                                paymentStatus: 'REJECTED',
+                                remarks,
+                                processedAt: new Date(),
+                                transactionId: null, // clear transactionId on rejection
+                            },
+                        });
+                    }));
+                }
+                else {
+                    return yield prisma_1.default.payment.update({
+                        where: { paymentId },
+                        data: {
+                            paymentStatus: 'REJECTED',
+                            remarks,
+                            processedAt: new Date(),
+                            transactionId: null, // clear transactionId on rejection
+                        },
+                    });
+                }
             }
         });
     }
@@ -299,10 +335,10 @@ class PaymentService {
                     ]
                     : undefined,
             };
-            const skip = (Number(page || 0) - 1) * (limit || 10);
+            const skip = (Number(page || 1) - 1) * (limit || 10);
             const payments = yield prisma_1.default.payment.findMany({
                 where,
-                orderBy: { processedAt: 'desc', paymentDate: 'desc' },
+                orderBy: { paymentDate: 'desc' },
                 skip,
                 take: limit || 10,
             });

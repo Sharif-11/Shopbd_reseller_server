@@ -13,6 +13,7 @@ import { orderService } from '../Order Services/order.service'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
 import { transactionServices } from '../Utility Services/transaction.services'
+import walletServices from '../WalletManagement/wallet.services'
 
 class PaymentService {
   public async checkExistingTransactionId(
@@ -58,6 +59,10 @@ class PaymentService {
     if (!user) {
       throw new ApiError(404, 'User not found')
     }
+    const systemWallet = await walletServices.checkSystemWalletOwnership({
+      systemWalletPhoneNo,
+      systemWalletName: walletName,
+    })
     const payment = await prisma.payment.create({
       data: {
         userName: user.name,
@@ -165,6 +170,7 @@ class PaymentService {
         userPhoneNo,
       },
     })
+    return payment
   }
   public async verifyPaymentByAdmin({
     adminId,
@@ -181,6 +187,7 @@ class PaymentService {
       PermissionType.PAYMENT_MANAGEMENT,
       'APPROVE'
     )
+    console.log({ paymentId, transactionId })
     // check if payment exists
     const payment = await prisma.payment.findUnique({
       where: { paymentId },
@@ -250,14 +257,12 @@ class PaymentService {
   }
   public async rejectPaymentByAdmin({
     adminId,
-    userPhoneNo,
     paymentId,
     remarks,
   }: {
     adminId: string
     paymentId: string
     remarks: string
-    userPhoneNo: string
   }) {
     // verify permission
     await userServices.verifyUserPermission(
@@ -277,17 +282,27 @@ class PaymentService {
     // count total rejected payments for the user
     const totalRejectedPayments = await prisma.payment.count({
       where: {
-        userPhoneNo,
+        userPhoneNo: payment.userPhoneNo,
         paymentStatus: 'REJECTED',
       },
     })
+    console.log({ totalRejectedPayments })
     if (totalRejectedPayments >= config.maxRejectedPaymentLimit) {
       // block user if they have 3 or more rejected payments
       await prisma.$transaction(async tx => {
+        if (payment.paymentType === 'ORDER_PAYMENT') {
+          const order = await orderService.rejectOrderByAdmin({
+            tx,
+            orderId: payment.orderId!,
+          })
+          if (order.orderStatus !== 'REJECTED') {
+            return
+          }
+        }
         // delete all those rejected payments
         await tx.payment.deleteMany({
           where: {
-            userPhoneNo,
+            userPhoneNo: payment.userPhoneNo,
             paymentStatus: 'REJECTED',
           },
         })
@@ -302,21 +317,39 @@ class PaymentService {
               expiresAt: null, // no expiration for this block
             },
           ],
-          userPhoneNo,
+          userPhoneNo: payment.userPhoneNo,
           tx,
         })
       })
       return null
     } else {
-      return await prisma.payment.update({
-        where: { paymentId },
-        data: {
-          paymentStatus: 'REJECTED',
-          remarks,
-          processedAt: new Date(),
-          transactionId: null, // clear transactionId on rejection
-        },
-      })
+      if (payment.paymentType === 'ORDER_PAYMENT') {
+        return await prisma.$transaction(async tx => {
+          await orderService.rejectOrderByAdmin({
+            tx,
+            orderId: payment.orderId!,
+          })
+          return await tx.payment.update({
+            where: { paymentId },
+            data: {
+              paymentStatus: 'REJECTED',
+              remarks,
+              processedAt: new Date(),
+              transactionId: null, // clear transactionId on rejection
+            },
+          })
+        })
+      } else {
+        return await prisma.payment.update({
+          where: { paymentId },
+          data: {
+            paymentStatus: 'REJECTED',
+            remarks,
+            processedAt: new Date(),
+            transactionId: null, // clear transactionId on rejection
+          },
+        })
+      }
     }
   }
   public async getAllPaymentsOfAUser({
@@ -407,10 +440,10 @@ class PaymentService {
           ]
         : undefined,
     }
-    const skip = (Number(page || 0) - 1) * (limit || 10)
+    const skip = (Number(page || 1) - 1) * (limit || 10)
     const payments = await prisma.payment.findMany({
       where,
-      orderBy: { processedAt: 'desc', paymentDate: 'desc' },
+      orderBy: { paymentDate: 'desc' },
       skip,
       take: limit || 10,
     })

@@ -23,6 +23,13 @@ class PaymentRouter {
       validateRequest,
       paymentControllers.verifyPaymentByAdmin
     )
+    this.router.post(
+      '/admin/reject/:paymentId',
+      isAuthenticated,
+      // PaymentValidator.rejectPaymentByAdmin(),
+      // validateRequest,
+      paymentControllers.rejectPaymentByAdmin
+    )
 
     // Payment retrieval routes
     this.router.get(

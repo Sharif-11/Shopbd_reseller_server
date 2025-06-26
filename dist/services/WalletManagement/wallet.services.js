@@ -421,6 +421,21 @@ class WalletServices {
             return true;
         });
     }
+    checkSystemWalletOwnership(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ systemWalletName, systemWalletPhoneNo, }) {
+            const wallet = yield prisma_1.default.wallet.findFirst({
+                where: {
+                    walletName: systemWalletName,
+                    walletPhoneNo: systemWalletPhoneNo,
+                    walletType: 'SYSTEM',
+                },
+            });
+            if (!wallet) {
+                throw new ApiError_1.default(404, 'System wallet not found');
+            }
+            return wallet;
+        });
+    }
     verifySystemWalletOwnership(_a) {
         return __awaiter(this, arguments, void 0, function* ({ systemWalletName, systemWalletPhoneNo, }) {
             const wallet = yield prisma_1.default.wallet.findFirst({
