@@ -27,6 +27,53 @@ class PaymentService {
     }
     return existingTransaction
   }
+  public async createDuePayment({
+    userId,
+    walletName,
+    walletPhoneNo,
+    amount,
+    transactionId,
+    systemWalletPhoneNo,
+  }: {
+    userId: string
+    walletName: string
+    walletPhoneNo: string
+    amount: number
+    transactionId: string
+    systemWalletPhoneNo: string
+  }) {
+    // check user is blocked
+    const isBlocked = await blockServices.isUserBlocked(
+      walletPhoneNo,
+      BlockActionType.PAYMENT_REQUEST
+    )
+    if (isBlocked) {
+      throw new ApiError(
+        400,
+        'You are blocked from payment request. Please contact support'
+      )
+    }
+    await this.checkExistingTransactionId(transactionId)
+    const user = await userServices.getUserById(userId)
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    const payment = await prisma.payment.create({
+      data: {
+        userName: user.name,
+        userPhoneNo: walletPhoneNo,
+        amount,
+        transactionId,
+        systemWalletPhoneNo,
+        paymentType: 'DUE_PAYMENT',
+        paymentStatus: 'PENDING',
+        userWalletName: walletName,
+        userWalletPhoneNo: walletPhoneNo,
+        sender: 'SELLER',
+      },
+    })
+    return payment
+  }
   public async createWithdrawPayment({
     userName,
     userPhoneNo,
@@ -118,7 +165,6 @@ class PaymentService {
         userPhoneNo,
       },
     })
-    return payment
   }
   public async verifyPaymentByAdmin({
     adminId,

@@ -1,6 +1,6 @@
 // routes/auth.route.ts
 import { Router } from 'express'
-import { isAuthenticated } from '../../middlewares/auth.middlewares'
+import { isAuthenticated, verifyRole } from '../../middlewares/auth.middlewares'
 import validateRequest from '../../middlewares/validation.middleware'
 import {
   default as userController,
@@ -40,7 +40,12 @@ class AuthRouter {
       validateRequest,
       authControllers.checkVerification
     )
-
+    this.router.post(
+      '/add-referral-code',
+      isAuthenticated,
+      verifyRole('Seller'),
+      userController.addReferralCodeToSeller
+    )
     this.router.patch(
       '/unblock-contact',
       AuthValidator.unblockContact(),

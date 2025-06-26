@@ -157,6 +157,45 @@ class PaymentValidator {
                 .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
         ];
     }
+    static payDueBySeller() {
+        return [
+            (0, express_validator_1.body)('amount')
+                .notEmpty()
+                .withMessage('পরিমাণ প্রয়োজন')
+                .isNumeric()
+                .withMessage('পরিমাণ অবশ্যই সংখ্যা হতে হবে')
+                .isFloat({ gt: 0 })
+                .withMessage('পরিমাণ অবশ্যই ০ এর চেয়ে বড় হতে হবে'),
+            (0, express_validator_1.body)('transactionId')
+                .notEmpty()
+                .withMessage('লেনদেন আইডি প্রয়োজন')
+                .isString()
+                .withMessage('লেনদেন আইডি অবশ্যই স্ট্রিং হতে হবে'),
+            (0, express_validator_1.body)('systemWalletPhoneNo')
+                .notEmpty()
+                .withMessage('সিস্টেম ওয়ালেট ফোন নম্বর প্রয়োজন')
+                .isMobilePhone('bn-BD')
+                .withMessage('সঠিক বাংলাদেশী ফোন নম্বর প্রদান করুন')
+                .isLength({ min: 11, max: 11 })
+                .withMessage('সিস্টেম ওয়ালেট ফোন নম্বর অবশ্যই ১১')
+                .isString()
+                .withMessage('সিস্টেম ওয়ালেট ফোন নম্বর অবশ্যই স্ট্রিং হতে হবে'),
+            (0, express_validator_1.body)('walletName')
+                .notEmpty()
+                .withMessage('ওয়ালেট নাম প্রয়োজন')
+                .isString()
+                .withMessage('ওয়ালেট নাম অবশ্যই স্ট্রিং হতে হবে'),
+            (0, express_validator_1.body)('walletPhoneNo')
+                .notEmpty()
+                .withMessage('ওয়ালেট ফোন নম্বর প্রয়োজন')
+                .isMobilePhone('bn-BD')
+                .withMessage('সঠিক বাংলাদেশী ফোন নম্বর প্রদান করুন')
+                .isLength({ min: 11, max: 11 })
+                .withMessage('ওয়ালেট ফোন নম্বর অবশ্যই ১১')
+                .isString()
+                .withMessage('ওয়ালেট ফোন নম্বর অবশ্যই স্ট্রিং হতে হবে'),
+        ];
+    }
     /**
      * Validation rules for getting all payments for admin
      */

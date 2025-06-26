@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { isAuthenticated } from '../../middlewares/auth.middlewares'
+import { isAuthenticated, verifyRole } from '../../middlewares/auth.middlewares'
 import validateRequest from '../../middlewares/validation.middleware'
 import paymentControllers from './payment.controller'
 import PaymentValidator from './payment.validator'
@@ -39,6 +39,14 @@ class PaymentRouter {
       PaymentValidator.getAllPaymentsForAdmin(),
       validateRequest,
       paymentControllers.getAllPaymentsForAdmin
+    )
+    this.router.post(
+      '/seller/pay-due',
+      isAuthenticated,
+      verifyRole('Seller'),
+      PaymentValidator.payDueBySeller(),
+      validateRequest,
+      paymentControllers.createDuePayment
     )
   }
 

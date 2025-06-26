@@ -20,6 +20,7 @@ class PaymentRouter {
         // Payment retrieval routes
         this.router.get('/user/:userPhoneNo', auth_middlewares_1.isAuthenticated, payment_validator_1.default.getAllPaymentsOfAUser(), validation_middleware_1.default, payment_controller_1.default.getAllPaymentsOfAUser);
         this.router.get('/admin', auth_middlewares_1.isAuthenticated, payment_validator_1.default.getAllPaymentsForAdmin(), validation_middleware_1.default, payment_controller_1.default.getAllPaymentsForAdmin);
+        this.router.post('/seller/pay-due', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), payment_validator_1.default.payDueBySeller(), validation_middleware_1.default, payment_controller_1.default.createDuePayment);
     }
     getRouter() {
         return this.router;

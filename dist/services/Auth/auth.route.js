@@ -21,6 +21,7 @@ class AuthRouter {
         this.router.post('/send-otp', auth_validator_1.default.sendOtp(), validation_middleware_1.default, auth_controllers_1.default.sendOtp);
         this.router.post('/verify-otp', auth_validator_1.default.verifyOtp(), validation_middleware_1.default, auth_controllers_1.default.verifyOtp);
         this.router.get('/check-verification', auth_validator_1.default.checkVerification(), validation_middleware_1.default, auth_controllers_1.default.checkVerification);
+        this.router.post('/add-referral-code', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), user_controller_1.default.addReferralCodeToSeller);
         this.router.patch('/unblock-contact', auth_validator_1.default.unblockContact(), validation_middleware_1.default, auth_controllers_1.default.unblockContact);
         // User management routes
         this.initializeUserManagementRoutes();

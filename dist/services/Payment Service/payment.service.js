@@ -32,6 +32,35 @@ class PaymentService {
             return existingTransaction;
         });
     }
+    createDuePayment(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ userId, walletName, walletPhoneNo, amount, transactionId, systemWalletPhoneNo, }) {
+            // check user is blocked
+            const isBlocked = yield block_services_1.blockServices.isUserBlocked(walletPhoneNo, client_1.BlockActionType.PAYMENT_REQUEST);
+            if (isBlocked) {
+                throw new ApiError_1.default(400, 'You are blocked from payment request. Please contact support');
+            }
+            yield this.checkExistingTransactionId(transactionId);
+            const user = yield user_services_1.default.getUserById(userId);
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            const payment = yield prisma_1.default.payment.create({
+                data: {
+                    userName: user.name,
+                    userPhoneNo: walletPhoneNo,
+                    amount,
+                    transactionId,
+                    systemWalletPhoneNo,
+                    paymentType: 'DUE_PAYMENT',
+                    paymentStatus: 'PENDING',
+                    userWalletName: walletName,
+                    userWalletPhoneNo: walletPhoneNo,
+                    sender: 'SELLER',
+                },
+            });
+            return payment;
+        });
+    }
     createWithdrawPayment(_a) {
         return __awaiter(this, arguments, void 0, function* ({ userName, userPhoneNo, amount, transactionFee, systemWalletPhoneNo, systemWalletName, transactionId, userWalletName, userWalletPhoneNo, tx, }) {
             yield this.checkExistingTransactionId(transactionId, tx);
@@ -76,7 +105,6 @@ class PaymentService {
                     userPhoneNo,
                 },
             });
-            return payment;
         });
     }
     verifyPaymentByAdmin(_a) {

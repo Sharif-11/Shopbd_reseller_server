@@ -219,6 +219,36 @@ class PaymentController {
       next(error)
     }
   }
+  async createDuePayment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const {
+        walletName,
+        walletPhoneNo,
+        amount,
+        transactionId,
+        systemWalletPhoneNo,
+      } = req.body
+
+      const payment = await paymentServices.createDuePayment({
+        userId: userId!,
+        walletName,
+        walletPhoneNo,
+        amount,
+        transactionId,
+        systemWalletPhoneNo,
+      })
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Due payment created successfully',
+        success: true,
+        data: payment,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new PaymentController()

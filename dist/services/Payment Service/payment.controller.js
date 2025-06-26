@@ -217,5 +217,31 @@ class PaymentController {
             }
         });
     }
+    createDuePayment(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { walletName, walletPhoneNo, amount, transactionId, systemWalletPhoneNo, } = req.body;
+                const payment = yield payment_service_1.default.createDuePayment({
+                    userId: userId,
+                    walletName,
+                    walletPhoneNo,
+                    amount,
+                    transactionId,
+                    systemWalletPhoneNo,
+                });
+                res.status(201).json({
+                    statusCode: 201,
+                    message: 'Due payment created successfully',
+                    success: true,
+                    data: payment,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new PaymentController();
