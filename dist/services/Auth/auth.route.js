@@ -41,6 +41,7 @@ class AuthRouter {
         this.router.patch('/promote-admin', auth_middlewares_1.isAuthenticated, user_validator_1.default.promoteAdmin(), validation_middleware_1.default, user_controller_1.default.promoteAdmin);
         // Login route
         this.router.post('/login', user_validator_1.default.login(), validation_middleware_1.default, user_controller_1.default.login);
+        this.router.post('/admin-login', user_validator_1.default.login(), validation_middleware_1.default, user_controller_1.default.adminLogin);
         // Password reset
         this.router.post('/forgot-password', user_validator_1.default.resetPassword(), validation_middleware_1.default, user_controller_1.default.resetPassword);
         // Profile management (require authentication)

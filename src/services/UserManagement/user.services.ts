@@ -56,7 +56,7 @@ class UserManagementServices {
   private generateAccessToken(
     userId: string,
     role: string,
-    phoneNo: string
+    phoneNo: string,
   ): string {
     const payload = { userId, role, phoneNo }
     return jwt.sign(payload, config.jwtSecret as string) // Token expires in 1 hour
@@ -135,12 +135,12 @@ class UserManagementServices {
    */
   async createSuperAdmin(
     currentAdminId: string,
-    input: CreateSuperAdminInput
+    input: CreateSuperAdminInput,
   ): Promise<Omit<User, 'password'>> {
     // Verify current user is super admin
     const currentAdmin = await this.verifyUserRole(
       currentAdminId,
-      UserType.SuperAdmin
+      UserType.SuperAdmin,
     )
 
     const hashedPassword = await this.hashPassword(input.password)
@@ -212,12 +212,12 @@ class UserManagementServices {
 
   async createAdmin(
     currentAdminId: string,
-    input: CreateAdminInput
+    input: CreateAdminInput,
   ): Promise<Omit<User, 'password'>> {
     // Verify current user is super admin
     const currentAdmin = await this.verifyUserRole(
       currentAdminId,
-      UserType.SuperAdmin
+      UserType.SuperAdmin,
     )
 
     const hashedPassword = await this.hashPassword(input.password)
@@ -284,7 +284,7 @@ class UserManagementServices {
   // Helper method for input validation
   private async validateUserInput(
     phoneNo: string,
-    email?: string
+    email?: string,
   ): Promise<void> {
     // Check if phone number is already registered
     const existingUser = await prisma.user.findUnique({
@@ -593,6 +593,63 @@ class UserManagementServices {
     if (!user) {
       throw new ApiError(404, 'User not found')
     }
+    if (user.role !== 'Seller') {
+      throw new ApiError(403, 'আপনি  সেলার নন')
+    }
+
+    const isPasswordValid = await this.comparePassword({
+      password: input.password,
+      hash: user.password,
+    })
+    if (!isPasswordValid) {
+      throw new ApiError(401, 'Invalid credentials')
+    }
+
+    // Check if user is blocked
+    // const block = await prisma.block.findFirst({
+    //   where: {
+    //     userPhoneNo: user.phoneNo,
+    //     isActive: true,
+    //     actionTypes: {
+    //       has: BlockActionType.,
+    //     },
+    //     expiresAt: { gt: new Date() },
+    //   },
+    // })
+
+    // if (block) {
+    //   throw new ApiError(403, 'Your account is currently blocked')
+    // }
+    console.log('user login.....', user)
+    const token = this.generateAccessToken(user.userId, user.role, user.phoneNo)
+    const { password, ...userWithoutPassword } = user
+    return {
+      user: userWithoutPassword,
+      token,
+    }
+  }
+  async adminLogin(input: LoginInput) {
+    const user = await prisma.user.findUnique({
+      where: { phoneNo: input.phoneNo },
+      include: {
+        userRoles: {
+          include: {
+            role: {
+              include: {
+                permissions: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    if (user.role === 'Seller') {
+      throw new ApiError(403, 'আপনি অ্যাডমিন নন')
+    }
 
     const isPasswordValid = await this.comparePassword({
       password: input.password,
@@ -661,12 +718,12 @@ class UserManagementServices {
     }
     const isBlocked = await blockServices.isUserBlocked(
       user.phoneNo,
-      BlockActionType.PASSWORD_RESET
+      BlockActionType.PASSWORD_RESET,
     )
     if (isBlocked) {
       throw new ApiError(
         403,
-        'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।'
+        'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।',
       )
     }
     if (
@@ -694,7 +751,7 @@ class UserManagementServices {
         })
         throw new ApiError(
           403,
-          'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।'
+          'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।',
         )
       }
 
@@ -873,7 +930,7 @@ class UserManagementServices {
     if (existingReferral) {
       throw new ApiError(
         400,
-        'রেফারেল কোড ইতোমধ্যে ব্যবহৃত, অনুগ্রহ করে অন্য একটি বেছে নিন'
+        'রেফারেল কোড ইতোমধ্যে ব্যবহৃত, অনুগ্রহ করে অন্য একটি বেছে নিন',
       )
     }
 
@@ -894,7 +951,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       creatorId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.CREATE
+      ActionType.CREATE,
     )
 
     return await prisma.role.create({
@@ -913,7 +970,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
     console.log('assignPermissionToRole input:', input)
     return await prisma.rolePermission.upsert({
@@ -943,12 +1000,12 @@ class UserManagementServices {
       roleId: string
       permissions: PermissionType[] // Changed from permission to permissions (array)
       actions: ActionType[]
-    }
+    },
   ) {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     // Ensure actions is always an array
@@ -975,7 +1032,7 @@ class UserManagementServices {
             actions,
           },
         })
-      })
+      }),
     )
 
     return results
@@ -988,7 +1045,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     return await prisma.userRole.create({
@@ -1016,7 +1073,7 @@ class UserManagementServices {
    */
   public async verifyUserRole(
     userId: string,
-    requiredRole: UserType
+    requiredRole: UserType,
   ): Promise<User> {
     const user = await prisma.user.findUnique({
       where: { userId },
@@ -1040,7 +1097,7 @@ class UserManagementServices {
   public async verifyUserPermission(
     userId: string,
     permission: PermissionType,
-    action: ActionType
+    action: ActionType,
   ): Promise<User> {
     const user = await prisma.user.findUnique({
       where: { userId },
@@ -1111,7 +1168,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.READ
+      ActionType.READ,
     )
     const skip = (page - 1) * limit
 

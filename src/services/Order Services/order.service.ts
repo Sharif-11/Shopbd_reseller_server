@@ -14,7 +14,6 @@ import productServices from '../ProductManagement/product.services'
 import shopCategoryServices from '../ProductManagement/shopCategory.services'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
-import SmsServices from '../Utility Services/Sms Service/sms.services'
 
 import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
 import walletServices from '../WalletManagement/wallet.services'
@@ -85,6 +84,8 @@ class OrderService {
     // verify products
     const verifiedOrderData =
       await productServices.verifyOrderProducts(products)
+    console.clear()
+    console.log('verifiedOrderData', verifiedOrderData)
     const deliveryCharge = await this.calculateDeliveryCharge({
       shopId,
       customerZilla,
@@ -470,11 +471,11 @@ class OrderService {
     if (order.orderStatus !== 'CONFIRMED') {
       throw new ApiError(400, 'Only confirmed orders can be delivered')
     }
-    await SmsServices.notifyOrderShipped({
-      sellerPhoneNo: order.sellerPhoneNo!,
-      orderId: order.orderId,
-      trackingUrl: trackingUrl || '',
-    })
+    // await SmsServices.notifyOrderShipped({
+    //   sellerPhoneNo: order.sellerPhoneNo!,
+    //   orderId: order.orderId,
+    //   trackingUrl: trackingUrl || '',
+    // })
     return await prisma.order.update({
       where: { orderId },
       data: {
@@ -542,6 +543,74 @@ class OrderService {
         orderStatus: 'REJECTED',
       },
     })
+  }
+  public async getOrdersForAdmin({
+    adminId,
+    orderStatus,
+    page,
+    limit,
+    search,
+  }: {
+    adminId: string
+    orderStatus?: OrderStatus | OrderStatus[]
+    page?: number
+    limit?: number
+    search?: string
+  }) {
+    // check admin permission
+    await userServices.verifyUserPermission(
+      adminId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.READ,
+    )
+    const where: Prisma.OrderWhereInput = {}
+    if (orderStatus) {
+      where.orderStatus = Array.isArray(orderStatus)
+        ? { in: orderStatus }
+        : orderStatus
+    }
+    if (search) {
+      where.OR = [
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { customerPhoneNo: { contains: search, mode: 'insensitive' } },
+        {
+          sellerPhoneNo: { contains: search, mode: 'insensitive' },
+        },
+        {
+          sellerName: { contains: search, mode: 'insensitive' },
+        },
+      ]
+    }
+    const skip = ((page || 1) - 1) * (limit || 10)
+    const orders = await prisma.order
+      .findMany({
+        where,
+        skip,
+        take: limit || 10,
+        include: {
+          OrderProduct: true,
+          Payment: true,
+        },
+      })
+      .then(orders =>
+        orders.map(order => ({
+          ...order,
+          OrderProduct: order.OrderProduct.map(product => ({
+            ...product,
+            productVariant: JSON.parse(product.productVariant as string),
+          })),
+        })),
+      )
+    const totalOrders = await prisma.order.count({
+      where,
+    })
+    return {
+      orders,
+      totalOrders,
+      currentPage: page || 1,
+      totalPages: Math.ceil(totalOrders / (limit || 10)),
+      pageSize: limit || 10,
+    }
   }
 }
 export const orderService = new OrderService()

@@ -15,7 +15,7 @@ class OrderRouter {
     }
     initializeRoutes() {
         // ==========================================
-        // ORDER MANAGEMENT ROUTES
+        // SELLER ORDER MANAGEMENT ROUTES
         // ==========================================
         this.router.post('/seller', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.createSellerOrder(), validation_middleware_1.default, order_controllers_1.default.createSellerOrder);
         this.router.get('/seller', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.getSellerOrders(), validation_middleware_1.default, order_controllers_1.default.getSellerOrders);
@@ -23,10 +23,16 @@ class OrderRouter {
         this.router.post('/seller/cancel', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.cancelOrderBySeller(), validation_middleware_1.default, order_controllers_1.default.cancelOrderBySeller);
         this.router.post('/seller/confirm/:orderId', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.confirmOrderBySeller(), validation_middleware_1.default, order_controllers_1.default.confirmOrderBySeller);
         this.router.post('/seller/re-order/:orderId', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_controllers_1.default.reorderFailedOrder);
+        // ==========================================
+        // ADMIN ORDER MANAGEMENT ROUTES
+        // ==========================================
+        this.router.get('/admin', auth_middlewares_1.isAuthenticated, order_validator_1.default.getSellerOrders(), validation_middleware_1.default, order_controllers_1.default.getAllOrdersForAdmin);
+        this.router.post('/admin/confirm/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.confirmOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.confirmOrderByAdmin);
+        this.router.post('/admin/deliver/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.deliverOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.deliverOrderByAdmin);
+        this.router.post('/admin/reject/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.rejectOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.rejectOrderByAdmin);
     }
     getRouter() {
         return this.router;
     }
 }
-// Export a singleton instance
 exports.default = new OrderRouter().getRouter();

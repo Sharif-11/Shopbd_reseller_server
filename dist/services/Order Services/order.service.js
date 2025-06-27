@@ -22,7 +22,6 @@ const product_services_1 = __importDefault(require("../ProductManagement/product
 const shopCategory_services_1 = __importDefault(require("../ProductManagement/shopCategory.services"));
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
-const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 class OrderService {
@@ -61,6 +60,8 @@ class OrderService {
             const { shopName, shopLocation } = shop;
             // verify products
             const verifiedOrderData = yield product_services_1.default.verifyOrderProducts(products);
+            console.clear();
+            console.log('verifiedOrderData', verifiedOrderData);
             const deliveryCharge = yield this.calculateDeliveryCharge({
                 shopId,
                 customerZilla,
@@ -368,11 +369,11 @@ class OrderService {
             if (order.orderStatus !== 'CONFIRMED') {
                 throw new ApiError_1.default(400, 'Only confirmed orders can be delivered');
             }
-            yield sms_services_1.default.notifyOrderShipped({
-                sellerPhoneNo: order.sellerPhoneNo,
-                orderId: order.orderId,
-                trackingUrl: trackingUrl || '',
-            });
+            // await SmsServices.notifyOrderShipped({
+            //   sellerPhoneNo: order.sellerPhoneNo!,
+            //   orderId: order.orderId,
+            //   trackingUrl: trackingUrl || '',
+            // })
             return yield prisma_1.default.order.update({
                 where: { orderId },
                 data: {
@@ -429,6 +430,52 @@ class OrderService {
                     orderStatus: 'REJECTED',
                 },
             });
+        });
+    }
+    getOrdersForAdmin(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, orderStatus, page, limit, search, }) {
+            // check admin permission
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.READ);
+            const where = {};
+            if (orderStatus) {
+                where.orderStatus = Array.isArray(orderStatus)
+                    ? { in: orderStatus }
+                    : orderStatus;
+            }
+            if (search) {
+                where.OR = [
+                    { customerName: { contains: search, mode: 'insensitive' } },
+                    { customerPhoneNo: { contains: search, mode: 'insensitive' } },
+                    {
+                        sellerPhoneNo: { contains: search, mode: 'insensitive' },
+                    },
+                    {
+                        sellerName: { contains: search, mode: 'insensitive' },
+                    },
+                ];
+            }
+            const skip = ((page || 1) - 1) * (limit || 10);
+            const orders = yield prisma_1.default.order
+                .findMany({
+                where,
+                skip,
+                take: limit || 10,
+                include: {
+                    OrderProduct: true,
+                    Payment: true,
+                },
+            })
+                .then(orders => orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant) }))) }))));
+            const totalOrders = yield prisma_1.default.order.count({
+                where,
+            });
+            return {
+                orders,
+                totalOrders,
+                currentPage: page || 1,
+                totalPages: Math.ceil(totalOrders / (limit || 10)),
+                pageSize: limit || 10,
+            };
         });
     }
 }

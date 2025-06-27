@@ -230,6 +230,33 @@ class UserManagementController {
       next(error)
     }
   }
+  async adminLogin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { phoneNo, password } = req.body
+
+      const { user, token } = await userManagementServices.adminLogin({
+        phoneNo,
+        password,
+      })
+      // set token in cookie with secure and httpOnly flags
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Login successful',
+        success: true,
+        data: {
+          user,
+          token,
+        },
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 
   /**
    * User logout

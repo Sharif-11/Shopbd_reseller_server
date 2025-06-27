@@ -127,7 +127,43 @@ class OrderValidator {
         .withMessage('বাতিলের কারণ অবশ্যই স্ট্রিং হতে হবে'),
     ]
   }
+
   static confirmOrderBySeller(): RequestHandler[] {
+    return [
+      param('orderId')
+        .notEmpty()
+        .withMessage('অর্ডার আইডি প্রয়োজন')
+        .isInt()
+        .withMessage('অর্ডার আইডি অবশ্যই সংখ্যা হতে হবে'),
+    ]
+  }
+
+  static deliverOrderByAdmin(): RequestHandler[] {
+    return [
+      param('orderId')
+        .notEmpty()
+        .withMessage('অর্ডার আইডি প্রয়োজন')
+        .isInt()
+        .withMessage('অর্ডার আইডি অবশ্যই সংখ্যা হতে হবে'),
+      body('trackingUrl')
+        .isString()
+        .withMessage('ট্র্যাকিং URL অবশ্যই স্ট্রিং হতে হবে')
+        .isURL()
+        .withMessage('ট্র্যাকিং URL সঠিক নয়'),
+    ]
+  }
+
+  static confirmOrderByAdmin(): RequestHandler[] {
+    return [
+      param('orderId')
+        .notEmpty()
+        .withMessage('অর্ডার আইডি প্রয়োজন')
+        .isInt()
+        .withMessage('অর্ডার আইডি অবশ্যই সংখ্যা হতে হবে'),
+    ]
+  }
+
+  static rejectOrderByAdmin(): RequestHandler[] {
     return [
       param('orderId')
         .notEmpty()

@@ -229,6 +229,34 @@ class UserManagementController {
             }
         });
     }
+    adminLogin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { phoneNo, password } = req.body;
+                const { user, token } = yield user_services_1.default.adminLogin({
+                    phoneNo,
+                    password,
+                });
+                // set token in cookie with secure and httpOnly flags
+                res.cookie('token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Login successful',
+                    success: true,
+                    data: {
+                        user,
+                        token,
+                    },
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     /**
      * User logout
      */

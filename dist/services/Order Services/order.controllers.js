@@ -159,5 +159,91 @@ class OrderController {
             }
         });
     }
+    confirmOrderByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { orderId } = req.params;
+                const order = yield order_service_1.orderService.confirmOrderByAdmin({
+                    orderId: Number(orderId),
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order confirmed by admin successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    deliverOrderByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const { orderId } = req.params;
+                const { trackingUrl } = req.body;
+                const order = yield order_service_1.orderService.deliverOrderByAdmin({
+                    adminId: (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId,
+                    orderId: Number(orderId),
+                    trackingUrl,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order delivered successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    rejectOrderByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { orderId } = req.params;
+                const order = yield order_service_1.orderService.rejectOrderByAdmin({
+                    orderId: Number(orderId),
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order rejected successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    getAllOrdersForAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { page, limit, search, orderStatus } = req.query;
+                const orders = yield order_service_1.orderService.getOrdersForAdmin({
+                    adminId: userId,
+                    page: page ? Number(page) : undefined,
+                    limit: limit ? Number(limit) : undefined,
+                    search: search ? String(search) : undefined,
+                    orderStatus: orderStatus,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'All orders retrieved successfully',
+                    success: true,
+                    data: orders,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new OrderController();

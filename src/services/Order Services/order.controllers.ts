@@ -119,6 +119,7 @@ class OrderController {
       next(error)
     }
   }
+
   async confirmOrderBySeller(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.userId
@@ -139,6 +140,7 @@ class OrderController {
       next(error)
     }
   }
+
   async reorderFailedOrder(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.userId
@@ -154,6 +156,81 @@ class OrderController {
         message: 'Order reordered successfully',
         success: true,
         data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async confirmOrderByAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { orderId } = req.params
+      const order = await orderService.confirmOrderByAdmin({
+        orderId: Number(orderId),
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order confirmed by admin successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async deliverOrderByAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { orderId } = req.params
+      const { trackingUrl } = req.body
+      const order = await orderService.deliverOrderByAdmin({
+        adminId: req.user?.userId!,
+        orderId: Number(orderId),
+        trackingUrl,
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order delivered successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  async rejectOrderByAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { orderId } = req.params
+      const order = await orderService.rejectOrderByAdmin({
+        orderId: Number(orderId),
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order rejected successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async getAllOrdersForAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { page, limit, search, orderStatus } = req.query
+      const orders = await orderService.getOrdersForAdmin({
+        adminId: userId!,
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+        search: search ? String(search) : undefined,
+        orderStatus: orderStatus! as OrderStatus | OrderStatus[],
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'All orders retrieved successfully',
+        success: true,
+        data: orders,
       })
     } catch (error) {
       next(error)

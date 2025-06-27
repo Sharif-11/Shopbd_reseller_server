@@ -447,7 +447,6 @@ model Order {
   paymentType          PaymentMethod?
   paymentVerified      Boolean       @default(false) // Flag to indicate if the payment is verified
   Payment              Payment?      @relation("OrderPayment")
-  paymentId          String?       @unique // Foreign key to Payment table, if applicable
 
   totalProductQuantity     Int     @default(0) // Total quantity of products in the order
   totalProductSellingPrice Decimal @db.Decimal(15, 2) // Total selling price of products in the order

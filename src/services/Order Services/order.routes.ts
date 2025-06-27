@@ -14,7 +14,7 @@ class OrderRouter {
 
   protected initializeRoutes(): void {
     // ==========================================
-    // ORDER MANAGEMENT ROUTES
+    // SELLER ORDER MANAGEMENT ROUTES
     // ==========================================
 
     this.router.post(
@@ -23,7 +23,7 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.createSellerOrder(),
       validateRequest,
-      orderControllers.createSellerOrder
+      orderControllers.createSellerOrder,
     )
 
     this.router.get(
@@ -32,7 +32,7 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.getSellerOrders(),
       validateRequest,
-      orderControllers.getSellerOrders
+      orderControllers.getSellerOrders,
     )
 
     this.router.post(
@@ -41,7 +41,7 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.orderPaymentBySeller(),
       validateRequest,
-      orderControllers.orderPaymentBySeller
+      orderControllers.orderPaymentBySeller,
     )
 
     this.router.post(
@@ -50,22 +50,57 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.cancelOrderBySeller(),
       validateRequest,
-      orderControllers.cancelOrderBySeller
+      orderControllers.cancelOrderBySeller,
     )
+
     this.router.post(
       '/seller/confirm/:orderId',
       isAuthenticated,
       verifyRole('Seller'),
       OrderValidator.confirmOrderBySeller(),
       validateRequest,
-      orderControllers.confirmOrderBySeller
+      orderControllers.confirmOrderBySeller,
     )
+
     this.router.post(
       '/seller/re-order/:orderId',
       isAuthenticated,
       verifyRole('Seller'),
+      orderControllers.reorderFailedOrder,
+    )
 
-      orderControllers.reorderFailedOrder
+    // ==========================================
+    // ADMIN ORDER MANAGEMENT ROUTES
+    // ==========================================
+    this.router.get(
+      '/admin',
+      isAuthenticated,
+      OrderValidator.getSellerOrders(),
+      validateRequest,
+      orderControllers.getAllOrdersForAdmin,
+    )
+    this.router.post(
+      '/admin/confirm/:orderId',
+      isAuthenticated,
+      OrderValidator.confirmOrderByAdmin(),
+      validateRequest,
+      orderControllers.confirmOrderByAdmin,
+    )
+
+    this.router.post(
+      '/admin/deliver/:orderId',
+      isAuthenticated,
+      OrderValidator.deliverOrderByAdmin(),
+      validateRequest,
+      orderControllers.deliverOrderByAdmin,
+    )
+
+    this.router.post(
+      '/admin/reject/:orderId',
+      isAuthenticated,
+      OrderValidator.rejectOrderByAdmin(),
+      validateRequest,
+      orderControllers.rejectOrderByAdmin,
     )
   }
 
@@ -74,5 +109,4 @@ class OrderRouter {
   }
 }
 
-// Export a singleton instance
 export default new OrderRouter().getRouter()

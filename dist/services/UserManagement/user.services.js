@@ -512,6 +512,61 @@ class UserManagementServices {
             if (!user) {
                 throw new ApiError_1.default(404, 'User not found');
             }
+            if (user.role !== 'Seller') {
+                throw new ApiError_1.default(403, 'আপনি  সেলার নন');
+            }
+            const isPasswordValid = yield this.comparePassword({
+                password: input.password,
+                hash: user.password,
+            });
+            if (!isPasswordValid) {
+                throw new ApiError_1.default(401, 'Invalid credentials');
+            }
+            // Check if user is blocked
+            // const block = await prisma.block.findFirst({
+            //   where: {
+            //     userPhoneNo: user.phoneNo,
+            //     isActive: true,
+            //     actionTypes: {
+            //       has: BlockActionType.,
+            //     },
+            //     expiresAt: { gt: new Date() },
+            //   },
+            // })
+            // if (block) {
+            //   throw new ApiError(403, 'Your account is currently blocked')
+            // }
+            console.log('user login.....', user);
+            const token = this.generateAccessToken(user.userId, user.role, user.phoneNo);
+            const { password } = user, userWithoutPassword = __rest(user, ["password"]);
+            return {
+                user: userWithoutPassword,
+                token,
+            };
+        });
+    }
+    adminLogin(input) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const user = yield prisma_1.default.user.findUnique({
+                where: { phoneNo: input.phoneNo },
+                include: {
+                    userRoles: {
+                        include: {
+                            role: {
+                                include: {
+                                    permissions: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            if (user.role === 'Seller') {
+                throw new ApiError_1.default(403, 'আপনি অ্যাডমিন নন');
+            }
             const isPasswordValid = yield this.comparePassword({
                 password: input.password,
                 hash: user.password,
