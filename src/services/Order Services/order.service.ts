@@ -612,5 +612,68 @@ class OrderService {
       pageSize: limit || 10,
     }
   }
+  public async cancelOrderByAdmin({
+    adminId,
+    orderId,
+    reason,
+  }: {
+    adminId: string
+    orderId: number
+    reason: string
+  }) {
+    // check admin permission
+    await userServices.verifyUserPermission(
+      adminId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.UPDATE,
+    )
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+      include: {
+        Payment: true,
+      },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+    if (order.orderStatus !== 'CONFIRMED') {
+      throw new ApiError(400, 'Only confirmed orders can be cancelled by admin')
+    }
+    if (
+      order.Payment?.paymentStatus === 'COMPLETED' ||
+      order.paymentType === 'BALANCE'
+    ) {
+      // we need to refund the payment to the seller and update the order status as refunded within the transaction
+      const result = await prisma.$transaction(async tx => {
+        await transactionServices.createTransaction({
+          tx,
+          userId: order.sellerId!,
+          transactionType: 'Credit',
+          amount: order.deliveryCharge.toNumber(),
+          reason: 'অর্ডার বাতিলের জন্য রিফান্ড',
+        })
+        await tx.order.update({
+          where: { orderId },
+          data: {
+            orderStatus: 'REFUNDED',
+            cancelledReason: reason,
+            cancelledBy: 'SYSTEM',
+            cancelledAt: new Date(),
+          },
+        })
+        return order
+      })
+      return result
+    }
+    return await prisma.order.update({
+      where: { orderId },
+      data: {
+        orderStatus: 'CANCELLED',
+        cancelledReason: reason,
+        cancelledBy: 'SYSTEM',
+        cancelledAt: new Date(),
+      },
+    })
+  }
 }
 export const orderService = new OrderService()

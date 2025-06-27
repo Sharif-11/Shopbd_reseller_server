@@ -236,6 +236,26 @@ class OrderController {
       next(error)
     }
   }
+  async cancelOrderByAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { orderId } = req.params
+      const { reason } = req.body
+      const order = await orderService.cancelOrderByAdmin({
+        orderId: Number(orderId),
+        reason,
+        adminId: userId!,
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order cancelled successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new OrderController()

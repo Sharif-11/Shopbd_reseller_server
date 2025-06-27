@@ -478,5 +478,57 @@ class OrderService {
             };
         });
     }
+    cancelOrderByAdmin(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, orderId, reason, }) {
+            var _b;
+            // check admin permission
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId },
+                include: {
+                    Payment: true,
+                },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (order.orderStatus !== 'CONFIRMED') {
+                throw new ApiError_1.default(400, 'Only confirmed orders can be cancelled by admin');
+            }
+            if (((_b = order.Payment) === null || _b === void 0 ? void 0 : _b.paymentStatus) === 'COMPLETED' ||
+                order.paymentType === 'BALANCE') {
+                // we need to refund the payment to the seller and update the order status as refunded within the transaction
+                const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    yield transaction_services_1.transactionServices.createTransaction({
+                        tx,
+                        userId: order.sellerId,
+                        transactionType: 'Credit',
+                        amount: order.deliveryCharge.toNumber(),
+                        reason: 'অর্ডার বাতিলের জন্য রিফান্ড',
+                    });
+                    yield tx.order.update({
+                        where: { orderId },
+                        data: {
+                            orderStatus: 'REFUNDED',
+                            cancelledReason: reason,
+                            cancelledBy: 'SYSTEM',
+                            cancelledAt: new Date(),
+                        },
+                    });
+                    return order;
+                }));
+                return result;
+            }
+            return yield prisma_1.default.order.update({
+                where: { orderId },
+                data: {
+                    orderStatus: 'CANCELLED',
+                    cancelledReason: reason,
+                    cancelledBy: 'SYSTEM',
+                    cancelledAt: new Date(),
+                },
+            });
+        });
+    }
 }
 exports.orderService = new OrderService();

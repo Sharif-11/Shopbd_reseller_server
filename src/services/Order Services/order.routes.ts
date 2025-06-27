@@ -86,6 +86,13 @@ class OrderRouter {
       validateRequest,
       orderControllers.confirmOrderByAdmin,
     )
+    this.router.post(
+      '/admin/cancel/:orderId',
+      isAuthenticated,
+      OrderValidator.cancelOrderByAdmin(),
+      validateRequest,
+      orderControllers.cancelOrderByAdmin,
+    )
 
     this.router.post(
       '/admin/deliver/:orderId',

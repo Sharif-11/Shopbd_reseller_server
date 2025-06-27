@@ -245,5 +245,29 @@ class OrderController {
             }
         });
     }
+    cancelOrderByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { orderId } = req.params;
+                const { reason } = req.body;
+                const order = yield order_service_1.orderService.cancelOrderByAdmin({
+                    orderId: Number(orderId),
+                    reason,
+                    adminId: userId,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order cancelled successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new OrderController();
