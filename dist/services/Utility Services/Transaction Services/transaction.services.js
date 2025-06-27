@@ -133,7 +133,6 @@ class TransactionService {
     }
     getAllTransactionsForAdmin(_a) {
         return __awaiter(this, arguments, void 0, function* ({ userId, page, limit, search, }) {
-            var _b, _c, _d, _e;
             // check permissions for admin
             yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ALL, client_1.ActionType.READ);
             const offset = (page || 1) - 1;
@@ -152,33 +151,13 @@ class TransactionService {
                 orderBy: { createdAt: 'desc' },
                 // please reverse the amount sign for admin transactions
             });
-            transactions.forEach(transaction => {
-                transaction.amount = new client_1.Prisma.Decimal(-transaction.amount.toNumber());
-            });
             const totalCount = yield prisma_1.default.transaction.count({ where });
             // calculate total credit and debit amount and calculate balance, here the credit of user is the debit of the admin and vice versa
-            const totalDebit = yield prisma_1.default.transaction.aggregate({
-                _sum: { amount: true },
-                where: {
-                    amount: { gt: 0 },
-                },
-            });
-            const totalCredit = yield prisma_1.default.transaction.aggregate({
-                _sum: { amount: true },
-                where: {
-                    amount: { lt: 0 },
-                },
-            });
-            const totalRevenue = (((_b = totalCredit._sum.amount) === null || _b === void 0 ? void 0 : _b.toNumber()) || 0) +
-                (((_c = totalDebit._sum.amount) === null || _c === void 0 ? void 0 : _c.toNumber()) || 0);
             return {
                 transactions,
                 totalCount,
                 currentPage: offset + 1,
                 pageSize: take,
-                totalRevenue,
-                totalCredit: ((_d = totalCredit._sum.amount) === null || _d === void 0 ? void 0 : _d.toNumber()) || 0,
-                totalDebit: ((_e = totalDebit._sum.amount) === null || _e === void 0 ? void 0 : _e.toNumber()) || 0,
             };
         });
     }

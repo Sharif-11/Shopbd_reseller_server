@@ -190,35 +190,15 @@ class TransactionService {
       orderBy: { createdAt: 'desc' },
       // please reverse the amount sign for admin transactions
     })
-    transactions.forEach(transaction => {
-      transaction.amount = new Prisma.Decimal(-transaction.amount.toNumber())
-    })
 
     const totalCount = await prisma.transaction.count({ where })
     // calculate total credit and debit amount and calculate balance, here the credit of user is the debit of the admin and vice versa
-    const totalDebit = await prisma.transaction.aggregate({
-      _sum: { amount: true },
-      where: {
-        amount: { gt: 0 },
-      },
-    })
-    const totalCredit = await prisma.transaction.aggregate({
-      _sum: { amount: true },
-      where: {
-        amount: { lt: 0 },
-      },
-    })
-    const totalRevenue =
-      (totalCredit._sum.amount?.toNumber() || 0) +
-      (totalDebit._sum.amount?.toNumber() || 0)
+
     return {
       transactions,
       totalCount,
       currentPage: offset + 1,
       pageSize: take,
-      totalRevenue,
-      totalCredit: totalCredit._sum.amount?.toNumber() || 0,
-      totalDebit: totalDebit._sum.amount?.toNumber() || 0,
     }
   }
 }

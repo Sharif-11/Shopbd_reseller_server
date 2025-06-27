@@ -437,6 +437,7 @@ class PaymentService {
             { userWalletPhoneNo: { contains: search, mode: 'insensitive' } },
             { userName: { contains: search, mode: 'insensitive' } },
             { userPhoneNo: { contains: search, mode: 'insensitive' } },
+            { systemWalletPhoneNo: { contains: search, mode: 'insensitive' } },
           ]
         : undefined,
     }
