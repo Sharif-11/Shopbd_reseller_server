@@ -13,7 +13,7 @@ import prisma from '../../utils/prisma'
 import paymentService from '../Payment Service/payment.service'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
-import { transactionServices } from '../Utility Services/transaction.services'
+import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
 import walletServices from '../WalletManagement/wallet.services'
 import { calculateTransactionFee, WalletName } from './withdraw.utils'
 
@@ -50,11 +50,11 @@ class WithdrawService {
     // check user block status
     const isBlocked = await blockServices.isUserBlocked(
       user.phoneNo,
-      BlockActionType.WITHDRAW_REQUEST
+      BlockActionType.WITHDRAW_REQUEST,
     )
     if (isBlocked) {
       throw new Error(
-        'You are blocked from making withdraw requests. Please contact support.'
+        'You are blocked from making withdraw requests. Please contact support.',
       )
     }
     // check if user has sufficient balance
@@ -71,7 +71,7 @@ class WithdrawService {
     await walletServices.checkWalletOwnership(
       user.userId,
       walletPhoneNo,
-      walletName
+      walletName,
     )
     // check if user has a pending withdraw request
     const existingWithdraw = await prisma.withdraw.findFirst({
@@ -83,7 +83,7 @@ class WithdrawService {
     if (existingWithdraw) {
       throw new ApiError(
         400,
-        'You already have a pending withdraw request. Please wait for it to be processed.'
+        'You already have a pending withdraw request. Please wait for it to be processed.',
       )
     }
     // check if user  request two withdraws within 24 hours
@@ -100,7 +100,7 @@ class WithdrawService {
     if (timeDifference && timeDifference < 24 * 60 * 60 * 1000) {
       throw new ApiError(
         400,
-        'You can only request one withdraw every 24 hours. Please try again later.'
+        'You can only request one withdraw every 24 hours. Please try again later.',
       )
     }
 
@@ -129,7 +129,7 @@ class WithdrawService {
     if (withdraw.userId !== userId) {
       throw new ApiError(
         403,
-        'You are not authorized to cancel this withdraw request'
+        'You are not authorized to cancel this withdraw request',
       )
     }
     if (withdraw.withdrawStatus !== 'PENDING') {
@@ -154,7 +154,7 @@ class WithdrawService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.WITHDRAWAL_MANAGEMENT,
-      'APPROVE'
+      'APPROVE',
     )
     const withdraw = await this.getWithdrawById(withdrawId)
     await paymentService.checkExistingTransactionId(transactionId)
@@ -220,7 +220,7 @@ class WithdrawService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.WITHDRAWAL_MANAGEMENT,
-      'REJECT'
+      'REJECT',
     )
     const withdraw = await this.getWithdrawById(withdrawId)
     // check if withdraw is already approved
@@ -329,7 +329,7 @@ class WithdrawService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.WITHDRAWAL_MANAGEMENT,
-      'READ'
+      'READ',
     )
     const offset = (page || 1) - 1
     const take = limit || 10
@@ -363,9 +363,16 @@ class WithdrawService {
       where,
       skip: offset * take,
       take,
-      orderBy: { processedAt: 'desc', requestedAt: 'desc' },
+      orderBy: { requestedAt: 'desc' },
     })
-    return withdraws
+    const totalWithdraws = await prisma.withdraw.count({ where })
+    return {
+      withdraws,
+      totalWithdraws,
+      totalPages: Math.ceil(totalWithdraws / take),
+      currentPage: page || 1,
+      pageSize: take,
+    }
   }
 }
 export const withdrawService = new WithdrawService()

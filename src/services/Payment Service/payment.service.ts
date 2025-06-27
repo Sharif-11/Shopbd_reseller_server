@@ -12,13 +12,13 @@ import prisma from '../../utils/prisma'
 import { orderService } from '../Order Services/order.service'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
-import { transactionServices } from '../Utility Services/transaction.services'
+import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
 import walletServices from '../WalletManagement/wallet.services'
 
 class PaymentService {
   public async checkExistingTransactionId(
     transactionId: string,
-    tx: Prisma.TransactionClient | undefined = undefined
+    tx: Prisma.TransactionClient | undefined = undefined,
   ) {
     const existingTransaction = await (tx || prisma).payment.findUnique({
       where: { transactionId },
@@ -46,12 +46,12 @@ class PaymentService {
     // check user is blocked
     const isBlocked = await blockServices.isUserBlocked(
       walletPhoneNo,
-      BlockActionType.PAYMENT_REQUEST
+      BlockActionType.PAYMENT_REQUEST,
     )
     if (isBlocked) {
       throw new ApiError(
         400,
-        'You are blocked from payment request. Please contact support'
+        'You are blocked from payment request. Please contact support',
       )
     }
     await this.checkExistingTransactionId(transactionId)
@@ -148,12 +148,12 @@ class PaymentService {
   }) {
     const isBlocked = await blockServices.isUserBlocked(
       userPhoneNo,
-      BlockActionType.PAYMENT_REQUEST
+      BlockActionType.PAYMENT_REQUEST,
     )
     if (isBlocked) {
       throw new ApiError(
         400,
-        'You are blocked from payment request. Please contact support'
+        'You are blocked from payment request. Please contact support',
       )
     }
     await this.checkExistingTransactionId(transactionId, tx)
@@ -185,7 +185,7 @@ class PaymentService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.PAYMENT_MANAGEMENT,
-      'APPROVE'
+      'APPROVE',
     )
     console.log({ paymentId, transactionId })
     // check if payment exists
@@ -268,7 +268,7 @@ class PaymentService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.PAYMENT_MANAGEMENT,
-      'REJECT'
+      'REJECT',
     )
     // check user is blocked
 
@@ -419,7 +419,7 @@ class PaymentService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.PAYMENT_MANAGEMENT,
-      'READ'
+      'READ',
     )
 
     const where: Prisma.PaymentWhereInput = {

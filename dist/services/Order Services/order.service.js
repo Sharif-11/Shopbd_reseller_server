@@ -23,7 +23,7 @@ const shopCategory_services_1 = __importDefault(require("../ProductManagement/sh
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
-const transaction_services_1 = require("../Utility Services/transaction.services");
+const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 class OrderService {
     calculateDeliveryCharge(_a) {

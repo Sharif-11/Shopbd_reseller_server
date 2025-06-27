@@ -13,6 +13,7 @@ const shopCategory_routes_1 = require("../services/ProductManagement/shopCategor
 const block_routes_1 = __importDefault(require("../services/UserManagement/Block Management/block.routes"));
 const role_routes_1 = __importDefault(require("../services/UserManagement/Role Management/role.routes"));
 const sms_routes_1 = __importDefault(require("../services/Utility Services/Sms Service/sms.routes"));
+const transaction_routes_1 = __importDefault(require("../services/Utility Services/Transaction Services/transaction.routes"));
 const wallet_routes_1 = __importDefault(require("../services/WalletManagement/wallet.routes"));
 const withdraw_routes_1 = __importDefault(require("../services/Withdraw Service/withdraw.routes"));
 class GlobalRoutes {
@@ -47,6 +48,10 @@ class GlobalRoutes {
             {
                 path: '/payments',
                 route: payment_routes_1.default,
+            },
+            {
+                path: '/transactions',
+                route: transaction_routes_1.default,
             },
             // { path: '/admin', route: adminRouter },
             // { path: '/sellers', route: sellerRouter },

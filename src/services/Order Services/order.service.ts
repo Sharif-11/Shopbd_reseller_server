@@ -15,7 +15,8 @@ import shopCategoryServices from '../ProductManagement/shopCategory.services'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
 import SmsServices from '../Utility Services/Sms Service/sms.services'
-import { transactionServices } from '../Utility Services/transaction.services'
+
+import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
 import walletServices from '../WalletManagement/wallet.services'
 import { OrderData } from './order.types'
 
@@ -53,7 +54,7 @@ class OrderService {
       deliveryAddress,
       comments,
       products,
-    }: OrderData
+    }: OrderData,
   ) {
     const user = await userServices.getUserById(userId)
     if (!user) {
@@ -70,7 +71,7 @@ class OrderService {
     // check user blocked
     const isBlocked = await blockServices.isUserBlocked(
       sellerPhoneNo,
-      BlockActionType.ORDER_REQUEST
+      BlockActionType.ORDER_REQUEST,
     )
     if (isBlocked) {
       throw new Error('You are blocked from placing orders')
@@ -82,9 +83,8 @@ class OrderService {
     }
     const { shopName, shopLocation } = shop
     // verify products
-    const verifiedOrderData = await productServices.verifyOrderProducts(
-      products
-    )
+    const verifiedOrderData =
+      await productServices.verifyOrderProducts(products)
     const deliveryCharge = await this.calculateDeliveryCharge({
       shopId,
       customerZilla,
@@ -193,7 +193,7 @@ class OrderService {
             ...product,
             productVariant: JSON.parse(product.productVariant as string),
           })),
-        }))
+        })),
       )
     const totalOrders = await prisma.order.count({
       where,
@@ -250,7 +250,7 @@ class OrderService {
     ) {
       throw new ApiError(
         400,
-        'Insufficient balance in your wallet to pay for the order'
+        'Insufficient balance in your wallet to pay for the order',
       )
     } else if (paymentMethod === 'BALANCE') {
       const updatedOrder = await prisma.$transaction(async tx => {
@@ -406,7 +406,7 @@ class OrderService {
     if (order.orderStatus === 'UNPAID' && !order.sellerVerified) {
       throw new ApiError(
         400,
-        'Only unpaid orders can be confirmed by verified sellers'
+        'Only unpaid orders can be confirmed by verified sellers',
       )
     }
     if (order.orderStatus !== 'UNPAID') {
@@ -418,7 +418,7 @@ class OrderService {
       data: {
         orderStatus: 'CONFIRMED',
         cashOnAmount: order.totalProductSellingPrice.add(
-          order.deliveryCharge.toNumber()
+          order.deliveryCharge.toNumber(),
         ),
       },
     })
@@ -458,7 +458,7 @@ class OrderService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
     const order = await prisma.order.findUnique({
       where: { orderId },

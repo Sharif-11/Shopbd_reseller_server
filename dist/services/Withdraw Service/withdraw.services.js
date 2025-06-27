@@ -21,7 +21,7 @@ const prisma_1 = __importDefault(require("../../utils/prisma"));
 const payment_service_1 = __importDefault(require("../Payment Service/payment.service"));
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
-const transaction_services_1 = require("../Utility Services/transaction.services");
+const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 const withdraw_utils_1 = require("./withdraw.utils");
 class WithdrawService {
@@ -286,9 +286,16 @@ class WithdrawService {
                 where,
                 skip: offset * take,
                 take,
-                orderBy: { processedAt: 'desc', requestedAt: 'desc' },
+                orderBy: { requestedAt: 'desc' },
             });
-            return withdraws;
+            const totalWithdraws = yield prisma_1.default.withdraw.count({ where });
+            return {
+                withdraws,
+                totalWithdraws,
+                totalPages: Math.ceil(totalWithdraws / take),
+                currentPage: page || 1,
+                pageSize: take,
+            };
         });
     }
 }

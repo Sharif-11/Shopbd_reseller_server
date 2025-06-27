@@ -12,6 +12,7 @@ import {
 import blockRoutes from '../services/UserManagement/Block Management/block.routes'
 import roleRoutes from '../services/UserManagement/Role Management/role.routes'
 import smsRoutes from '../services/Utility Services/Sms Service/sms.routes'
+import transactionRoutes from '../services/Utility Services/Transaction Services/transaction.routes'
 import walletRoutes from '../services/WalletManagement/wallet.routes'
 import withdrawRoutes from '../services/Withdraw Service/withdraw.routes'
 
@@ -50,6 +51,10 @@ class GlobalRoutes {
       {
         path: '/payments',
         route: paymentRoutes,
+      },
+      {
+        path: '/transactions',
+        route: transactionRoutes,
       },
       // { path: '/admin', route: adminRouter },
       // { path: '/sellers', route: sellerRouter },

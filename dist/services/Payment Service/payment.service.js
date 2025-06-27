@@ -19,7 +19,7 @@ const prisma_1 = __importDefault(require("../../utils/prisma"));
 const order_service_1 = require("../Order Services/order.service");
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
-const transaction_services_1 = require("../Utility Services/transaction.services");
+const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 class PaymentService {
     checkExistingTransactionId(transactionId_1) {

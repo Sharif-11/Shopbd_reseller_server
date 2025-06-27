@@ -1,5 +1,6 @@
-import { Prisma } from '@prisma/client'
-import prisma from '../../utils/prisma'
+import { ActionType, PermissionType, Prisma } from '@prisma/client'
+import prisma from '../../../utils/prisma'
+import userServices from '../../UserManagement/user.services'
 
 class TransactionService {
   private async deductBalance({
@@ -116,11 +117,7 @@ class TransactionService {
     const where: Prisma.TransactionWhereInput = {
       userId,
       ...(search && {
-        OR: [
-          { reason: { contains: search, mode: 'insensitive' } },
-          { userName: { contains: search, mode: 'insensitive' } },
-          { userPhoneNo: { contains: search, mode: 'insensitive' } },
-        ],
+        OR: [{ reason: { contains: search, mode: 'insensitive' } }],
       }),
     }
     const transactions = await prisma.transaction.findMany({
@@ -129,17 +126,52 @@ class TransactionService {
       take,
       orderBy: { createdAt: 'desc' },
     })
-    return transactions
+    const totalCount = await prisma.transaction.count({ where })
+    // count total credit and debit amount and calculate balance
+    const totalCredit = await prisma.transaction.aggregate({
+      _sum: { amount: true },
+      where: {
+        userId,
+        amount: { gt: 0 },
+      },
+    })
+    const totalDebit = await prisma.transaction.aggregate({
+      _sum: { amount: true },
+      where: {
+        userId,
+        amount: { lt: 0 },
+      },
+    })
+    const balance =
+      (totalCredit._sum.amount?.toNumber() || 0) +
+      (totalDebit._sum.amount?.toNumber() || 0)
+    return {
+      transactions,
+      totalCount,
+      currentPage: offset + 1,
+      pageSize: take,
+      balance,
+      totalCredit: totalCredit._sum.amount?.toNumber() || 0,
+      totalDebit: totalDebit._sum.amount?.toNumber() || 0,
+    }
   }
   public async getAllTransactionsForAdmin({
+    userId,
     page,
     limit,
     search,
   }: {
+    userId: string
     page?: number
     limit?: number
     search?: string
   }) {
+    // check permissions for admin
+    await userServices.verifyUserPermission(
+      userId,
+      PermissionType.ALL,
+      ActionType.READ,
+    )
     const offset = (page || 1) - 1
     const take = limit || 10
     const where: Prisma.TransactionWhereInput = {
@@ -156,8 +188,38 @@ class TransactionService {
       skip: offset * take,
       take,
       orderBy: { createdAt: 'desc' },
+      // please reverse the amount sign for admin transactions
     })
-    return transactions
+    transactions.forEach(transaction => {
+      transaction.amount = new Prisma.Decimal(-transaction.amount.toNumber())
+    })
+
+    const totalCount = await prisma.transaction.count({ where })
+    // calculate total credit and debit amount and calculate balance, here the credit of user is the debit of the admin and vice versa
+    const totalDebit = await prisma.transaction.aggregate({
+      _sum: { amount: true },
+      where: {
+        amount: { gt: 0 },
+      },
+    })
+    const totalCredit = await prisma.transaction.aggregate({
+      _sum: { amount: true },
+      where: {
+        amount: { lt: 0 },
+      },
+    })
+    const totalRevenue =
+      (totalCredit._sum.amount?.toNumber() || 0) +
+      (totalDebit._sum.amount?.toNumber() || 0)
+    return {
+      transactions,
+      totalCount,
+      currentPage: offset + 1,
+      pageSize: take,
+      totalRevenue,
+      totalCredit: totalCredit._sum.amount?.toNumber() || 0,
+      totalDebit: totalDebit._sum.amount?.toNumber() || 0,
+    }
   }
 }
 export const transactionServices = new TransactionService()
