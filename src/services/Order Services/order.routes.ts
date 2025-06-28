@@ -101,6 +101,23 @@ class OrderRouter {
       validateRequest,
       orderControllers.deliverOrderByAdmin,
     )
+    this.router.post(
+      '/admin/complete/:orderId',
+      isAuthenticated,
+      OrderValidator.completeOrderByAdmin(),
+      validateRequest,
+      orderControllers.completeOrderByAdmin,
+    )
+    this.router.post(
+      '/admin/fail/:orderId',
+      isAuthenticated,
+      orderControllers.markOrderAsFailedByAdmin,
+    )
+    this.router.post(
+      '/admin/return/:orderId',
+      isAuthenticated,
+      orderControllers.returnOrderByAdmin,
+    )
 
     this.router.post(
       '/admin/reject/:orderId',

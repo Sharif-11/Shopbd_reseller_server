@@ -939,6 +939,39 @@ class UserManagementServices {
       data: { referralCode },
     })
   }
+  async verifySeller({
+    tx,
+    userId,
+    userPhoneNo,
+  }: {
+    tx: Prisma.TransactionClient
+    userId?: string
+    userPhoneNo?: string
+  }) {
+    if (!userId && !userPhoneNo) {
+      throw new ApiError(400, 'Either userId or userPhoneNo must be provided')
+    }
+
+    const user = await tx.user.findUnique({
+      where: {
+        userId: userId || undefined,
+        phoneNo: userPhoneNo || undefined,
+      },
+    })
+
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+
+    if (user.role !== UserType.Seller) {
+      throw new ApiError(403, 'Only sellers can be verified')
+    }
+
+    return await tx.user.update({
+      where: { userId: user.userId },
+      data: { isVerified: true },
+    })
+  }
 
   // ==========================================
   // ROLE & PERMISSION MANAGEMENT

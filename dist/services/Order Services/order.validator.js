@@ -178,5 +178,19 @@ class OrderValidator {
                 .withMessage('অর্ডার আইডি অবশ্যই সংখ্যা হতে হবে'),
         ];
     }
+    static completeOrderByAdmin() {
+        return [
+            (0, express_validator_1.param)('orderId')
+                .notEmpty()
+                .withMessage('অর্ডার আইডি প্রয়োজন')
+                .isInt()
+                .withMessage('অর্ডার আইডি অবশ্যই সংখ্যা হতে হবে'),
+            (0, express_validator_1.body)('amountPaidByCustomer')
+                .notEmpty()
+                .withMessage('গ্রাহক কর্তৃক পরিশোধিত পরিমাণ প্রয়োজন')
+                .isFloat({ min: 0 })
+                .withMessage('পরিমাণ অবশ্যই একটি ধনাত্মক সংখ্যা হতে হবে'),
+        ];
+    }
 }
 exports.default = OrderValidator;

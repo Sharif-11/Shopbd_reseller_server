@@ -141,10 +141,7 @@ class CommissionService {
                     ],
                 },
             });
-            if (!commission) {
-                throw new ApiError_1.default(404, `No commission found for price ${price} at level ${level}`);
-            }
-            return commission.commission.toNumber();
+            return (commission === null || commission === void 0 ? void 0 : commission.commission.toNumber()) || 0;
         });
     }
     calculateUserCommissions(userPhone_1, price_1) {

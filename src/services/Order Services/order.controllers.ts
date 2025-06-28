@@ -256,6 +256,67 @@ class OrderController {
       next(error)
     }
   }
+  async completeOrderByAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { orderId } = req.params
+      const { amountPaidByCustomer } = req.body
+      const order = await orderService.completeOrderByAdmin({
+        orderId: Number(orderId),
+        adminId: userId!,
+        amountPaidByCustomer,
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order completed successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async returnOrderByAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { orderId } = req.params
+      const { reason } = req.body
+      const order = await orderService.returnOrderByAdmin({
+        orderId: Number(orderId),
+        adminId: userId!,
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order returned successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async markOrderAsFailedByAdmin(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.userId
+      const { orderId } = req.params
+      const order = await orderService.markOrderAsFailed({
+        orderId: Number(orderId),
+        adminId: userId!,
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order marked as failed successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new OrderController()

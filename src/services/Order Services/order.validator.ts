@@ -185,6 +185,20 @@ class OrderValidator {
         .withMessage('অর্ডার আইডি অবশ্যই সংখ্যা হতে হবে'),
     ]
   }
+  static completeOrderByAdmin(): RequestHandler[] {
+    return [
+      param('orderId')
+        .notEmpty()
+        .withMessage('অর্ডার আইডি প্রয়োজন')
+        .isInt()
+        .withMessage('অর্ডার আইডি অবশ্যই সংখ্যা হতে হবে'),
+      body('amountPaidByCustomer')
+        .notEmpty()
+        .withMessage('গ্রাহক কর্তৃক পরিশোধিত পরিমাণ প্রয়োজন')
+        .isFloat({ min: 0 })
+        .withMessage('পরিমাণ অবশ্যই একটি ধনাত্মক সংখ্যা হতে হবে'),
+    ]
+  }
 }
 
 export default OrderValidator

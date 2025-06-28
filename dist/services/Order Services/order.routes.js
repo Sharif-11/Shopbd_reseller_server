@@ -30,6 +30,9 @@ class OrderRouter {
         this.router.post('/admin/confirm/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.confirmOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.confirmOrderByAdmin);
         this.router.post('/admin/cancel/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.cancelOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.cancelOrderByAdmin);
         this.router.post('/admin/deliver/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.deliverOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.deliverOrderByAdmin);
+        this.router.post('/admin/complete/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.completeOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.completeOrderByAdmin);
+        this.router.post('/admin/fail/:orderId', auth_middlewares_1.isAuthenticated, order_controllers_1.default.markOrderAsFailedByAdmin);
+        this.router.post('/admin/return/:orderId', auth_middlewares_1.isAuthenticated, order_controllers_1.default.returnOrderByAdmin);
         this.router.post('/admin/reject/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.rejectOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.rejectOrderByAdmin);
     }
     getRouter() {

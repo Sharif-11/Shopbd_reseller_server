@@ -15,11 +15,20 @@ import shopCategoryServices from '../ProductManagement/shopCategory.services'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
 
+import commissionServices from '../Commission Management/commission.services'
 import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
 import walletServices from '../WalletManagement/wallet.services'
 import { OrderData } from './order.types'
 
 class OrderService {
+  private async checkExistingTrackingUrl(trackingUrl?: string) {
+    const existingOrder = await prisma.order.findFirst({
+      where: { trackingUrl },
+    })
+    if (existingOrder) {
+      throw new ApiError(400, 'Tracking URL already exists for another order')
+    }
+  }
   private async calculateDeliveryCharge({
     shopId,
     customerZilla,
@@ -468,6 +477,7 @@ class OrderService {
     if (!order) {
       throw new ApiError(404, 'Order not found')
     }
+    await this.checkExistingTrackingUrl(trackingUrl)
     if (order.orderStatus !== 'CONFIRMED') {
       throw new ApiError(400, 'Only confirmed orders can be delivered')
     }
@@ -672,6 +682,193 @@ class OrderService {
         cancelledReason: reason,
         cancelledBy: 'SYSTEM',
         cancelledAt: new Date(),
+      },
+    })
+  }
+  public async completeOrderByAdmin({
+    adminId,
+    orderId,
+    amountPaidByCustomer,
+  }: {
+    adminId: string
+    orderId: number
+    amountPaidByCustomer: number
+  }) {
+    // check admin permission
+    await userServices.verifyUserPermission(
+      adminId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.UPDATE,
+    )
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+      include: {
+        Payment: true,
+      },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+    if (order.orderStatus !== 'DELIVERED') {
+      throw new ApiError(400, 'Only delivered orders can be completed by admin')
+    }
+    if (!order.cashOnAmount) {
+      throw new ApiError(400, 'Cash on amount is not set for this order')
+    }
+    const minimumAmountToBePaid = order.totalProductBasePrice
+      .add(order.cashOnAmount)
+      .sub(order.totalProductSellingPrice)
+
+    if (amountPaidByCustomer < minimumAmountToBePaid.toNumber()) {
+      throw new ApiError(
+        400,
+        `ন্যূনতম পরিশোধ : ${minimumAmountToBePaid.toFixed(2)} টাকা`,
+      )
+    }
+    const actualCommission =
+      amountPaidByCustomer - minimumAmountToBePaid.toNumber()
+
+    const result = await prisma.$transaction(async tx => {
+      // Update order status to COMPLETED
+      const updatedOrder = await tx.order.update({
+        where: { orderId },
+        data: {
+          orderStatus: 'COMPLETED',
+          actualCommission,
+          amountPaidByCustomer,
+        },
+      })
+      // count how many orders the seller has completed
+      const completedOrdersCount = await tx.order.count({
+        where: {
+          sellerId: updatedOrder.sellerId,
+          orderStatus: 'COMPLETED',
+        },
+      })
+      if (completedOrdersCount >= config.minimumOrderCompletedToBeVerified) {
+        await userServices.verifySeller({ tx, userId: updatedOrder.sellerId! })
+      }
+      // add seller commission to seller wallet
+      await transactionServices.createTransaction({
+        tx,
+        userId: updatedOrder.sellerId!,
+        transactionType: 'Credit',
+        amount: actualCommission,
+        reason: 'অর্ডার সম্পন্নের কমিশন',
+      })
+      return updatedOrder
+    })
+    if (result.orderStatus === 'COMPLETED') {
+      try {
+        const referrers = await commissionServices.calculateUserCommissions(
+          order.sellerPhoneNo!,
+          order.totalProductSellingPrice.toNumber(),
+        )
+        if (referrers.length > 0) {
+          const sendCommissions = await prisma.$transaction(async tx => {
+            const commissionPromises = referrers.map(referrer => {
+              return transactionServices.createTransaction({
+                tx,
+                userId: referrer.userId,
+                amount: referrer.commissionAmount,
+                reason: `রেফারেল কমিশন`,
+                transactionType: 'Credit',
+                reference: {
+                  seller: result.sellerName,
+                  level: referrer.level,
+                  orderId: result.orderId,
+                },
+              })
+            })
+            return await Promise.all(commissionPromises)
+          })
+        }
+      } catch (error) {
+        console.log('Failed to send commissions:', error)
+      }
+    }
+    return result
+  }
+  public async returnOrderByAdmin({
+    adminId,
+    orderId,
+  }: {
+    adminId: string
+    orderId: number
+  }) {
+    // check admin permission
+    await userServices.verifyUserPermission(
+      adminId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.UPDATE,
+    )
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+      include: {
+        Payment: true,
+      },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+    if (order.orderStatus !== 'DELIVERED') {
+      throw new ApiError(400, 'Only delivered orders can be returned')
+    }
+    if (!order.Payment && order.paymentType !== 'BALANCE') {
+      // we need to deduct the delivery charge from the seller's balance and update the order status as returned within the transaction
+      const result = await prisma.$transaction(async tx => {
+        await transactionServices.createTransaction({
+          tx,
+          userId: order.sellerId!,
+          transactionType: 'Debit',
+          amount: order.deliveryCharge.toNumber(),
+          reason: 'অর্ডার ফেরত দেওয়ার জন্য ডেলিভারি চার্জ কর্তন',
+        })
+        await tx.order.update({
+          where: { orderId },
+          data: {
+            orderStatus: 'RETURNED',
+          },
+        })
+        return order
+      })
+      return result
+    } else {
+      // just update the order status to returned
+      return await prisma.order.update({
+        where: { orderId },
+        data: {
+          orderStatus: 'RETURNED',
+        },
+      })
+    }
+  }
+  public async markOrderAsFailed({
+    adminId,
+    orderId,
+  }: {
+    adminId: string
+    orderId: number
+  }) {
+    // check admin permission
+    await userServices.verifyUserPermission(
+      adminId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.UPDATE,
+    )
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+    if (order.orderStatus !== 'DELIVERED') {
+      throw new ApiError(400, 'Only delivered orders can be marked as failed')
+    }
+    return await prisma.order.update({
+      where: { orderId },
+      data: {
+        orderStatus: 'FAILED',
       },
     })
   }

@@ -216,14 +216,7 @@ export class CommissionService {
       },
     })
 
-    if (!commission) {
-      throw new ApiError(
-        404,
-        `No commission found for price ${price} at level ${level}`,
-      )
-    }
-
-    return commission.commission.toNumber()
+    return commission?.commission.toNumber() || 0
   }
 
   async calculateUserCommissions(

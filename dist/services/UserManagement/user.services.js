@@ -840,6 +840,29 @@ class UserManagementServices {
             });
         });
     }
+    verifySeller(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ tx, userId, userPhoneNo, }) {
+            if (!userId && !userPhoneNo) {
+                throw new ApiError_1.default(400, 'Either userId or userPhoneNo must be provided');
+            }
+            const user = yield tx.user.findUnique({
+                where: {
+                    userId: userId || undefined,
+                    phoneNo: userPhoneNo || undefined,
+                },
+            });
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            if (user.role !== client_1.UserType.Seller) {
+                throw new ApiError_1.default(403, 'Only sellers can be verified');
+            }
+            return yield tx.user.update({
+                where: { userId: user.userId },
+                data: { isVerified: true },
+            });
+        });
+    }
     // ==========================================
     // ROLE & PERMISSION MANAGEMENT
     // ==========================================

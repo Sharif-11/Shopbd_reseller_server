@@ -269,5 +269,74 @@ class OrderController {
             }
         });
     }
+    completeOrderByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { orderId } = req.params;
+                const { amountPaidByCustomer } = req.body;
+                const order = yield order_service_1.orderService.completeOrderByAdmin({
+                    orderId: Number(orderId),
+                    adminId: userId,
+                    amountPaidByCustomer,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order completed successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    returnOrderByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { orderId } = req.params;
+                const { reason } = req.body;
+                const order = yield order_service_1.orderService.returnOrderByAdmin({
+                    orderId: Number(orderId),
+                    adminId: userId,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order returned successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    markOrderAsFailedByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { orderId } = req.params;
+                const order = yield order_service_1.orderService.markOrderAsFailed({
+                    orderId: Number(orderId),
+                    adminId: userId,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order marked as failed successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new OrderController();

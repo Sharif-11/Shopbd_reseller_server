@@ -22,9 +22,20 @@ const product_services_1 = __importDefault(require("../ProductManagement/product
 const shopCategory_services_1 = __importDefault(require("../ProductManagement/shopCategory.services"));
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
+const commission_services_1 = __importDefault(require("../Commission Management/commission.services"));
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 class OrderService {
+    checkExistingTrackingUrl(trackingUrl) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const existingOrder = yield prisma_1.default.order.findFirst({
+                where: { trackingUrl },
+            });
+            if (existingOrder) {
+                throw new ApiError_1.default(400, 'Tracking URL already exists for another order');
+            }
+        });
+    }
     calculateDeliveryCharge(_a) {
         return __awaiter(this, arguments, void 0, function* ({ shopId, customerZilla, productQuantity, }) {
             const shop = yield shopCategory_services_1.default.getShop(shopId);
@@ -366,6 +377,7 @@ class OrderService {
             if (!order) {
                 throw new ApiError_1.default(404, 'Order not found');
             }
+            yield this.checkExistingTrackingUrl(trackingUrl);
             if (order.orderStatus !== 'CONFIRMED') {
                 throw new ApiError_1.default(400, 'Only confirmed orders can be delivered');
             }
@@ -526,6 +538,160 @@ class OrderService {
                     cancelledReason: reason,
                     cancelledBy: 'SYSTEM',
                     cancelledAt: new Date(),
+                },
+            });
+        });
+    }
+    completeOrderByAdmin(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, orderId, amountPaidByCustomer, }) {
+            // check admin permission
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId },
+                include: {
+                    Payment: true,
+                },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (order.orderStatus !== 'DELIVERED') {
+                throw new ApiError_1.default(400, 'Only delivered orders can be completed by admin');
+            }
+            if (!order.cashOnAmount) {
+                throw new ApiError_1.default(400, 'Cash on amount is not set for this order');
+            }
+            const minimumAmountToBePaid = order.totalProductBasePrice
+                .add(order.cashOnAmount)
+                .sub(order.totalProductSellingPrice);
+            if (amountPaidByCustomer < minimumAmountToBePaid.toNumber()) {
+                throw new ApiError_1.default(400, `ন্যূনতম পরিশোধ : ${minimumAmountToBePaid.toFixed(2)} টাকা`);
+            }
+            const actualCommission = amountPaidByCustomer - minimumAmountToBePaid.toNumber();
+            const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                // Update order status to COMPLETED
+                const updatedOrder = yield tx.order.update({
+                    where: { orderId },
+                    data: {
+                        orderStatus: 'COMPLETED',
+                        actualCommission,
+                        amountPaidByCustomer,
+                    },
+                });
+                // count how many orders the seller has completed
+                const completedOrdersCount = yield tx.order.count({
+                    where: {
+                        sellerId: updatedOrder.sellerId,
+                        orderStatus: 'COMPLETED',
+                    },
+                });
+                if (completedOrdersCount >= config_1.default.minimumOrderCompletedToBeVerified) {
+                    yield user_services_1.default.verifySeller({ tx, userId: updatedOrder.sellerId });
+                }
+                // add seller commission to seller wallet
+                yield transaction_services_1.transactionServices.createTransaction({
+                    tx,
+                    userId: updatedOrder.sellerId,
+                    transactionType: 'Credit',
+                    amount: actualCommission,
+                    reason: 'অর্ডার সম্পন্নের কমিশন',
+                });
+                return updatedOrder;
+            }));
+            if (result.orderStatus === 'COMPLETED') {
+                try {
+                    const referrers = yield commission_services_1.default.calculateUserCommissions(order.sellerPhoneNo, order.totalProductSellingPrice.toNumber());
+                    if (referrers.length > 0) {
+                        const sendCommissions = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                            const commissionPromises = referrers.map(referrer => {
+                                return transaction_services_1.transactionServices.createTransaction({
+                                    tx,
+                                    userId: referrer.userId,
+                                    amount: referrer.commissionAmount,
+                                    reason: `রেফারেল কমিশন`,
+                                    transactionType: 'Credit',
+                                    reference: {
+                                        seller: result.sellerName,
+                                        level: referrer.level,
+                                        orderId: result.orderId,
+                                    },
+                                });
+                            });
+                            return yield Promise.all(commissionPromises);
+                        }));
+                    }
+                }
+                catch (error) {
+                    console.log('Failed to send commissions:', error);
+                }
+            }
+            return result;
+        });
+    }
+    returnOrderByAdmin(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, orderId, }) {
+            // check admin permission
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId },
+                include: {
+                    Payment: true,
+                },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (order.orderStatus !== 'DELIVERED') {
+                throw new ApiError_1.default(400, 'Only delivered orders can be returned');
+            }
+            if (!order.Payment && order.paymentType !== 'BALANCE') {
+                // we need to deduct the delivery charge from the seller's balance and update the order status as returned within the transaction
+                const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    yield transaction_services_1.transactionServices.createTransaction({
+                        tx,
+                        userId: order.sellerId,
+                        transactionType: 'Debit',
+                        amount: order.deliveryCharge.toNumber(),
+                        reason: 'অর্ডার ফেরত দেওয়ার জন্য ডেলিভারি চার্জ কর্তন',
+                    });
+                    yield tx.order.update({
+                        where: { orderId },
+                        data: {
+                            orderStatus: 'RETURNED',
+                        },
+                    });
+                    return order;
+                }));
+                return result;
+            }
+            else {
+                // just update the order status to returned
+                return yield prisma_1.default.order.update({
+                    where: { orderId },
+                    data: {
+                        orderStatus: 'RETURNED',
+                    },
+                });
+            }
+        });
+    }
+    markOrderAsFailed(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, orderId, }) {
+            // check admin permission
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (order.orderStatus !== 'DELIVERED') {
+                throw new ApiError_1.default(400, 'Only delivered orders can be marked as failed');
+            }
+            return yield prisma_1.default.order.update({
+                where: { orderId },
+                data: {
+                    orderStatus: 'FAILED',
                 },
             });
         });

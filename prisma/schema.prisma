@@ -443,7 +443,7 @@ model Order {
   sellerBalance  Decimal? @default(0.0) @db.Decimal(15, 2) // Balance of the seller
 
   courierName String? // Name of the courier service
-  trackingUrl String? // URL for tracking the order
+  trackingUrl String? @unique  // URL for tracking the order 
 
   isDeliveryChargePaid Boolean       @default(false) // Flag to indicate if the delivery charge is paid
   deliveryChargePaidAt DateTime? // Timestamp when the delivery charge was paid

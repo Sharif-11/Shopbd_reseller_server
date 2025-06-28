@@ -68,20 +68,20 @@ class OtpServices {
             }
             // Generate and send new OTP
             const otp = this.generateRandomOtp(config_1.default.otpLength);
-            yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                // await SmsServices.sendOtp(phoneNo, otp)
-                otpRecord = yield tx.otp.update({
-                    where: { phoneNo },
-                    data: {
-                        otp,
-                        otpCreatedAt: new Date(),
-                        otpExpiresAt: new Date(Date.now() + config_1.default.otpExpiresIn),
-                        totalOTP: otpRecord.totalOTP + 1,
-                        failedAttempts: 0,
-                        updatedAt: new Date(),
-                    },
-                });
-            }));
+            console.clear();
+            console.log(`Generated OTP for ${phoneNo}: ${otp}`);
+            // await SmsServices.sendOtp(phoneNo, otp)
+            const result = yield prisma_1.default.otp.update({
+                where: { phoneNo },
+                data: {
+                    otp,
+                    otpCreatedAt: new Date(),
+                    otpExpiresAt: new Date(Date.now() + config_1.default.otpExpiresIn),
+                    totalOTP: otpRecord.totalOTP + 1,
+                    failedAttempts: 0,
+                    updatedAt: new Date(),
+                },
+            });
             return {
                 sendOTP: true,
                 isBlocked: false,
