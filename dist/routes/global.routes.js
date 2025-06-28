@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_route_1 = __importDefault(require("../services/Auth/auth.route"));
+const commission_route_1 = __importDefault(require("../services/Commission Management/commission.route"));
 const ftp_routes_1 = __importDefault(require("../services/FtpFileUpload/ftp.routes"));
 const order_routes_1 = __importDefault(require("../services/Order Services/order.routes"));
 const payment_routes_1 = __importDefault(require("../services/Payment Service/payment.routes"));
@@ -12,6 +13,7 @@ const product_routes_1 = __importDefault(require("../services/ProductManagement/
 const shopCategory_routes_1 = require("../services/ProductManagement/shopCategory.routes");
 const block_routes_1 = __importDefault(require("../services/UserManagement/Block Management/block.routes"));
 const role_routes_1 = __importDefault(require("../services/UserManagement/Role Management/role.routes"));
+const announcement_routes_1 = __importDefault(require("../services/Utility Services/Announcement/announcement.routes"));
 const sms_routes_1 = __importDefault(require("../services/Utility Services/Sms Service/sms.routes"));
 const transaction_routes_1 = __importDefault(require("../services/Utility Services/Transaction Services/transaction.routes"));
 const wallet_routes_1 = __importDefault(require("../services/WalletManagement/wallet.routes"));
@@ -52,6 +54,14 @@ class GlobalRoutes {
             {
                 path: '/transactions',
                 route: transaction_routes_1.default,
+            },
+            {
+                path: '/commissions',
+                route: commission_route_1.default,
+            },
+            {
+                path: '/announcements',
+                route: announcement_routes_1.default,
             },
             // { path: '/admin', route: adminRouter },
             // { path: '/sellers', route: sellerRouter },

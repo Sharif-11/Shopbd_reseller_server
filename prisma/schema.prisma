@@ -54,6 +54,9 @@ enum PermissionType {
   PAYMENT_MANAGEMENT
   WALLET_MANAGEMENT
   ROLE_PERMISSIONS
+  SUPPORT_TICKET_MANAGEMENT
+  DASHBOARD_ANALYTICS
+  OTHER
   ALL
 }
 
@@ -556,4 +559,124 @@ model Transaction {
   reference Json? // Reference details for credit transactions (e.g., "Referred Person")
 
   @@map("transactions")
+}
+
+//============================
+// Commission Management
+// ============================
+
+model Commission {
+  id         Int      @id @default(autoincrement())
+  startPrice Decimal  @db.Decimal(15, 2)
+  endPrice   Decimal? @db.Decimal(15, 2)
+  commission Decimal  @db.Decimal(15, 2)
+  level      Int
+  createdAt  DateTime @default(now())
+
+  @@unique([startPrice, endPrice, level], name: "uniqueCommissionRange")
+  @@map("commissions")
+}
+model Announcements {
+  id            Int      @id @default(autoincrement())
+  announcements Json[]   @db.JsonB
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([id])
+  @@map("announcements")
+}
+
+//===============================
+// Support Ticket Management
+// =============================
+
+model SupportTicket {
+  // Primary Key
+  ticketId      String         @id @default(cuid())
+
+  // Ticket Metadata
+  subject       String
+  status        TicketStatus   @default(OPEN)
+  priority      TicketPriority @default(MEDIUM)
+  category      TicketCategory
+
+  // User Context (self-contained)
+  userId        String
+  userType      UserType
+  userName      String
+  userPhone     String
+  userEmail     String?
+  shopName      String?
+  
+  // Optional References (as strings, not relations)
+  orderId       String?
+  paymentId     String?
+  productId     String?
+
+  // Timestamps
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  closedAt      DateTime?
+  closedBy      String?
+
+  // Relations (only within ticket system)
+  messages      TicketMessage[]
+
+  // Indexes
+  @@index([userId], name: "ticketUserIndex")
+  @@index([status], name: "ticketStatusIndex")
+  @@index([userPhone], name: "ticketPhoneIndex")
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  // Primary Key
+  messageId     String        @id @default(cuid())
+
+  // Ticket Reference (with explicit relation)
+  ticketId      String
+  ticket        SupportTicket @relation(fields: [ticketId], references: [ticketId])
+
+  // Sender Info (self-contained)
+  senderId      String
+  senderType    SenderType
+  senderName    String
+  senderEmail   String?
+
+  // Message Content
+  content       String
+  attachments   String[]
+
+  // Metadata
+  isRead        Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  parentId      String?
+
+  // Indexes
+  @@index([ticketId], name: "messageTicketIndex")
+  @@index([senderId], name: "messageSenderIndex")
+  @@map("ticket_messages")
+}
+
+// Enums (unchanged from previous)
+enum TicketStatus {
+   OPEN 
+   IN_PROGRESS
+   WAITING_RESPONSE
+   RESOLVED
+   CLOSED
+}
+enum TicketPriority { LOW 
+MEDIUM
+HIGH
+CRITICAL
+}
+enum TicketCategory {
+   ACCOUNT
+   PAYMENT
+   ORDER
+   PRODUCT
+   WITHDRAWAL
+   TECHNICAL
+   OTHER
 }

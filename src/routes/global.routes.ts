@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import authRoute from '../services/Auth/auth.route'
+import commissionRoute from '../services/Commission Management/commission.route'
 import ftpRoutes from '../services/FtpFileUpload/ftp.routes'
 import orderRoutes from '../services/Order Services/order.routes'
 import paymentRoutes from '../services/Payment Service/payment.routes'
@@ -11,6 +12,7 @@ import {
 } from '../services/ProductManagement/shopCategory.routes'
 import blockRoutes from '../services/UserManagement/Block Management/block.routes'
 import roleRoutes from '../services/UserManagement/Role Management/role.routes'
+import announcementRoutes from '../services/Utility Services/Announcement/announcement.routes'
 import smsRoutes from '../services/Utility Services/Sms Service/sms.routes'
 import transactionRoutes from '../services/Utility Services/Transaction Services/transaction.routes'
 import walletRoutes from '../services/WalletManagement/wallet.routes'
@@ -55,6 +57,14 @@ class GlobalRoutes {
       {
         path: '/transactions',
         route: transactionRoutes,
+      },
+      {
+        path: '/commissions',
+        route: commissionRoute,
+      },
+      {
+        path: '/announcements',
+        route: announcementRoutes,
       },
       // { path: '/admin', route: adminRouter },
       // { path: '/sellers', route: sellerRouter },
