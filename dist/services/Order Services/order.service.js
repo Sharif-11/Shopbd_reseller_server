@@ -40,7 +40,7 @@ class OrderService {
     calculateDeliveryCharge(_a) {
         return __awaiter(this, arguments, void 0, function* ({ shopId, customerZilla, productQuantity, }) {
             const shop = yield shopCategory_services_1.default.getShop(shopId);
-            const basicDeliveryCharge = customerZilla === shop.shopLocation
+            const basicDeliveryCharge = customerZilla.toLowerCase() === shop.shopLocation.toLowerCase()
                 ? shop.deliveryChargeInside
                 : shop.deliveryChargeOutside;
             if (productQuantity <= 3) {

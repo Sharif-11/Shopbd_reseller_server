@@ -41,7 +41,7 @@ class OrderService {
   }) {
     const shop = await shopCategoryServices.getShop(shopId)
     const basicDeliveryCharge =
-      customerZilla === shop.shopLocation
+      customerZilla.toLowerCase() === shop.shopLocation.toLowerCase()
         ? shop.deliveryChargeInside
         : shop.deliveryChargeOutside
     if (productQuantity <= 3) {
