@@ -1,6 +1,6 @@
 import { ActionType, BlockActionType, PermissionType } from '@prisma/client'
 import { RequestHandler } from 'express'
-import { body, query } from 'express-validator'
+import { body, param, query } from 'express-validator'
 
 class UserManagementValidator {
   /**
@@ -88,7 +88,7 @@ class UserManagementValidator {
         .trim()
         .matches(/^[a-zA-Z0-9-_]+$/)
         .withMessage(
-          'রেফারাল কোডটি শুধুমাত্র অক্ষর, সংখ্যা, (-) এবং (_) থাকতে পারে।'
+          'রেফারাল কোডটি শুধুমাত্র অক্ষর, সংখ্যা, (-) এবং (_) থাকতে পারে।',
         )
         .isLength({ max: 16, min: 3 })
         .withMessage('রেফারাল কোডটি ৩ থেকে ১৬ অক্ষরের মধ্যে হতে হবে।'),
@@ -199,6 +199,22 @@ class UserManagementValidator {
         .withMessage('সঠিক ফেসবুক প্রোফাইল লিংক প্রদান করুন'),
     ]
   }
+  static sendDirectMessage(): RequestHandler[] {
+    return [
+      param('userId')
+        .notEmpty()
+        .withMessage('ব্যবহারকারী আইডি প্রয়োজন')
+        .isString()
+        .withMessage('ব্যবহারকারী আইডি অবশ্যই স্ট্রিং হতে হবে'),
+      body('content')
+        .notEmpty()
+        .withMessage('বার্তা প্রয়োজন')
+        .isString()
+        .withMessage('বার্তা অবশ্যই স্ট্রিং হতে হবে')
+        .isLength({ min: 1, max: 500 })
+        .withMessage('বার্তা ১ থেকে ৫০০ অক্ষরের মধ্যে হতে হবে'),
+    ]
+  }
 
   /**
    * Validation rules for changing password
@@ -257,8 +273,8 @@ class UserManagementValidator {
         .withMessage('পারমিশন অবশ্যই অ্যারে হতে হবে')
         .custom((permissions: PermissionType[]) =>
           permissions.every((permission: PermissionType) =>
-            Object.values(PermissionType).includes(permission)
-          )
+            Object.values(PermissionType).includes(permission),
+          ),
         )
         .withMessage('পারমিশন সঠিক নয়'),
       body('actions')
@@ -268,8 +284,8 @@ class UserManagementValidator {
         .withMessage('অ্যাকশনস অবশ্যই অ্যারে হতে হবে')
         .custom((actions: ActionType[]) =>
           actions.every((action: ActionType) =>
-            Object.values(ActionType).includes(action)
-          )
+            Object.values(ActionType).includes(action),
+          ),
         )
         .withMessage(' অ্যাকশন সঠিক নয়'),
     ]
@@ -316,8 +332,8 @@ class UserManagementValidator {
         .withMessage('ক্রিয়ার প্রকারগুলি অবশ্যই অ্যারে হতে হবে')
         .custom((actions: BlockActionType[]) =>
           actions.every((action: BlockActionType) =>
-            Object.values(BlockActionType).includes(action)
-          )
+            Object.values(BlockActionType).includes(action),
+          ),
         )
         .withMessage('অবৈধ ক্রিয়া প্রকার'),
       body('expiresAt')
@@ -354,7 +370,7 @@ class UserManagementValidator {
         .trim()
         .matches(/^[a-zA-Z0-9-_]+$/)
         .withMessage(
-          'রেফারাল কোডটি শুধুমাত্র অক্ষর, সংখ্যা, (-) এবং (_) থাকতে পারে।'
+          'রেফারাল কোডটি শুধুমাত্র অক্ষর, সংখ্যা, (-) এবং (_) থাকতে পারে।',
         )
         .isLength({ max: 16, min: 3 })
         .withMessage('রেফারাল কোডটি ৩ থেকে ১৬ অক্ষরের মধ্যে হতে হবে।'),

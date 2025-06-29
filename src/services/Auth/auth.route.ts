@@ -153,6 +153,14 @@ class AuthRouter {
 
       userManagementControllers.updateProfile,
     )
+    this.router.post(
+      '/send-message/:userId',
+      isAuthenticated,
+      UserManagementValidator.sendDirectMessage(),
+      validateRequest,
+
+      userManagementControllers.sendDirectMessage,
+    )
 
     this.router.patch(
       '/change-password',

@@ -562,6 +562,28 @@ class UserManagementController {
       next(error)
     }
   }
+  async sendDirectMessage(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { content } = req.body
+      const { userId } = req.params
+      const senderId = req.user?.userId
+
+      const result = await userManagementServices.sendDirectMessage(
+        senderId!,
+        userId,
+        content,
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Message sent successfully',
+        success: true,
+        data: result,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new UserManagementController()

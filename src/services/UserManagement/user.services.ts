@@ -835,6 +835,36 @@ class UserManagementServices {
     const { password, ...userWithoutPassword } = user
     return userWithoutPassword
   }
+  async getUserDetailByIdForWalletManagement(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { userId },
+      select: {
+        userId: true,
+        name: true,
+        phoneNo: true,
+        email: true,
+        zilla: true,
+        upazilla: true,
+        address: true,
+        shopName: true,
+        nomineePhone: true,
+        balance: true,
+        Wallet: {
+          select: {
+            walletId: true,
+            walletName: true,
+            walletPhoneNo: true,
+            walletType: true,
+          },
+        },
+      },
+    })
+
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    return user
+  }
   async getUserByIdWithLock(userId: string) {
     await prisma.$executeRaw`SELECT * FROM "users" WHERE "userId" = ${userId} FOR UPDATE`
     const user = await prisma.user.findUnique({
@@ -874,6 +904,32 @@ class UserManagementServices {
     // Exclude password from the returned user object
     const { password, ...userWithoutPassword } = user
     return userWithoutPassword
+  }
+  async sendDirectMessage(adminId: string, userId: string, content: string) {
+    // check if the admin has permission to send messages
+    await this.verifyUserPermission(
+      adminId,
+      PermissionType.USER_MANAGEMENT,
+      ActionType.ALL,
+    )
+    // check if the user exists
+    const user = await prisma.user.findUnique({
+      where: { userId },
+      select: {
+        phoneNo: true,
+        name: true,
+      },
+    })
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    const message = `Message from Shop Bd Reseller Jobs: ${content}`
+    // send the message using SmsServices
+    const result = await SmsServices.sendSingleSms(user.phoneNo, message)
+    if (!result) {
+      throw new ApiError(500, 'Failed to send message')
+    }
+    return content
   }
 
   /**

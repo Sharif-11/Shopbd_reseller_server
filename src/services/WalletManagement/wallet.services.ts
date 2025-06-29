@@ -132,10 +132,7 @@ class WalletServices {
   /**
    * Get wallets for a specific seller
    */
-  async getSellerWallets(
-    requesterId: string,
-    phoneNo: string,
-  ): Promise<Wallet[]> {
+  async getSellerWallets(requesterId: string, phoneNo: string) {
     // await userManagementServices.verifyUserPermission(
     //   requesterId,
     //   'WALLET_MANAGEMENT',
@@ -164,6 +161,9 @@ class WalletServices {
           requesterId,
           'WALLET_MANAGEMENT',
           'READ',
+        )
+        return await userManagementServices.getUserDetailByIdForWalletManagement(
+          user.userId,
         )
       }
     }
