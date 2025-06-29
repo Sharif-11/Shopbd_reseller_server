@@ -1,6 +1,7 @@
 import config from '../../config'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
+import SmsServices from './Sms Service/sms.services'
 
 class OtpServices {
   /**
@@ -73,7 +74,7 @@ class OtpServices {
     const otp = this.generateRandomOtp(config.otpLength)
     console.clear()
     console.log(`Generated OTP for ${phoneNo}: ${otp}`)
-    // await SmsServices.sendOtp(phoneNo, otp)
+    await SmsServices.sendOtp(phoneNo, otp)
 
     const result = await prisma.otp.update({
       where: { phoneNo },

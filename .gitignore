@@ -3,4 +3,7 @@ node_modules
 .env
 .env.*
 
+#ignore zipped files
+*.zip
+
 /src/generated/prisma
