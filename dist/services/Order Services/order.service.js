@@ -23,6 +23,7 @@ const shopCategory_services_1 = __importDefault(require("../ProductManagement/sh
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 const commission_services_1 = __importDefault(require("../Commission Management/commission.services"));
+const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 class OrderService {
@@ -49,6 +50,19 @@ class OrderService {
                 const additionalCharge = (productQuantity - 3) * config_1.default.extraDeliveryCharge;
                 return basicDeliveryCharge.add(additionalCharge);
             }
+        });
+    }
+    getOrderSmsRecipients() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const orderSmsRecipients = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.ORDER_MANAGEMENT);
+            if (orderSmsRecipients.length === 0) {
+                throw new ApiError_1.default(404, 'No users found with order management permission');
+            }
+            const phoneNumbers = orderSmsRecipients.map(user => user.phoneNo);
+            if (phoneNumbers.length === 0) {
+                throw new ApiError_1.default(404, 'No phone numbers found for order SMS recipients');
+            }
+            return phoneNumbers;
         });
     }
     createSellerOrder(userId_1, _a) {
@@ -119,7 +133,6 @@ class OrderService {
                     totalProductQuantity: verifiedOrderData.totalProductQuantity,
                 },
             });
-            console.log(typeof order);
             return order;
         });
     }
@@ -266,6 +279,18 @@ class OrderService {
                     });
                     return updatedOrder;
                 }));
+                try {
+                    const phoneNumbers = yield this.getOrderSmsRecipients();
+                    console.clear();
+                    console.log('Order SMS recipients:', phoneNumbers);
+                    yield sms_services_1.default.sendOrderNotificationToAdmin({
+                        mobileNo: phoneNumbers,
+                        orderId: order.orderId,
+                    });
+                }
+                catch (error) {
+                    console.error('Error sending order SMS:', error);
+                }
                 return updatedOrder;
             }
         });
@@ -339,13 +364,28 @@ class OrderService {
             if (order.orderStatus !== 'UNPAID') {
                 throw new ApiError_1.default(400, 'Only unpaid orders can be confirmed');
             }
-            return yield prisma_1.default.order.update({
+            const result = yield prisma_1.default.order.update({
                 where: { orderId },
                 data: {
                     orderStatus: 'CONFIRMED',
                     cashOnAmount: order.totalProductSellingPrice.add(order.deliveryCharge.toNumber()),
                 },
             });
+            if (result) {
+                try {
+                    const phoneNumbers = yield this.getOrderSmsRecipients();
+                    console.clear();
+                    console.log('Order SMS recipients:', phoneNumbers);
+                    yield sms_services_1.default.sendOrderNotificationToAdmin({
+                        mobileNo: phoneNumbers,
+                        orderId: order.orderId,
+                    });
+                }
+                catch (error) {
+                    console.error('Error sending order SMS:', error);
+                }
+            }
+            return result;
         });
     }
     confirmOrderByAdmin(_a) {
@@ -359,12 +399,13 @@ class OrderService {
             if (order.orderStatus !== 'PAID') {
                 throw new ApiError_1.default(400, 'Only paid orders can be confirmed');
             }
-            return yield (tx || prisma_1.default).order.update({
+            const result = yield (tx || prisma_1.default).order.update({
                 where: { orderId },
                 data: {
                     orderStatus: 'CONFIRMED',
                 },
             });
+            return result;
         });
     }
     deliverOrderByAdmin(_a) {
@@ -386,13 +427,25 @@ class OrderService {
             //   orderId: order.orderId,
             //   trackingUrl: trackingUrl || '',
             // })
-            return yield prisma_1.default.order.update({
+            const result = yield prisma_1.default.order.update({
                 where: { orderId },
                 data: {
                     orderStatus: 'DELIVERED',
                     trackingUrl,
                 },
             });
+            if (result) {
+                try {
+                    yield sms_services_1.default.notifyOrderShipped({
+                        sellerPhoneNo: order.sellerPhoneNo,
+                        orderId: order.orderId,
+                        trackingUrl: trackingUrl || '',
+                    });
+                }
+                catch (error) {
+                    console.error('Error sending order SMS:', error);
+                }
+            }
         });
     }
     reorderFailedOrder(_a) {
@@ -624,6 +677,17 @@ class OrderService {
                 catch (error) {
                     console.log('Failed to send commissions:', error);
                 }
+            }
+            try {
+                yield sms_services_1.default.notifyOrderCompleted({
+                    sellerPhoneNo: order.sellerPhoneNo,
+                    orderId: order.orderId,
+                    commission: result.actualCommission.toNumber() || 0,
+                    orderAmount: result.totalProductSellingPrice.toNumber(),
+                });
+            }
+            catch (error) {
+                console.error('Error sending order SMS:', error);
             }
             return result;
         });

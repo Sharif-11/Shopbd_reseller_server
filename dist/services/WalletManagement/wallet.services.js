@@ -18,6 +18,7 @@ const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
+const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 class WalletServices {
     /**
      * Generate Random Otp
@@ -140,6 +141,7 @@ class WalletServices {
                     console.log(`Requester is ${requester.role}, allowing access to seller wallets`);
                     // If requester is not the owner, verify permission
                     yield user_services_1.default.verifyUserPermission(requesterId, 'WALLET_MANAGEMENT', 'READ');
+                    return yield user_services_1.default.getUserDetailByIdForWalletManagement(user.userId);
                 }
             }
             return yield prisma_1.default.wallet.findMany({
@@ -295,7 +297,7 @@ class WalletServices {
                 update: newOtpRecord,
                 create: newOtpRecord,
             });
-            // await SmsServices.sendOtp(walletPhoneNo, otp)
+            yield sms_services_1.default.sendOtp(walletPhoneNo, otp);
             console.log(`Sending OTP ${otp} to ${walletPhoneNo}`);
             return {
                 sendOTP: true,

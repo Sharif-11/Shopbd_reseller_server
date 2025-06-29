@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const config_1 = __importDefault(require("../../config"));
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
+const sms_services_1 = __importDefault(require("./Sms Service/sms.services"));
 class OtpServices {
     /**
      * Send an OTP to a phone number with proper rate limiting and blocking
@@ -70,7 +71,7 @@ class OtpServices {
             const otp = this.generateRandomOtp(config_1.default.otpLength);
             console.clear();
             console.log(`Generated OTP for ${phoneNo}: ${otp}`);
-            // await SmsServices.sendOtp(phoneNo, otp)
+            yield sms_services_1.default.sendOtp(phoneNo, otp);
             const result = yield prisma_1.default.otp.update({
                 where: { phoneNo },
                 data: {

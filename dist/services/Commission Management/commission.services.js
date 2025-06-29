@@ -115,6 +115,7 @@ class CommissionService {
                 endPrice: (_b = (_a = c.endPrice) === null || _a === void 0 ? void 0 : _a.toNumber()) !== null && _b !== void 0 ? _b : null,
                 level: c.level,
                 commission: c.commission.toNumber(),
+                id: c.id,
             });
         });
     }

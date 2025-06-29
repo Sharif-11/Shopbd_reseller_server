@@ -168,18 +168,21 @@ export class CommissionService {
       endPrice: Prisma.Decimal | null
       level: number
       commission: Prisma.Decimal
+      id: number
     }[],
   ): {
     startPrice: number
     endPrice: number | null
     commission: number
     level: number
+    id: number
   }[] {
     return commissions.map(c => ({
       startPrice: c.startPrice.toNumber(),
       endPrice: c.endPrice?.toNumber() ?? null,
       level: c.level,
       commission: c.commission.toNumber(),
+      id: c.id,
     }))
   }
 
@@ -189,6 +192,7 @@ export class CommissionService {
       endPrice: number | null
       commission: number
       level: number
+      id: number
     }[]
   > {
     const commissions = await prisma.commission.findMany({

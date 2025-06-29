@@ -189,6 +189,22 @@ class UserManagementValidator {
                 .withMessage('সঠিক ফেসবুক প্রোফাইল লিংক প্রদান করুন'),
         ];
     }
+    static sendDirectMessage() {
+        return [
+            (0, express_validator_1.param)('userId')
+                .notEmpty()
+                .withMessage('ব্যবহারকারী আইডি প্রয়োজন')
+                .isString()
+                .withMessage('ব্যবহারকারী আইডি অবশ্যই স্ট্রিং হতে হবে'),
+            (0, express_validator_1.body)('content')
+                .notEmpty()
+                .withMessage('বার্তা প্রয়োজন')
+                .isString()
+                .withMessage('বার্তা অবশ্যই স্ট্রিং হতে হবে')
+                .isLength({ min: 1, max: 500 })
+                .withMessage('বার্তা ১ থেকে ৫০০ অক্ষরের মধ্যে হতে হবে'),
+        ];
+    }
     /**
      * Validation rules for changing password
      */

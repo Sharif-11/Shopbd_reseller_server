@@ -736,6 +736,37 @@ class UserManagementServices {
             return userWithoutPassword;
         });
     }
+    getUserDetailByIdForWalletManagement(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const user = yield prisma_1.default.user.findUnique({
+                where: { userId },
+                select: {
+                    userId: true,
+                    name: true,
+                    phoneNo: true,
+                    email: true,
+                    zilla: true,
+                    upazilla: true,
+                    address: true,
+                    shopName: true,
+                    nomineePhone: true,
+                    balance: true,
+                    Wallet: {
+                        select: {
+                            walletId: true,
+                            walletName: true,
+                            walletPhoneNo: true,
+                            walletType: true,
+                        },
+                    },
+                },
+            });
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            return user;
+        });
+    }
     getUserByIdWithLock(userId) {
         return __awaiter(this, void 0, void 0, function* () {
             yield prisma_1.default.$executeRaw `SELECT * FROM "users" WHERE "userId" = ${userId} FOR UPDATE`;
@@ -777,6 +808,30 @@ class UserManagementServices {
             // Exclude password from the returned user object
             const { password } = user, userWithoutPassword = __rest(user, ["password"]);
             return userWithoutPassword;
+        });
+    }
+    sendDirectMessage(adminId, userId, content) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // check if the admin has permission to send messages
+            yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.ALL);
+            // check if the user exists
+            const user = yield prisma_1.default.user.findUnique({
+                where: { userId },
+                select: {
+                    phoneNo: true,
+                    name: true,
+                },
+            });
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            const message = `Message from Shop Bd Reseller Jobs: ${content}`;
+            // send the message using SmsServices
+            const result = yield sms_services_1.default.sendSingleSms(user.phoneNo, message);
+            if (!result) {
+                throw new ApiError_1.default(500, 'Failed to send message');
+            }
+            return content;
         });
     }
     /**
@@ -977,6 +1032,67 @@ class UserManagementServices {
                 throw new ApiError_1.default(403, 'Insufficient privileges');
             }
             return user;
+        });
+    }
+    /**
+     * Get All Admin and Super Admin with specific role from role and userRole tables and user table, here role is dynamic
+     */
+    getUsersWithRole(roleId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const existingRole = yield prisma_1.default.role.findUnique({
+                where: { roleId },
+            });
+            if (!existingRole) {
+                throw new ApiError_1.default(404, 'Role not found');
+            }
+            const users = yield prisma_1.default.user.findMany({
+                where: {
+                    userRoles: {
+                        some: {
+                            roleId,
+                        },
+                    },
+                },
+                include: {
+                    userRoles: {
+                        include: {
+                            role: true,
+                        },
+                    },
+                },
+            });
+            return users;
+        });
+    }
+    getUsersWithPermission(permission) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const users = yield prisma_1.default.user.findMany({
+                where: {
+                    userRoles: {
+                        some: {
+                            role: {
+                                permissions: {
+                                    some: {
+                                        permission,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                include: {
+                    userRoles: {
+                        include: {
+                            role: {
+                                include: {
+                                    permissions: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            });
+            return users;
         });
     }
     /**

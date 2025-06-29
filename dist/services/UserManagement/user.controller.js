@@ -556,5 +556,25 @@ class UserManagementController {
             }
         });
     }
+    sendDirectMessage(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const { content } = req.body;
+                const { userId } = req.params;
+                const senderId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const result = yield user_services_1.default.sendDirectMessage(senderId, userId, content);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Message sent successfully',
+                    success: true,
+                    data: result,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new UserManagementController();

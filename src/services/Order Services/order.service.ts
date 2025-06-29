@@ -16,6 +16,7 @@ import { blockServices } from '../UserManagement/Block Management/block.services
 import userServices from '../UserManagement/user.services'
 
 import commissionServices from '../Commission Management/commission.services'
+import SmsServices from '../Utility Services/Sms Service/sms.services'
 import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
 import walletServices from '../WalletManagement/wallet.services'
 import { OrderData } from './order.types'
@@ -50,6 +51,19 @@ class OrderService {
         (productQuantity - 3) * config.extraDeliveryCharge
       return basicDeliveryCharge.add(additionalCharge)
     }
+  }
+  private async getOrderSmsRecipients() {
+    const orderSmsRecipients = await userServices.getUsersWithPermission(
+      PermissionType.ORDER_MANAGEMENT,
+    )
+    if (orderSmsRecipients.length === 0) {
+      throw new ApiError(404, 'No users found with order management permission')
+    }
+    const phoneNumbers = orderSmsRecipients.map(user => user.phoneNo)
+    if (phoneNumbers.length === 0) {
+      throw new ApiError(404, 'No phone numbers found for order SMS recipients')
+    }
+    return phoneNumbers
   }
   public async createSellerOrder(
     userId: string,
@@ -142,7 +156,7 @@ class OrderService {
         totalProductQuantity: verifiedOrderData.totalProductQuantity,
       },
     })
-    console.log(typeof order)
+
     return order
   }
   public async getSellerOrders({
@@ -333,6 +347,17 @@ class OrderService {
         })
         return updatedOrder
       })
+      try {
+        const phoneNumbers = await this.getOrderSmsRecipients()
+        console.clear()
+        console.log('Order SMS recipients:', phoneNumbers)
+        await SmsServices.sendOrderNotificationToAdmin({
+          mobileNo: phoneNumbers,
+          orderId: order.orderId,
+        })
+      } catch (error) {
+        console.error('Error sending order SMS:', error)
+      }
       return updatedOrder
     }
   }
@@ -423,7 +448,7 @@ class OrderService {
       throw new ApiError(400, 'Only unpaid orders can be confirmed')
     }
 
-    return await prisma.order.update({
+    const result = await prisma.order.update({
       where: { orderId },
       data: {
         orderStatus: 'CONFIRMED',
@@ -432,6 +457,20 @@ class OrderService {
         ),
       },
     })
+    if (result) {
+      try {
+        const phoneNumbers = await this.getOrderSmsRecipients()
+        console.clear()
+        console.log('Order SMS recipients:', phoneNumbers)
+        await SmsServices.sendOrderNotificationToAdmin({
+          mobileNo: phoneNumbers,
+          orderId: order.orderId,
+        })
+      } catch (error) {
+        console.error('Error sending order SMS:', error)
+      }
+    }
+    return result
   }
   public async confirmOrderByAdmin({
     tx,
@@ -449,12 +488,14 @@ class OrderService {
     if (order.orderStatus !== 'PAID') {
       throw new ApiError(400, 'Only paid orders can be confirmed')
     }
-    return await (tx || prisma).order.update({
+    const result = await (tx || prisma).order.update({
       where: { orderId },
       data: {
         orderStatus: 'CONFIRMED',
       },
     })
+
+    return result
   }
   public async deliverOrderByAdmin({
     adminId,
@@ -486,13 +527,24 @@ class OrderService {
     //   orderId: order.orderId,
     //   trackingUrl: trackingUrl || '',
     // })
-    return await prisma.order.update({
+    const result = await prisma.order.update({
       where: { orderId },
       data: {
         orderStatus: 'DELIVERED',
         trackingUrl,
       },
     })
+    if (result) {
+      try {
+        await SmsServices.notifyOrderShipped({
+          sellerPhoneNo: order.sellerPhoneNo!,
+          orderId: order.orderId,
+          trackingUrl: trackingUrl || '',
+        })
+      } catch (error) {
+        console.error('Error sending order SMS:', error)
+      }
+    }
   }
   public async reorderFailedOrder({
     userId,
@@ -786,6 +838,16 @@ class OrderService {
       } catch (error) {
         console.log('Failed to send commissions:', error)
       }
+    }
+    try {
+      await SmsServices.notifyOrderCompleted({
+        sellerPhoneNo: order.sellerPhoneNo!,
+        orderId: order.orderId,
+        commission: result.actualCommission!.toNumber() || 0,
+        orderAmount: result.totalProductSellingPrice.toNumber(),
+      })
+    } catch (error) {
+      console.error('Error sending order SMS:', error)
     }
     return result
   }

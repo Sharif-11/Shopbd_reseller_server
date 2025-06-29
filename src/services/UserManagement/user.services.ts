@@ -1181,6 +1181,64 @@ class UserManagementServices {
   }
 
   /**
+   * Get All Admin and Super Admin with specific role from role and userRole tables and user table, here role is dynamic
+   */
+  public async getUsersWithRole(roleId: string) {
+    const existingRole = await prisma.role.findUnique({
+      where: { roleId },
+    })
+    if (!existingRole) {
+      throw new ApiError(404, 'Role not found')
+    }
+    const users = await prisma.user.findMany({
+      where: {
+        userRoles: {
+          some: {
+            roleId,
+          },
+        },
+      },
+      include: {
+        userRoles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    })
+    return users
+  }
+  public async getUsersWithPermission(permission: PermissionType) {
+    const users = await prisma.user.findMany({
+      where: {
+        userRoles: {
+          some: {
+            role: {
+              permissions: {
+                some: {
+                  permission,
+                },
+              },
+            },
+          },
+        },
+      },
+      include: {
+        userRoles: {
+          include: {
+            role: {
+              include: {
+                permissions: true,
+              },
+            },
+          },
+        },
+      },
+    })
+    return users
+  }
+
+  /**
    * Verify user has specific permission
    */
   public async verifyUserPermission(

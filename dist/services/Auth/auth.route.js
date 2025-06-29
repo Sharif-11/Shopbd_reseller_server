@@ -47,6 +47,7 @@ class AuthRouter {
         // Profile management (require authentication)
         this.router.get('/profile', auth_middlewares_1.isAuthenticated, user_validator_1.default.getProfile(), validation_middleware_1.default, user_controller_1.default.getProfile);
         this.router.patch('/profile', auth_middlewares_1.isAuthenticated, user_validator_1.default.updateProfile(), validation_middleware_1.default, user_controller_1.default.updateProfile);
+        this.router.post('/send-message/:userId', auth_middlewares_1.isAuthenticated, user_validator_1.default.sendDirectMessage(), validation_middleware_1.default, user_controller_1.default.sendDirectMessage);
         this.router.patch('/change-password', auth_middlewares_1.isAuthenticated, user_validator_1.default.changePassword(), validation_middleware_1.default, user_controller_1.default.changePassword);
         this.router.post('/create-role', auth_middlewares_1.isAuthenticated, user_validator_1.default.createRole(), validation_middleware_1.default, user_controller_1.default.createRole);
         // role-permissions
