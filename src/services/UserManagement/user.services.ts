@@ -837,7 +837,7 @@ class UserManagementServices {
   }
   async getUserDetailByIdForWalletManagement(userId: string) {
     const user = await prisma.user.findUnique({
-      where: { userId },
+      where: { userId, role: UserType.Seller },
       select: {
         userId: true,
         name: true,

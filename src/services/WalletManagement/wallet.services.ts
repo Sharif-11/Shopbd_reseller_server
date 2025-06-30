@@ -153,6 +153,7 @@ class WalletServices {
       ) {
         throw new ApiError(403, 'Unauthorized to view these wallets')
       } else {
+        console.clear()
         console.log(
           `Requester is ${requester.role}, allowing access to seller wallets`,
         )
@@ -162,15 +163,24 @@ class WalletServices {
           'WALLET_MANAGEMENT',
           'READ',
         )
-        return await userManagementServices.getUserDetailByIdForWalletManagement(
-          user.userId,
-        )
-      }
-    }
 
-    return await prisma.wallet.findMany({
-      where: { walletType: 'SELLER', userId: user.userId },
-    })
+        const result =
+          await userManagementServices.getUserDetailByIdForWalletManagement(
+            user.userId,
+          )
+        console.log(
+          `User details for wallet management: ${JSON.stringify(result)}`,
+        )
+        return result
+      }
+    } else {
+      if (user.role !== 'Seller') {
+        throw new ApiError(403, 'Only sellers can have wallets')
+      }
+      return await prisma.wallet.findMany({
+        where: { walletType: 'SELLER', userId: user.userId },
+      })
+    }
   }
 
   /**
