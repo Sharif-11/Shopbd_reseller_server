@@ -191,9 +191,6 @@ class OrderService {
       where.OR = [
         { customerName: { contains: search, mode: 'insensitive' } },
         { customerPhoneNo: { contains: search, mode: 'insensitive' } },
-        {
-          transactionId: { contains: search },
-        },
       ]
     }
 
