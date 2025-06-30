@@ -341,9 +341,17 @@ class UserManagementController {
   async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.userId
-      const updates = req.body
+      const { password, phoneNo, ...restInput } = req.body
+      const data = {
+        ...restInput,
+      }
+      if (req?.user?.role === 'SuperAdmin') {
+        data.phoneNo = phoneNo
+      }
 
-      const user = await userManagementServices.updateProfile(userId!, updates)
+      const user = await userManagementServices.updateProfile(userId!, {
+        ...data,
+      })
 
       res.status(200).json({
         statusCode: 200,

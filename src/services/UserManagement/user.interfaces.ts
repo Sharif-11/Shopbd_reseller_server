@@ -37,6 +37,7 @@ type UpdateProfileInput = {
   shopName?: string
   nomineePhone?: string
   facebookProfileLink?: string
+  phoneNo?: string
 }
 
 type ChangePasswordInput = {

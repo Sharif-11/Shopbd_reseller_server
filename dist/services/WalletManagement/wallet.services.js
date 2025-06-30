@@ -138,15 +138,23 @@ class WalletServices {
                     throw new ApiError_1.default(403, 'Unauthorized to view these wallets');
                 }
                 else {
+                    console.clear();
                     console.log(`Requester is ${requester.role}, allowing access to seller wallets`);
                     // If requester is not the owner, verify permission
                     yield user_services_1.default.verifyUserPermission(requesterId, 'WALLET_MANAGEMENT', 'READ');
-                    return yield user_services_1.default.getUserDetailByIdForWalletManagement(user.userId);
+                    const result = yield user_services_1.default.getUserDetailByIdForWalletManagement(user.userId);
+                    console.log(`User details for wallet management: ${JSON.stringify(result)}`);
+                    return result;
                 }
             }
-            return yield prisma_1.default.wallet.findMany({
-                where: { walletType: 'SELLER', userId: user.userId },
-            });
+            else {
+                if (user.role !== 'Seller') {
+                    throw new ApiError_1.default(403, 'Only sellers can have wallets');
+                }
+                return yield prisma_1.default.wallet.findMany({
+                    where: { walletType: 'SELLER', userId: user.userId },
+                });
+            }
         });
     }
     /**

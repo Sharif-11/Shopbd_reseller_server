@@ -400,9 +400,6 @@ class ProductServices {
             const product = yield prisma_1.default.product.findFirst({
                 where: {
                     productId,
-                    ProductImage: {
-                        none: { hidden: true },
-                    },
                 },
                 include: {
                     shop: {
@@ -459,6 +456,8 @@ class ProductServices {
             if (filters.published !== undefined) {
                 where.published = filters.published;
             }
+            if (filters.categoryId)
+                where.categoryId = filters.categoryId;
             const [products, total] = yield Promise.all([
                 prisma_1.default.product.findMany({
                     where,
@@ -495,9 +494,6 @@ class ProductServices {
         return __awaiter(this, void 0, void 0, function* () {
             const where = {
                 published: true,
-                ProductImage: {
-                    none: { hidden: true },
-                },
             };
             // Search filter
             if (filters.search) {
@@ -559,9 +555,6 @@ class ProductServices {
                 published: true,
                 shopId: filters.shopId, // Filter by seller's shop
                 categoryId: filters.categoryId,
-                ProductImage: {
-                    none: { hidden: true },
-                },
             };
             // Search filter
             if (filters.search) {

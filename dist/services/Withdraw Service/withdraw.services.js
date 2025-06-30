@@ -21,6 +21,7 @@ const prisma_1 = __importDefault(require("../../utils/prisma"));
 const payment_service_1 = __importDefault(require("../Payment Service/payment.service"));
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
+const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 const withdraw_utils_1 = require("./withdraw.utils");
@@ -100,6 +101,22 @@ class WithdrawService {
                     actualAmount,
                 },
             });
+            try {
+                // send sms notification to  the admin
+                const smsRecipients = yield user_services_1.default.getSmsRecipientsForPermission(client_1.PermissionType.WITHDRAWAL_MANAGEMENT);
+                console.clear();
+                console.log('Withdraw SMS Recipients:', smsRecipients);
+                yield sms_services_1.default.sendWithdrawalRequestToAdmin({
+                    sellerName: user.name,
+                    sellerPhoneNo: user.phoneNo,
+                    mobileNo: smsRecipients,
+                    amount,
+                });
+            }
+            catch (error) {
+                console.error('Failed to send SMS notification:', error);
+                // Log the error but do not throw it, so the withdraw request can still be processed
+            }
             return withdraw;
         });
     }

@@ -54,15 +54,8 @@ class OrderService {
     }
     getOrderSmsRecipients() {
         return __awaiter(this, void 0, void 0, function* () {
-            const orderSmsRecipients = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.ORDER_MANAGEMENT);
-            if (orderSmsRecipients.length === 0) {
-                throw new ApiError_1.default(404, 'No users found with order management permission');
-            }
-            const phoneNumbers = orderSmsRecipients.map(user => user.phoneNo);
-            if (phoneNumbers.length === 0) {
-                throw new ApiError_1.default(404, 'No phone numbers found for order SMS recipients');
-            }
-            return phoneNumbers;
+            const orderSmsRecipients = yield user_services_1.default.getSmsRecipientsForPermission(client_1.PermissionType.ORDER_MANAGEMENT);
+            return orderSmsRecipients;
         });
     }
     createSellerOrder(userId_1, _a) {
@@ -156,9 +149,6 @@ class OrderService {
                 where.OR = [
                     { customerName: { contains: search, mode: 'insensitive' } },
                     { customerPhoneNo: { contains: search, mode: 'insensitive' } },
-                    {
-                        transactionId: { contains: search },
-                    },
                 ];
             }
             const skip = ((page || 1) - 1) * (limit || 10);

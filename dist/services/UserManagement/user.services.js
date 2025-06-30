@@ -714,6 +714,20 @@ class UserManagementServices {
             return userWithoutPassword;
         });
     }
+    updateSuperAdminPhoneNo(userId, newPhoneNo) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const user = yield prisma_1.default.user.findUnique({
+                where: { userId, role: client_1.UserType.SuperAdmin },
+            });
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            yield prisma_1.default.user.update({
+                where: { userId },
+                data: { phoneNo: newPhoneNo },
+            });
+        });
+    }
     getUserById(userId) {
         return __awaiter(this, void 0, void 0, function* () {
             const user = yield prisma_1.default.user.findUnique({
@@ -739,7 +753,7 @@ class UserManagementServices {
     getUserDetailByIdForWalletManagement(userId) {
         return __awaiter(this, void 0, void 0, function* () {
             const user = yield prisma_1.default.user.findUnique({
-                where: { userId },
+                where: { userId, role: client_1.UserType.Seller },
                 select: {
                     userId: true,
                     name: true,
@@ -841,7 +855,7 @@ class UserManagementServices {
         return __awaiter(this, void 0, void 0, function* () {
             const _a = yield prisma_1.default.user.update({
                 where: { userId },
-                data: input,
+                data: Object.assign({}, input),
             }), { password } = _a, userWithoutPassword = __rest(_a, ["password"]);
             return userWithoutPassword;
         });
@@ -1007,6 +1021,15 @@ class UserManagementServices {
             });
         });
     }
+    getSmsRecipientsForPermission(permission_1) {
+        return __awaiter(this, arguments, void 0, function* (permission, actionType = client_1.ActionType.NOTIFY) {
+            const users = yield this.getUsersWithPermission(permission, actionType);
+            if (!users || users.length === 0) {
+                throw new ApiError_1.default(404, 'No users found with the specified permission');
+            }
+            return users.map(user => user.phoneNo);
+        });
+    }
     // ==========================================
     // BLOCK MANAGEMENT
     // ==========================================
@@ -1064,7 +1087,7 @@ class UserManagementServices {
             return users;
         });
     }
-    getUsersWithPermission(permission) {
+    getUsersWithPermission(permission, actionType) {
         return __awaiter(this, void 0, void 0, function* () {
             const users = yield prisma_1.default.user.findMany({
                 where: {
@@ -1074,6 +1097,9 @@ class UserManagementServices {
                                 permissions: {
                                     some: {
                                         permission,
+                                        actions: {
+                                            has: actionType === client_1.ActionType.ALL ? undefined : actionType,
+                                        },
                                     },
                                 },
                             },
@@ -1085,7 +1111,16 @@ class UserManagementServices {
                         include: {
                             role: {
                                 include: {
-                                    permissions: true,
+                                    permissions: {
+                                        where: {
+                                            permission,
+                                            actions: actionType === client_1.ActionType.ALL
+                                                ? {}
+                                                : {
+                                                    has: actionType,
+                                                },
+                                        },
+                                    },
                                 },
                             },
                         },

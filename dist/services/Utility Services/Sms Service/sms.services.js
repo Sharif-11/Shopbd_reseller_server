@@ -199,8 +199,11 @@ class SmsServices {
      */
     static sendWithdrawalRequestToAdmin(_a) {
         return __awaiter(this, arguments, void 0, function* ({ mobileNo, sellerName, sellerPhoneNo, amount, }) {
-            const message = `Withdrawal Request: ${sellerName} (Ph: ${sellerPhoneNo}) requested ${amount} TK.`;
-            return this.sendMessage(mobileNo, message);
+            const message = `Withdrawal Request: ${sellerName} (Phone: ${sellerPhoneNo}) requested ${amount} TK.`;
+            if (Array.isArray(mobileNo)) {
+                return this.sendBulkSms(mobileNo, message);
+            }
+            return this.sendSingleSms(mobileNo, message);
         });
     }
     /**

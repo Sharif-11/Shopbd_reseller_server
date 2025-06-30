@@ -814,6 +814,18 @@ class UserManagementServices {
     const { password, ...userWithoutPassword } = user
     return userWithoutPassword
   }
+  async updateSuperAdminPhoneNo(userId: string, newPhoneNo: string) {
+    const user = await prisma.user.findUnique({
+      where: { userId, role: UserType.SuperAdmin },
+    })
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    await prisma.user.update({
+      where: { userId },
+      data: { phoneNo: newPhoneNo },
+    })
+  }
   async getUserById(userId: string) {
     const user = await prisma.user.findUnique({
       where: { userId },
@@ -938,7 +950,9 @@ class UserManagementServices {
   async updateProfile(userId: string, input: UpdateProfileInput) {
     const { password, ...userWithoutPassword } = await prisma.user.update({
       where: { userId },
-      data: input,
+      data: {
+        ...input,
+      },
     })
     return userWithoutPassword
   }
