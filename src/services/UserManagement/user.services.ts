@@ -1220,7 +1220,7 @@ class UserManagementServices {
   }
   public async getUsersWithPermission(
     permission: PermissionType,
-    actionType: ActionType = ActionType.READ,
+    actionType: ActionType,
   ): Promise<User[]> {
     const users = await prisma.user.findMany({
       where: {
@@ -1231,7 +1231,7 @@ class UserManagementServices {
                 some: {
                   permission,
                   actions: {
-                    has: actionType, // Check if the action type is in the actions array
+                    has: actionType === ActionType.ALL ? undefined : actionType,
                   },
                 },
               },
@@ -1247,9 +1247,12 @@ class UserManagementServices {
                 permissions: {
                   where: {
                     permission,
-                    actions: {
-                      has: actionType,
-                    },
+                    actions:
+                      actionType === ActionType.ALL
+                        ? {}
+                        : {
+                            has: actionType,
+                          },
                   },
                 },
               },
