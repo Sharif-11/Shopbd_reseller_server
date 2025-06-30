@@ -58,7 +58,7 @@ class SmsServices {
    */
   static async sendSingleSms(
     mobileNo: string,
-    message: string
+    message: string,
   ): Promise<SmsResponse> {
     try {
       const params = {
@@ -82,7 +82,7 @@ class SmsServices {
    */
   private static async sendBulkSms(
     phoneNumbers: string[],
-    message: string
+    message: string,
   ): Promise<BulkSmsResponse> {
     try {
       if (phoneNumbers.length === 0) {
@@ -114,7 +114,7 @@ class SmsServices {
    * Send personalized SMS to multiple recipients
    */
   private static async sendPersonalizedBulkSms(
-    messages: PersonalizedMessage[]
+    messages: PersonalizedMessage[],
   ): Promise<BulkSmsResponse> {
     try {
       if (messages.length === 0) {
@@ -185,7 +185,7 @@ class SmsServices {
    */
   static async sendMessage(
     recipients: string | string[],
-    message: string | string[] | PersonalizedMessage[]
+    message: string | string[] | PersonalizedMessage[],
   ): Promise<SmsResponse | BulkSmsResponse> {
     if (Array.isArray(recipients)) {
       if (recipients.length === 1 && !Array.isArray(message)) {
@@ -223,7 +223,7 @@ class SmsServices {
    */
   static async sendOtp(
     mobileNo: string,
-    otp: string
+    otp: string,
   ): Promise<SmsResponse | BulkSmsResponse> {
     const message = `আপনার ওটিপি কোডটি হলো: ${otp}। শপ বিডি রিসেলার জবস থেকে ধন্যবাদ।`
     return this.sendSingleSms(mobileNo, message)
@@ -234,7 +234,7 @@ class SmsServices {
    */
   static async sendPassword(
     mobileNo: string,
-    password: string
+    password: string,
   ): Promise<SmsResponse | BulkSmsResponse> {
     const message = `আপনার পাসওয়ার্ডটি হলো: ${password}। শপ বিডি রিসেলার জবস থেকে ধন্যবাদ।`
     return this.sendSingleSms(mobileNo, message)
@@ -272,8 +272,11 @@ class SmsServices {
     sellerPhoneNo: string
     amount: number
   }): Promise<SmsResponse | BulkSmsResponse> {
-    const message = `Withdrawal Request: ${sellerName} (Ph: ${sellerPhoneNo}) requested ${amount} TK.`
-    return this.sendMessage(mobileNo, message)
+    const message = `Withdrawal Request: ${sellerName} (Phone: ${sellerPhoneNo}) requested ${amount} TK.`
+    if (Array.isArray(mobileNo)) {
+      return this.sendBulkSms(mobileNo, message)
+    }
+    return this.sendSingleSms(mobileNo, message)
   }
 
   /**

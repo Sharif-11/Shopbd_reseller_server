@@ -69,6 +69,7 @@ enum ActionType {
   APPROVE
   REJECT
   BLOCK
+  NOTIFY
 }
 
 enum BlockActionType {

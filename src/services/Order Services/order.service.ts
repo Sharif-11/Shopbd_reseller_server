@@ -53,17 +53,10 @@ class OrderService {
     }
   }
   private async getOrderSmsRecipients() {
-    const orderSmsRecipients = await userServices.getUsersWithPermission(
+    const orderSmsRecipients = await userServices.getSmsRecipientsForPermission(
       PermissionType.ORDER_MANAGEMENT,
     )
-    if (orderSmsRecipients.length === 0) {
-      throw new ApiError(404, 'No users found with order management permission')
-    }
-    const phoneNumbers = orderSmsRecipients.map(user => user.phoneNo)
-    if (phoneNumbers.length === 0) {
-      throw new ApiError(404, 'No phone numbers found for order SMS recipients')
-    }
-    return phoneNumbers
+    return orderSmsRecipients
   }
   public async createSellerOrder(
     userId: string,

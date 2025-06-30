@@ -13,6 +13,7 @@ import prisma from '../../utils/prisma'
 import paymentService from '../Payment Service/payment.service'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
+import SmsServices from '../Utility Services/Sms Service/sms.services'
 import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
 import walletServices from '../WalletManagement/wallet.services'
 import { calculateTransactionFee, WalletName } from './withdraw.utils'
@@ -116,6 +117,24 @@ class WithdrawService {
         actualAmount,
       },
     })
+    try {
+      // send sms notification to  the admin
+      const smsRecipients = await userServices.getSmsRecipientsForPermission(
+        PermissionType.WITHDRAWAL_MANAGEMENT,
+      )
+      console.clear()
+      console.log('Withdraw SMS Recipients:', smsRecipients)
+
+      await SmsServices.sendWithdrawalRequestToAdmin({
+        sellerName: user.name,
+        sellerPhoneNo: user.phoneNo,
+        mobileNo: smsRecipients,
+        amount,
+      })
+    } catch (error) {
+      console.error('Failed to send SMS notification:', error)
+      // Log the error but do not throw it, so the withdraw request can still be processed
+    }
     return withdraw
   }
   public async cancelWithdraw({

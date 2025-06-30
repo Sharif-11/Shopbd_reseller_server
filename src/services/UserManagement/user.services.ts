@@ -1144,6 +1144,16 @@ class UserManagementServices {
       },
     })
   }
+  async getSmsRecipientsForPermission(
+    permission: PermissionType,
+    actionType: ActionType = ActionType.NOTIFY,
+  ): Promise<string[]> {
+    const users = await this.getUsersWithPermission(permission, actionType)
+    if (!users || users.length === 0) {
+      throw new ApiError(404, 'No users found with the specified permission')
+    }
+    return users.map(user => user.phoneNo)
+  }
 
   // ==========================================
   // BLOCK MANAGEMENT
@@ -1208,7 +1218,10 @@ class UserManagementServices {
     })
     return users
   }
-  public async getUsersWithPermission(permission: PermissionType) {
+  public async getUsersWithPermission(
+    permission: PermissionType,
+    actionType: ActionType = ActionType.READ,
+  ): Promise<User[]> {
     const users = await prisma.user.findMany({
       where: {
         userRoles: {
@@ -1217,6 +1230,9 @@ class UserManagementServices {
               permissions: {
                 some: {
                   permission,
+                  actions: {
+                    has: actionType, // Check if the action type is in the actions array
+                  },
                 },
               },
             },
@@ -1228,13 +1244,21 @@ class UserManagementServices {
           include: {
             role: {
               include: {
-                permissions: true,
+                permissions: {
+                  where: {
+                    permission,
+                    actions: {
+                      has: actionType,
+                    },
+                  },
+                },
               },
             },
           },
         },
       },
     })
+
     return users
   }
 
