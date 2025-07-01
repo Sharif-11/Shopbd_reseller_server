@@ -94,6 +94,64 @@ class FTPUploader {
   }
 
   /**
+   * Downloads a file from FTP server
+   *
+   */
+  public async download(fileUrl: string): Promise<Buffer> {
+    try {
+      await this.connect()
+      const fileName = this.extractFileNameFromUrl(fileUrl)
+      return await this.downloadFile(fileName)
+    } finally {
+      this.close()
+    }
+  }
+
+  /**
+   * Downloads multiple files from the FTP server by their URLs
+   * @param fileUrls Array of file URLs to download
+   * @returns Array of file contents as Buffers
+   */
+  public async downloadMultiple(fileUrls: string[]): Promise<Buffer[]> {
+    try {
+      await this.connect()
+      const downloadPromises = fileUrls.map(url => {
+        const fileName = this.extractFileNameFromUrl(url)
+        return this.downloadFile(fileName)
+      })
+      return await Promise.all(downloadPromises)
+    } finally {
+      this.close()
+    }
+  }
+
+  /**
+   * Extracts the file name from a given URL
+   * @param url The file URL
+   * @returns The file name
+   */
+  private extractFileNameFromUrl(url: string): string {
+    const urlObj = new URL(url)
+    return urlObj.pathname.split('/').pop() || ''
+  }
+
+  /**
+   * Downloads a file from FTP server
+   * @param fileName Name of the file to download
+   * @returns File content as Buffer
+   */
+  private async downloadFile(fileName: string): Promise<Buffer> {
+    const writableStream = new stream.PassThrough()
+    const chunks: Uint8Array[] = []
+
+    writableStream.on('data', chunk => chunks.push(chunk))
+
+    await this.client.downloadTo(writableStream, fileName)
+
+    return Buffer.concat(chunks)
+  }
+
+  /**
    * Closes FTP connection
    */
   private close(): void {

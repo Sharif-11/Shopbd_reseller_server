@@ -32,6 +32,7 @@ class FTPRouter {
       this.upload.single('image') as RequestHandler, // Expect a single file with field name 'image'
       ftpController.uploadFile,
     )
+    this.router.post('/download', ftpController.downloadFile as RequestHandler)
     // Add this to your initializeRoutes method in FTPRouter
     this.router.delete(
       '/delete/:fileName',

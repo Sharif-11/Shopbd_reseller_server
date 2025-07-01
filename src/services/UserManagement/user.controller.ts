@@ -214,8 +214,15 @@ class UserManagementController {
       })
       // set token in cookie with secure and httpOnly flags
       res.cookie('token', token, {
-        httpOnly: true,
+        httpOnly: process.env.NODE_ENV === 'production', // Prevent JavaScript access
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        sameSite: config.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
+        domain:
+          config.env === 'production'
+            ? '.shopbdresellerjobs.shop'
+            : 'localhost', // The leading dot is crucial
+        path: '/', // Available on all paths
+        maxAge: 3600000, // 1 hour expiration
       })
 
       res.status(200).json({
@@ -241,11 +248,13 @@ class UserManagementController {
       })
       // set token in cookie with secure and httpOnly flags
       res.cookie('token', token, {
-        httpOnly: true, // Prevent JavaScript access
+        httpOnly: process.env.NODE_ENV === 'production', // Prevent JavaScript access
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
         sameSite: config.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
         domain:
-          config.env === 'production' ? '.shopbdresellerjobs.shop' : undefined, // The leading dot is crucial
+          config.env === 'production'
+            ? '.shopbdresellerjobs.shop'
+            : 'localhost', // The leading dot is crucial
         path: '/', // Available on all paths
         maxAge: 3600000, // 1 hour expiration
       })
