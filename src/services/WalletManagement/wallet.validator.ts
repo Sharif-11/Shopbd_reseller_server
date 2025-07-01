@@ -94,6 +94,18 @@ class WalletValidator {
         .withMessage('ফোন নম্বরটি অবশ্যই ১১ ডিজিটের হতে হবে'),
     ]
   }
+  static updateWalletStatus() {
+    return [
+      param('walletId')
+        .isInt()
+        .withMessage('ওয়ালেট আইডি অবশ্যই সংখ্যা হতে হবে'),
+      body('isActive')
+        .notEmpty()
+        .withMessage('ওয়ালেট active অথবা inactive করতে হবে')
+        .isBoolean()
+        .withMessage('status অবশ্যই বুলিয়ান হতে হবে'),
+    ]
+  }
 
   /**
    * Validation rules for wallet ID parameter

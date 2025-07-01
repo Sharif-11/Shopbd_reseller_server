@@ -273,6 +273,8 @@ model Wallet {
   user   User?   @relation(fields: [userId], references: [userId])
   userId String?
 
+  isActive       Boolean   @default(true) // Flag to indicate if the wallet is active
+
   createdAt DateTime @default(now()) // Timestamp for creation
   updatedAt DateTime @updatedAt // Timestamp for updates
 

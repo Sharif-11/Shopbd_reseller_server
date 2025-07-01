@@ -19,13 +19,13 @@ class WalletRouter {
       isAuthenticated,
       WalletValidator.createWallet(),
       validateRequest,
-      walletControllers.createWallet
+      walletControllers.createWallet,
     )
 
     this.router.get(
       '/system',
       isAuthenticated,
-      walletControllers.getSystemWallets
+      walletControllers.getSystemWallets,
     )
 
     this.router.get(
@@ -33,7 +33,7 @@ class WalletRouter {
       isAuthenticated,
       WalletValidator.phoneNoParam(),
       validateRequest,
-      walletControllers.getSellerWallets
+      walletControllers.getSellerWallets,
     )
 
     this.router.get(
@@ -41,15 +41,15 @@ class WalletRouter {
       isAuthenticated,
       WalletValidator.walletIdParam(),
       validateRequest,
-      walletControllers.getWallet
+      walletControllers.getWallet,
     )
 
     this.router.patch(
       '/:walletId',
       isAuthenticated,
-      WalletValidator.updateWallet(),
+      WalletValidator.updateWalletStatus(),
       validateRequest,
-      walletControllers.updateWallet
+      walletControllers.updateWalletStatus,
     )
 
     this.router.delete(
@@ -57,7 +57,7 @@ class WalletRouter {
       isAuthenticated,
       WalletValidator.walletIdParam(),
       validateRequest,
-      walletControllers.deleteWallet
+      walletControllers.deleteWallet,
     )
 
     // Wallet verification routes
@@ -66,7 +66,7 @@ class WalletRouter {
       isAuthenticated,
       WalletValidator.sendOtp(),
       validateRequest,
-      walletControllers.initiateVerification
+      walletControllers.initiateVerification,
     )
 
     this.router.post(
@@ -74,7 +74,7 @@ class WalletRouter {
       isAuthenticated,
       WalletValidator.verifyOtp(),
       validateRequest,
-      walletControllers.verifyWallet
+      walletControllers.verifyWallet,
     )
   }
 

@@ -56,7 +56,7 @@ class WalletController {
 
       const wallets = await walletServices.getSellerWallets(
         requesterId!,
-        phoneNo
+        phoneNo,
       )
 
       res.status(200).json({
@@ -80,7 +80,7 @@ class WalletController {
 
       const wallet = await walletServices.getWalletById(
         requesterId!,
-        parseInt(walletId)
+        parseInt(walletId),
       )
 
       res.status(200).json({
@@ -106,12 +106,34 @@ class WalletController {
       const wallet = await walletServices.updateWallet(
         updaterId!,
         parseInt(walletId),
-        { walletName, walletPhoneNo }
+        { walletName, walletPhoneNo },
       )
 
       res.status(200).json({
         statusCode: 200,
         message: 'Wallet updated successfully',
+        success: true,
+        data: wallet,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async updateWalletStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const updaterId = req.user?.userId
+      const { walletId } = req.params
+      const { isActive } = req.body
+
+      const wallet = await walletServices.updateWalletStatus(
+        updaterId!,
+        parseInt(walletId),
+        isActive,
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Wallet status updated successfully',
         success: true,
         data: wallet,
       })
@@ -130,7 +152,7 @@ class WalletController {
 
       const wallet = await walletServices.deleteWallet(
         deleterId!,
-        parseInt(walletId)
+        parseInt(walletId),
       )
 
       res.status(200).json({
@@ -154,7 +176,7 @@ class WalletController {
 
       const result = await walletServices.initiateVerification(
         requesterId!,
-        walletPhoneNo
+        walletPhoneNo,
       )
 
       res.status(200).json({
@@ -181,7 +203,7 @@ class WalletController {
       const result = await walletServices.verifyWallet(
         requesterId!,
         walletPhoneNo,
-        otp
+        otp,
       )
 
       res.status(200).json({
@@ -200,7 +222,7 @@ class WalletController {
   async resetWalletVerification(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const requesterId = req.user?.userId
@@ -208,7 +230,7 @@ class WalletController {
 
       const result = await walletServices.resetWalletVerification(
         requesterId!,
-        walletPhoneNo
+        walletPhoneNo,
       )
 
       res.status(200).json({

@@ -124,8 +124,11 @@ class WalletServices {
    * Get all system wallets (for SuperAdmin)
    */
   async getAllSystemWallets(requesterId: string): Promise<Wallet[]> {
+    const requester = await userManagementServices.getUserById(requesterId)
+    const isActive = requester?.role === 'SuperAdmin' ? undefined : true
+
     return await prisma.wallet.findMany({
-      where: { walletType: 'SYSTEM' },
+      where: { walletType: 'SYSTEM', isActive },
     })
   }
 
@@ -261,10 +264,11 @@ class WalletServices {
 
     // System wallets can only be deleted by SuperAdmin
     if (wallet.walletType === 'SYSTEM') {
-      await userManagementServices.verifyUserRole(
-        deleterId,
-        UserType.SuperAdmin,
-      )
+      // await userManagementServices.verifyUserRole(
+      //   deleterId,
+      //   UserType.SuperAdmin,
+      // )
+      throw new ApiError(403, 'System wallets cannot be deleted')
     } else {
       // For seller wallets, verify delete permission
       await userManagementServices.verifyUserPermission(
@@ -277,6 +281,29 @@ class WalletServices {
     return await prisma.wallet.delete({
       where: { walletId },
     })
+  }
+  async updateWalletStatus(
+    adminId: string,
+    walletId: number,
+    isActive: boolean,
+  ) {
+    // Verify admin role and permission
+
+    await userManagementServices.verifyUserPermission(
+      adminId,
+      'WALLET_MANAGEMENT',
+      'UPDATE',
+    )
+    const wallet = await this.getWalletById(adminId, walletId)
+    if (wallet.walletType === 'SYSTEM') {
+      const result = await prisma.wallet.update({
+        where: { walletId },
+        data: { isActive },
+      })
+      return result
+    } else {
+      throw new ApiError(403, 'Only system wallets can be toggled')
+    }
   }
 
   // ==========================================
