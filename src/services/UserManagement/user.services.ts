@@ -119,7 +119,9 @@ class UserManagementServices {
           data: {
             roleId: superAdminRole.roleId,
             permission,
-            actions: [ActionType.ALL],
+            actions: Object.values(ActionType).filter(
+              action => action !== ActionType.ALL,
+            ),
           },
         })
       }
