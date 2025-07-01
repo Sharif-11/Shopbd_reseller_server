@@ -11,7 +11,7 @@ class RoleService {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.ROLE_PERMISSIONS,
-      ActionType.READ
+      ActionType.READ,
     )
 
     return await prisma.role.findMany({
@@ -36,7 +36,7 @@ class RoleService {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.ROLE_PERMISSIONS,
-      ActionType.READ
+      ActionType.READ,
     )
 
     return await prisma.role.findUnique({
@@ -54,7 +54,7 @@ class RoleService {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.ROLE_PERMISSIONS,
-      ActionType.READ
+      ActionType.READ,
     )
 
     return Object.values(PermissionType)
@@ -67,7 +67,7 @@ class RoleService {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.ROLE_PERMISSIONS,
-      ActionType.READ
+      ActionType.READ,
     )
 
     return Object.values(ActionType)
@@ -86,12 +86,12 @@ class RoleService {
         permission: PermissionType
         actions: ActionType[]
       }[]
-    }
+    },
   ) {
     await userManagementServices.verifyUserPermission(
       creatorId,
       PermissionType.ROLE_PERMISSIONS,
-      ActionType.CREATE
+      ActionType.CREATE,
     )
 
     try {
@@ -148,12 +148,12 @@ class RoleService {
     permissions: {
       permission: PermissionType
       actions: ActionType[]
-    }[]
+    }[],
   ) {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.ROLE_PERMISSIONS,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     try {
@@ -195,7 +195,7 @@ class RoleService {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.ROLE_PERMISSIONS,
-      ActionType.READ
+      ActionType.READ,
     )
 
     return await prisma.userRole.findMany({
@@ -217,7 +217,7 @@ class RoleService {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.ROLE_PERMISSIONS,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     try {
@@ -261,7 +261,7 @@ class RoleService {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.ROLE_PERMISSIONS,
-      ActionType.DELETE
+      ActionType.DELETE,
     )
 
     // Check if role is assigned to any users
@@ -293,7 +293,7 @@ class RoleService {
     await userManagementServices.verifyUserPermission(
       adminId,
       PermissionType.ROLE_PERMISSIONS,
-      ActionType.READ
+      ActionType.READ,
     )
 
     const userRoles = await prisma.userRole.findMany({
@@ -326,7 +326,7 @@ class RoleService {
       ([permission, actions]) => ({
         permission,
         actions: Array.from(actions),
-      })
+      }),
     )
   }
 

@@ -40,10 +40,13 @@ const corsOptions: cors.CorsOptions = {
 
     // Production environment - allow only specific origins
     const allowedOrigins = [
-      'http://localhost', // Localhost
-      'http://localhost:3000', // Localhost with port
-      config.frontendUrl, // Your frontend URL from config
+      'https://admin.shopbdresellerjobs.shop',
+      'https://shopbdresellerjobs.shop',
     ]
+    // Allow all subdomains of shopbdresellerjobs.shop
+    if (origin?.endsWith('.shopbdresellerjobs.shop')) {
+      return callback(null, true)
+    }
 
     if (allowedOrigins.includes(origin)) {
       return callback(null, true)
