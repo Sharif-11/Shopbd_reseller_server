@@ -192,7 +192,9 @@ class UserManagementServices {
           data: allPermissions.map(permission => ({
             roleId: superAdminRole.roleId,
             permission,
-            actions: [ActionType.ALL],
+            actions: Object.values(ActionType).filter(
+              action => action !== ActionType.ALL && action !== 'NOTIFY',
+            ), // Assign all actions except ALL
           })),
           skipDuplicates: true,
         })
