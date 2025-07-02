@@ -5,6 +5,12 @@ function trimRequestBody(req: Request, res: Response, next: NextFunction) {
   if (req.body) {
     req.body = deepTrim(req.body)
   }
+  if (req.query) {
+    req.query = deepTrim(req.query)
+  }
+  if (req.params) {
+    req.params = deepTrim(req.params)
+  }
   next()
 }
 

@@ -445,30 +445,19 @@ class ProductServices {
     }
   }
 
-  async getProductDetailForCustomer(productId: number): Promise<{
-    product: Omit<Product, 'basePrice' | 'published'> & {
-      price: Prisma.Decimal
-      shop: { shopName: string }
-      category: { name: string }
-      variants: Record<string, string[]> // Changed to grouped variants
-      images: { imageUrl: string }[]
-    }
-  }> {
+  async getProductDetailForCustomer(productId: number) {
     const product = await prisma.product.findFirst({
       where: {
         productId,
         published: true,
-        ProductImage: {
-          none: { hidden: true },
-        },
       },
       include: {
-        shop: { select: { shopName: true } },
+        shop: { select: { shopName: true, shopLocation: true } },
         category: { select: { name: true } },
         ProductVariant: true,
         ProductImage: {
           where: { hidden: false },
-          select: { imageUrl: true },
+          select: { imageUrl: true, imageId: true },
           orderBy: { isPrimary: 'desc' },
         },
       },
@@ -510,6 +499,7 @@ class ProductServices {
     const product = await prisma.product.findFirst({
       where: {
         productId,
+        published: true, // Only show published products
       },
       include: {
         shop: {
@@ -550,6 +540,37 @@ class ProductServices {
         variants: groupedVariants,
         images: product.ProductImage,
       },
+    }
+  }
+
+  async getProductDetail({
+    userId,
+    productId,
+  }: {
+    userId?: string
+    productId: number
+  }) {
+    try {
+      if (userId) {
+        console.log('fetching product detail for seller')
+        const product = await this.getProductDetailForSeller(productId)
+        // Seller or admin view
+        return {
+          userType: 'seller',
+          product,
+        }
+      } else {
+        console.log('fetching product detail for customer')
+        const product = await this.getProductDetailForCustomer(productId)
+        console.log('Customer view product:', product)
+        // Customer view
+        return {
+          userType: 'customer',
+          product,
+        }
+      }
+    } catch (error) {
+      throw error
     }
   }
 
@@ -632,6 +653,9 @@ class ProductServices {
   ) {
     const where: Prisma.ProductWhereInput = {
       published: true,
+      shop: {
+        isActive: true, // Only show products from active shops
+      },
     }
 
     // Search filter
@@ -668,7 +692,7 @@ class ProductServices {
           name: true,
           description: true,
           suggestedMaxPrice: true, // Only show suggested price to customers
-          shop: { select: { shopName: true } },
+          shop: { select: { shopName: true, shopLocation: true } },
           category: { select: { name: true } },
           ProductImage: {
             where: { hidden: false },
@@ -762,6 +786,39 @@ class ProductServices {
         totalCount,
         totalPages: Math.ceil(totalCount / pagination.limit),
       },
+    }
+  }
+  async getAllProducts({
+    userId,
+    filters,
+    pagination,
+  }: {
+    userId?: string
+    filters: {
+      search?: string
+      minPrice?: number
+      maxPrice?: number
+      categoryId: number
+      shopId: number
+    }
+    pagination: { page: number; limit: number }
+  }) {
+    try {
+      if (userId) {
+        const result = await this.getAllProductsForSeller(filters, pagination)
+        return {
+          result,
+          userType: 'seller',
+        }
+      } else {
+        const result = await this.getAllProductsForCustomer(filters, pagination)
+        return {
+          result,
+          userType: 'customer',
+        }
+      }
+    } catch (error) {
+      throw error
     }
   }
 }

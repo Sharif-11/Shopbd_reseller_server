@@ -8,7 +8,7 @@ import prisma from '../utils/prisma'
 export const isAuthenticated = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const token = req.header('Authorization')?.replace('Bearer ', '')
   // console.log({meta:req?.body?.meta})
@@ -34,6 +34,37 @@ export const isAuthenticated = async (
     next(new ApiError(401, 'Unauthorized'))
   }
 }
+export const authenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '')
+  // console.log({meta:req?.body?.meta})
+  if (!token) {
+    next()
+  } else {
+    try {
+      const payload = jwt.verify(token, config.jwtSecret as string)
+      // check if user with userId exists
+      const { userId } = payload as any
+      const user = await prisma.user.findUnique({
+        where: { userId },
+      })
+
+      if (!user) {
+        next()
+      } else {
+        req.user = payload as any
+
+        next()
+      }
+    } catch (error) {
+      next(new ApiError(401, 'Unauthorized'))
+    }
+  }
+}
+
 export const verifyRole = (role: UserType | UserType[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user?.role) {

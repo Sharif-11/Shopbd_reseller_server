@@ -1,5 +1,8 @@
 import { Router } from 'express'
-import { isAuthenticated } from '../../middlewares/auth.middlewares'
+import {
+  authenticate,
+  isAuthenticated,
+} from '../../middlewares/auth.middlewares'
 import validateRequest from '../../middlewares/validation.middleware'
 
 import productControllers from './product.controller'
@@ -23,7 +26,7 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.createProduct(),
       validateRequest,
-      productControllers.createProduct
+      productControllers.createProduct,
     )
 
     this.router.put(
@@ -31,7 +34,7 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.updateProduct(),
       validateRequest,
-      productControllers.updateProduct
+      productControllers.updateProduct,
     )
 
     this.router.patch(
@@ -39,7 +42,7 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.togglePublishStatus(),
       validateRequest,
-      productControllers.togglePublishStatus
+      productControllers.togglePublishStatus,
     )
 
     // ==========================================
@@ -50,7 +53,7 @@ class ProductRouter {
       '/:productId/variants',
       ProductValidator.getProductVariants(),
       validateRequest,
-      productControllers.getProductVariants
+      productControllers.getProductVariants,
     )
 
     this.router.put(
@@ -58,7 +61,7 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.replaceVariants(),
       validateRequest,
-      productControllers.replaceVariants
+      productControllers.replaceVariants,
     )
 
     // ==========================================
@@ -70,14 +73,14 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.addImages(),
       validateRequest,
-      productControllers.addImages
+      productControllers.addImages,
     )
 
     this.router.get(
       '/:productId/images',
       ProductValidator.getImages(),
       validateRequest,
-      productControllers.getImages
+      productControllers.getImages,
     )
 
     this.router.patch(
@@ -85,7 +88,7 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.updateImage(),
       validateRequest,
-      productControllers.updateImage
+      productControllers.updateImage,
     )
 
     this.router.delete(
@@ -93,7 +96,7 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.deleteImage(),
       validateRequest,
-      productControllers.deleteImage
+      productControllers.deleteImage,
     )
 
     this.router.delete(
@@ -101,7 +104,7 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.deleteAllImages(),
       validateRequest,
-      productControllers.deleteAllImages
+      productControllers.deleteAllImages,
     )
 
     // ==========================================
@@ -112,13 +115,13 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.getProductDetailForAdmin(),
       validateRequest,
-      productControllers.getProductDetailForAdmin
+      productControllers.getProductDetailForAdmin,
     )
     this.router.get(
       '/customer/:productId',
       ProductValidator.getProductDetailForCustomer(),
       validateRequest,
-      productControllers.getProductDetailForCustomer
+      productControllers.getProductDetailForCustomer,
     )
 
     this.router.get(
@@ -126,7 +129,14 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.getProductDetailForSeller(),
       validateRequest,
-      productControllers.getProductDetailForSeller
+      productControllers.getProductDetailForSeller,
+    )
+    this.router.get(
+      '/user/:productId',
+      authenticate,
+      ProductValidator.getProductDetailForSeller(),
+      validateRequest,
+      productControllers.getProductDetail,
     )
 
     // ==========================================
@@ -138,14 +148,14 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.getAllProductsForAdmin(),
       validateRequest,
-      productControllers.getAllProductsForAdmin
+      productControllers.getAllProductsForAdmin,
     )
 
     this.router.get(
       '/customer',
       ProductValidator.getAllProductsForCustomer(),
       validateRequest,
-      productControllers.getAllProductsForCustomer
+      productControllers.getAllProductsForCustomer,
     )
 
     this.router.get(
@@ -153,7 +163,14 @@ class ProductRouter {
       isAuthenticated,
       ProductValidator.getAllProductsForSeller(),
       validateRequest,
-      productControllers.getAllProductsForSeller
+      productControllers.getAllProductsForSeller,
+    )
+    this.router.get(
+      '/user',
+      authenticate,
+      ProductValidator.getAllProductsForSeller(),
+      validateRequest,
+      productControllers.getAllProducts,
     )
   }
 

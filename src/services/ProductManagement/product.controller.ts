@@ -319,6 +319,26 @@ class ProductController {
       next(error)
     }
   }
+  async getProductDetail(req: Request, res: Response, next: NextFunction) {
+    const userId = req.user?.userId
+    const { productId } = req.params
+    console.clear()
+    console.log(
+      `Fetching product details for productId: ${productId} by userId: ${userId}`,
+    )
+
+    const { userType, product } = await productServices.getProductDetail({
+      userId,
+      productId: Number(productId),
+    })
+
+    res.status(200).json({
+      statusCode: 200,
+      message: 'Product details retrieved successfully',
+      success: true,
+      data: { userType, ...product },
+    })
+  }
 
   // ==========================================
   // PRODUCT LISTING
@@ -425,6 +445,35 @@ class ProductController {
         success: true,
         data: result.data,
         pagination: result.pagination,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async getAllProducts(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req?.user?.userId
+      const { search, minPrice, maxPrice, categoryId, shopId } = req.query
+      const page = Number(req.query.page) || 1
+      const limit = Number(req.query.limit) || 10
+      const { result, userType } = await productServices.getAllProducts({
+        pagination: { page, limit },
+        userId,
+        filters: {
+          search: search?.toString(),
+          minPrice: minPrice ? Number(minPrice) : undefined,
+          maxPrice: maxPrice ? Number(maxPrice) : undefined,
+          categoryId: Number(categoryId),
+          shopId: Number(shopId),
+        },
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Products retrieved successfully',
+        success: true,
+        data: result.data,
+        pagination: result.pagination,
+        userType,
       })
     } catch (error) {
       next(error)
