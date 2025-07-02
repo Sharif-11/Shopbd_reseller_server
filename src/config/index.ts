@@ -38,6 +38,7 @@ export interface IConfig {
   ftpBaseUrl: string
   maxRejectedPaymentLimit: number
   extraDeliveryCharge: number
+  enableSmsNotifications?: boolean
   // cloudinaryKey?: string;
   // cloudinarySecret?: string;
   // cloudinaryName?: string;
@@ -79,6 +80,7 @@ const config: IConfig = {
   ftpBaseUrl: process.env.FTP_BASE_URL || '',
   maxRejectedPaymentLimit: 3,
   extraDeliveryCharge: 10,
+  enableSmsNotifications: process.env.SMS === 'true',
   // cloudinaryKey: process.env.CLOUDINARY_KEY,
   // cloudinarySecret: process.env.CLOUDINARY_SECRET,
   // cloudinaryName: process.env.CLOUDINARY_NAME,

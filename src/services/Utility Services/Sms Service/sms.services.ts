@@ -226,6 +226,13 @@ class SmsServices {
     otp: string,
   ): Promise<SmsResponse | BulkSmsResponse> {
     const message = `আপনার ওটিপি কোডটি হলো: ${otp}। শপ বিডি রিসেলার জবস থেকে ধন্যবাদ।`
+    if (config.env === 'development') {
+      console.log(`OTP for ${mobileNo}: ${otp}`)
+      return {
+        response_code: 200,
+        success_message: 'OTP sent successfully (development mode)',
+      }
+    }
     return this.sendSingleSms(mobileNo, message)
   }
 
@@ -237,6 +244,13 @@ class SmsServices {
     password: string,
   ): Promise<SmsResponse | BulkSmsResponse> {
     const message = `আপনার পাসওয়ার্ডটি হলো: ${password}। শপ বিডি রিসেলার জবস থেকে ধন্যবাদ।`
+    if (config.env === 'development') {
+      console.log(`Password for ${mobileNo}: ${password}`)
+      return {
+        response_code: 200,
+        success_message: 'Password sent successfully (development mode)',
+      }
+    }
     return this.sendSingleSms(mobileNo, message)
   }
 
@@ -251,6 +265,16 @@ class SmsServices {
     orderId: number
   }): Promise<SmsResponse | BulkSmsResponse> {
     const message = `New order received (Order ID: ${orderId})`
+    if (
+      config.enableSmsNotifications === false ||
+      config.env === 'development'
+    ) {
+      console.log(message)
+      return {
+        response_code: 200,
+        success_message: 'SMS notifications are disabled',
+      }
+    }
     if (Array.isArray(mobileNo)) {
       return this.sendBulkSms(mobileNo, message)
     }
@@ -273,6 +297,16 @@ class SmsServices {
     amount: number
   }): Promise<SmsResponse | BulkSmsResponse> {
     const message = `Withdrawal Request: ${sellerName} (Phone: ${sellerPhoneNo}) requested ${amount} TK.`
+    if (
+      config.enableSmsNotifications === false ||
+      config.env === 'development'
+    ) {
+      console.log(message)
+      return {
+        response_code: 200,
+        success_message: 'SMS notifications are disabled',
+      }
+    }
     if (Array.isArray(mobileNo)) {
       return this.sendBulkSms(mobileNo, message)
     }
