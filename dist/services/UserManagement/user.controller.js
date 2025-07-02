@@ -23,6 +23,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const config_1 = __importDefault(require("../../config"));
 const user_services_1 = __importDefault(require("./user.services"));
 class UserManagementController {
     /**
@@ -222,8 +223,14 @@ class UserManagementController {
                 });
                 // set token in cookie with secure and httpOnly flags
                 res.cookie('token', token, {
-                    httpOnly: true,
+                    httpOnly: process.env.NODE_ENV === 'production', // Prevent JavaScript access
                     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+                    sameSite: config_1.default.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
+                    domain: config_1.default.env === 'production'
+                        ? '.shopbdresellerjobs.shop'
+                        : 'localhost', // The leading dot is crucial
+                    path: '/', // Available on all paths
+                    maxAge: 3600000, // 1 hour expiration
                 });
                 res.status(200).json({
                     statusCode: 200,
@@ -250,8 +257,14 @@ class UserManagementController {
                 });
                 // set token in cookie with secure and httpOnly flags
                 res.cookie('token', token, {
-                    httpOnly: true,
+                    httpOnly: process.env.NODE_ENV === 'production', // Prevent JavaScript access
                     secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+                    sameSite: config_1.default.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
+                    domain: config_1.default.env === 'production'
+                        ? '.shopbdresellerjobs.shop'
+                        : 'localhost', // The leading dot is crucial
+                    path: '/', // Available on all paths
+                    maxAge: 3600000, // 1 hour expiration
                 });
                 res.status(200).json({
                     statusCode: 200,

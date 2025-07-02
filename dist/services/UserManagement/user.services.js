@@ -112,7 +112,7 @@ class UserManagementServices {
                         data: {
                             roleId: superAdminRole.roleId,
                             permission,
-                            actions: [client_1.ActionType.ALL],
+                            actions: Object.values(client_1.ActionType).filter(action => action !== client_1.ActionType.ALL),
                         },
                     });
                 }
@@ -172,7 +172,7 @@ class UserManagementServices {
                         data: allPermissions.map(permission => ({
                             roleId: superAdminRole.roleId,
                             permission,
-                            actions: [client_1.ActionType.ALL],
+                            actions: Object.values(client_1.ActionType).filter(action => action !== client_1.ActionType.ALL && action !== 'NOTIFY'), // Assign all actions except ALL
                         })),
                         skipDuplicates: true,
                     });

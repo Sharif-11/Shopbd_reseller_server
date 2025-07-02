@@ -19,7 +19,7 @@ class WalletRouter {
         this.router.get('/system', auth_middlewares_1.isAuthenticated, wallet_controller_1.default.getSystemWallets);
         this.router.get('/seller/:phoneNo', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.phoneNoParam(), validation_middleware_1.default, wallet_controller_1.default.getSellerWallets);
         this.router.get('/:walletId', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.walletIdParam(), validation_middleware_1.default, wallet_controller_1.default.getWallet);
-        this.router.patch('/:walletId', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.updateWallet(), validation_middleware_1.default, wallet_controller_1.default.updateWallet);
+        this.router.patch('/:walletId', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.updateWalletStatus(), validation_middleware_1.default, wallet_controller_1.default.updateWalletStatus);
         this.router.delete('/:walletId', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.walletIdParam(), validation_middleware_1.default, wallet_controller_1.default.deleteWallet);
         // Wallet verification routes
         this.router.post('/send-otp', auth_middlewares_1.isAuthenticated, wallet_validator_1.default.sendOtp(), validation_middleware_1.default, wallet_controller_1.default.initiateVerification);

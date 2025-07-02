@@ -997,6 +997,9 @@ class UserManagementServices {
     if (!seller) {
       throw new ApiError(404, 'Seller not found')
     }
+    if (seller.referralCode) {
+      throw new ApiError(400, 'Seller already has a referral code')
+    }
     // Check if referral code already exists
     const existingReferral = await prisma.user.findUnique({
       where: { referralCode },

@@ -221,6 +221,18 @@ class OrderService {
                         amount: order.deliveryCharge.toNumber(),
                         reason: 'ডেলিভারি চার্জ কর্তন',
                     });
+                    try {
+                        const phoneNumbers = yield this.getOrderSmsRecipients();
+                        console.clear();
+                        console.log('Order SMS recipients:(Balance Payment)', phoneNumbers);
+                        yield sms_services_1.default.sendOrderNotificationToAdmin({
+                            mobileNo: phoneNumbers,
+                            orderId: order.orderId,
+                        });
+                    }
+                    catch (error) {
+                        console.error('Error sending order SMS:', error);
+                    }
                     return updatedOrder;
                 }));
                 return updatedOrder;

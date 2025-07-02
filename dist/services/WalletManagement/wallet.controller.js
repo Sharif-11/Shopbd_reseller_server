@@ -128,6 +128,26 @@ class WalletController {
             }
         });
     }
+    updateWalletStatus(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const updaterId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { walletId } = req.params;
+                const { isActive } = req.body;
+                const wallet = yield wallet_services_1.default.updateWalletStatus(updaterId, parseInt(walletId), isActive);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Wallet status updated successfully',
+                    success: true,
+                    data: wallet,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     /**
      * Delete a wallet
      */

@@ -21,6 +21,7 @@ class FTPController {
         this.sendErrorResponse = this.sendErrorResponse.bind(this);
         this.handleUploadError = this.handleUploadError.bind(this);
         this.deleteFile = this.deleteFile.bind(this);
+        this.downloadFile = this.downloadFile.bind(this);
     }
     /**
      * Handles file upload via HTTP POST
@@ -65,6 +66,31 @@ class FTPController {
                 console.error('FTP delete error:', error);
                 const message = error instanceof Error ? error.message : 'Unknown error';
                 this.sendErrorResponse(res, 500, `Failed to delete file: ${message}`);
+            }
+        });
+    }
+    /**
+     * Downloads a file by its public URL
+     * @param req Express Request (expects { url: string } in body)
+     * @param res Express Response (returns file buffer)
+     */
+    downloadFile(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const { url } = req.body;
+            if (!url) {
+                return this.sendErrorResponse(res, 400, 'URL is required');
+            }
+            try {
+                const fileBuffer = yield this.uploader.download(url);
+                // Set appropriate headers for file download
+                res.setHeader('Content-Type', 'application/octet-stream');
+                res.setHeader('Content-Disposition', `attachment; filename="${url.split('/').pop()}"`);
+                return res.send(fileBuffer);
+            }
+            catch (error) {
+                console.error('FTP download error:', error);
+                const message = error instanceof Error ? error.message : 'Failed to download file';
+                this.sendErrorResponse(res, 500, message);
             }
         });
     }

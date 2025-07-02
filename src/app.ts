@@ -5,6 +5,7 @@ import helmet from 'helmet'
 
 import config from './config'
 import globalErrorHandler from './middlewares/globalErrorHandler'
+import trimRequestBody from './middlewares/trim.middlewares'
 import GlobalRoutes from './routes/global.routes'
 import dbController from './services/Utility Services/db.controller'
 
@@ -26,6 +27,7 @@ app.use(helmet())
 app.use(express.json({ limit: '10kb' }))
 app.use(express.urlencoded({ extended: true, limit: '10kb' }))
 app.use(cookieParser())
+app.use(trimRequestBody)
 
 // CORS configuration
 const corsOptions: cors.CorsOptions = {

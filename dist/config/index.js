@@ -12,7 +12,6 @@ dotenv_1.default.config({
 const config = {
     port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
     env: process.env.NODE_ENV || 'development',
-    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
     database_url: process.env.DATABASE_URL,
     saltRounds: process.env.SALT_ROUNDS || '10',
     jwtSecret: process.env.JWT_SECRET,

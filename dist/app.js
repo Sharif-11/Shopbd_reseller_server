@@ -38,10 +38,13 @@ const corsOptions = {
         }
         // Production environment - allow only specific origins
         const allowedOrigins = [
-            'http://localhost', // Localhost
-            'http://localhost:3000', // Localhost with port
-            config_1.default.frontendUrl, // Your frontend URL from config
+            'https://admin.shopbdresellerjobs.shop',
+            'https://shopbdresellerjobs.shop',
         ];
+        // Allow all subdomains of shopbdresellerjobs.shop
+        if (origin === null || origin === void 0 ? void 0 : origin.endsWith('.shopbdresellerjobs.shop')) {
+            return callback(null, true);
+        }
         if (allowedOrigins.includes(origin)) {
             return callback(null, true);
         }

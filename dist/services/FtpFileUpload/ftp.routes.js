@@ -28,6 +28,7 @@ class FTPRouter {
         // Single file upload
         this.router.post('/upload', this.upload.single('image'), // Expect a single file with field name 'image'
         ftp_controller_1.ftpController.uploadFile);
+        this.router.post('/download', ftp_controller_1.ftpController.downloadFile);
         // Add this to your initializeRoutes method in FTPRouter
         this.router.delete('/delete/:fileName', ftp_controller_1.ftpController.deleteFile);
     }

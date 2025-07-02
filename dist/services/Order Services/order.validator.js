@@ -107,7 +107,8 @@ class OrderValidator {
                 .notEmpty()
                 .withMessage('ট্রানজেকশন আইডি প্রয়োজন')
                 .isString()
-                .withMessage('ট্রানজেকশন আইডি অবশ্যই স্ট্রিং হতে হবে'),
+                .withMessage('ট্রানজেকশন আইডি অবশ্যই স্ট্রিং হতে হবে')
+                .trim(),
         ];
     }
     static cancelOrderBySeller() {

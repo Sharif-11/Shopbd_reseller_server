@@ -110,8 +110,10 @@ class WalletServices {
      */
     getAllSystemWallets(requesterId) {
         return __awaiter(this, void 0, void 0, function* () {
+            const requester = yield user_services_1.default.getUserById(requesterId);
+            const isActive = (requester === null || requester === void 0 ? void 0 : requester.role) === 'SuperAdmin' ? undefined : true;
             return yield prisma_1.default.wallet.findMany({
-                where: { walletType: 'SYSTEM' },
+                where: { walletType: 'SYSTEM', isActive },
             });
         });
     }
@@ -211,7 +213,11 @@ class WalletServices {
             const wallet = yield this.getWalletById(deleterId, walletId);
             // System wallets can only be deleted by SuperAdmin
             if (wallet.walletType === 'SYSTEM') {
-                yield user_services_1.default.verifyUserRole(deleterId, client_1.UserType.SuperAdmin);
+                // await userManagementServices.verifyUserRole(
+                //   deleterId,
+                //   UserType.SuperAdmin,
+                // )
+                throw new ApiError_1.default(403, 'System wallets cannot be deleted');
             }
             else {
                 // For seller wallets, verify delete permission
@@ -220,6 +226,23 @@ class WalletServices {
             return yield prisma_1.default.wallet.delete({
                 where: { walletId },
             });
+        });
+    }
+    updateWalletStatus(adminId, walletId, isActive) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Verify admin role and permission
+            yield user_services_1.default.verifyUserPermission(adminId, 'WALLET_MANAGEMENT', 'UPDATE');
+            const wallet = yield this.getWalletById(adminId, walletId);
+            if (wallet.walletType === 'SYSTEM') {
+                const result = yield prisma_1.default.wallet.update({
+                    where: { walletId },
+                    data: { isActive },
+                });
+                return result;
+            }
+            else {
+                throw new ApiError_1.default(403, 'Only system wallets can be toggled');
+            }
         });
     }
     // ==========================================

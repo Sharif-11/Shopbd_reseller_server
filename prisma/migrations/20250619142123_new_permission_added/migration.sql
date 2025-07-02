@@ -1,2 +1,0 @@
--- AlterEnum
-ALTER TYPE "PermissionType" ADD VALUE 'ROLE_PERMISSIONS';

@@ -14,7 +14,7 @@ class WithdrawValidator {
         .custom(value => {
           if (value > config.maximumWithdrawAmount) {
             throw new Error(
-              `Amount exceeds the maximum withdraw limit of ${config.maximumWithdrawAmount}`
+              `Amount exceeds the maximum withdraw limit of ${config.maximumWithdrawAmount}`,
             )
           }
           return true
@@ -62,7 +62,8 @@ class WithdrawValidator {
         .notEmpty()
         .withMessage('Transaction ID is required')
         .isString()
-        .withMessage('Transaction ID must be a string'),
+        .withMessage('Transaction ID must be a string')
+        .trim(),
     ]
   }
 

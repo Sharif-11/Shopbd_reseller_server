@@ -122,6 +122,65 @@ class FTPUploader {
         return `${this.config.baseUrl}/${fileName}`;
     }
     /**
+     * Downloads a file from FTP server
+     *
+     */
+    download(fileUrl) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.connect();
+                const fileName = this.extractFileNameFromUrl(fileUrl);
+                return yield this.downloadFile(fileName);
+            }
+            finally {
+                this.close();
+            }
+        });
+    }
+    /**
+     * Downloads multiple files from the FTP server by their URLs
+     * @param fileUrls Array of file URLs to download
+     * @returns Array of file contents as Buffers
+     */
+    downloadMultiple(fileUrls) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                yield this.connect();
+                const downloadPromises = fileUrls.map(url => {
+                    const fileName = this.extractFileNameFromUrl(url);
+                    return this.downloadFile(fileName);
+                });
+                return yield Promise.all(downloadPromises);
+            }
+            finally {
+                this.close();
+            }
+        });
+    }
+    /**
+     * Extracts the file name from a given URL
+     * @param url The file URL
+     * @returns The file name
+     */
+    extractFileNameFromUrl(url) {
+        const urlObj = new URL(url);
+        return urlObj.pathname.split('/').pop() || '';
+    }
+    /**
+     * Downloads a file from FTP server
+     * @param fileName Name of the file to download
+     * @returns File content as Buffer
+     */
+    downloadFile(fileName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const writableStream = new stream_1.default.PassThrough();
+            const chunks = [];
+            writableStream.on('data', chunk => chunks.push(chunk));
+            yield this.client.downloadTo(writableStream, fileName);
+            return Buffer.concat(chunks);
+        });
+    }
+    /**
      * Closes FTP connection
      */
     close() {

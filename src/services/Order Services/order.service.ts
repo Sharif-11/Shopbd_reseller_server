@@ -520,7 +520,7 @@ class OrderService {
     if (!order) {
       throw new ApiError(404, 'Order not found')
     }
-    await this.checkExistingTrackingUrl(trackingUrl)
+    await this.checkExistingTrackingUrl(trackingUrl?.trim())
     if (order.orderStatus !== 'CONFIRMED') {
       throw new ApiError(400, 'Only confirmed orders can be delivered')
     }
@@ -533,7 +533,7 @@ class OrderService {
       where: { orderId },
       data: {
         orderStatus: 'DELIVERED',
-        trackingUrl,
+        trackingUrl: trackingUrl?.trim() || null,
       },
     })
     if (result) {
@@ -721,8 +721,6 @@ class OrderService {
           data: {
             orderStatus: 'REFUNDED',
             cancelledReason: reason,
-            cancelledBy: 'SYSTEM',
-            cancelledAt: new Date(),
           },
         })
         return order
@@ -803,13 +801,14 @@ class OrderService {
         await userServices.verifySeller({ tx, userId: updatedOrder.sellerId! })
       }
       // add seller commission to seller wallet
-      await transactionServices.createTransaction({
-        tx,
-        userId: updatedOrder.sellerId!,
-        transactionType: 'Credit',
-        amount: actualCommission,
-        reason: 'অর্ডার সম্পন্নের কমিশন',
-      })
+      actualCommission > 0 &&
+        (await transactionServices.createTransaction({
+          tx,
+          userId: updatedOrder.sellerId!,
+          transactionType: 'Credit',
+          amount: actualCommission,
+          reason: 'অর্ডার সম্পন্নের কমিশন',
+        }))
       return updatedOrder
     })
     if (result.orderStatus === 'COMPLETED') {
@@ -819,7 +818,7 @@ class OrderService {
           order.totalProductSellingPrice.toNumber(),
         )
         if (referrers.length > 0) {
-          const sendCommissions = await prisma.$transaction(async tx => {
+          await prisma.$transaction(async tx => {
             const commissionPromises = referrers.map(referrer => {
               return transactionServices.createTransaction({
                 tx,

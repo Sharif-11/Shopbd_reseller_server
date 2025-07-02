@@ -25,7 +25,13 @@ class UserManagementValidator {
         .withMessage('পাসওয়ার্ড প্রয়োজন')
         .isLength({ min: 6 })
         .withMessage('পাসওয়ার্ড অবশ্যই ৬ অক্ষরের বেশি হতে হবে'),
-      body('email').optional().isEmail().withMessage('সঠিক ইমেইল প্রদান করুন'),
+      body('email')
+        .optional({
+          nullable: true,
+          checkFalsy: true,
+        })
+        .isEmail()
+        .withMessage('সঠিক ইমেইল প্রদান করুন'),
     ]
   }
 
