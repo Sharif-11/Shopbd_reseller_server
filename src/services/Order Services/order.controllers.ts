@@ -38,6 +38,51 @@ class OrderController {
       next(error)
     }
   }
+  async createCustomerOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const {
+        shopId,
+        customerName,
+        customerPhoneNo,
+        customerZilla,
+        customerUpazilla,
+        deliveryAddress,
+        comments,
+        products,
+        systemWalletPhoneNo,
+        systemWalletName,
+        customerWalletPhoneNo,
+        transactionId,
+        amount,
+      } = req.body
+
+      const order = await orderService.createCustomerOrder({
+        shopId: Number(shopId),
+        customerName,
+        customerPhoneNo,
+        customerZilla,
+        customerUpazilla,
+        deliveryAddress,
+        comments,
+        products,
+        systemWalletPhoneNo,
+        systemWalletName,
+        customerWalletPhoneNo,
+        transactionId,
+        amount: amount as number,
+      })
+
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Order created successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 
   async getSellerOrders(req: Request, res: Response, next: NextFunction) {
     try {

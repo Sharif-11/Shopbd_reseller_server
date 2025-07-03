@@ -123,13 +123,19 @@ class WalletServices {
   /**
    * Get all system wallets (for SuperAdmin)
    */
-  async getAllSystemWallets(requesterId: string): Promise<Wallet[]> {
-    const requester = await userManagementServices.getUserById(requesterId)
-    const isActive = requester?.role === 'SuperAdmin' ? undefined : true
+  async getAllSystemWallets(requesterId?: string): Promise<Wallet[]> {
+    if (requesterId) {
+      const requester = await userManagementServices.getUserById(requesterId)
+      const isActive = requester?.role === 'SuperAdmin' ? undefined : true
 
-    return await prisma.wallet.findMany({
-      where: { walletType: 'SYSTEM', isActive },
-    })
+      return await prisma.wallet.findMany({
+        where: { walletType: 'SYSTEM', isActive },
+      })
+    } else {
+      return await prisma.wallet.findMany({
+        where: { walletType: 'SYSTEM', isActive: true },
+      })
+    }
   }
 
   /**

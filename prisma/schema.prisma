@@ -187,6 +187,7 @@ model Customer {
   updatedAt       DateTime @updatedAt
 
   @@index([customerPhoneNo], name: "customerPhoneIndex")
+  @@unique([customerPhoneNo, sellerId], name: "uniqueCustomerSeller")
   @@map("customers")
 }
 

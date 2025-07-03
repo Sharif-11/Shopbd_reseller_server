@@ -1,5 +1,8 @@
 import { Router } from 'express'
-import { isAuthenticated } from '../../middlewares/auth.middlewares'
+import {
+  authenticate,
+  isAuthenticated,
+} from '../../middlewares/auth.middlewares'
 import validateRequest from '../../middlewares/validation.middleware'
 import walletControllers from './wallet.controller'
 import WalletValidator from './wallet.validator'
@@ -22,11 +25,7 @@ class WalletRouter {
       walletControllers.createWallet,
     )
 
-    this.router.get(
-      '/system',
-      isAuthenticated,
-      walletControllers.getSystemWallets,
-    )
+    this.router.get('/system', authenticate, walletControllers.getSystemWallets)
 
     this.router.get(
       '/seller/:phoneNo',

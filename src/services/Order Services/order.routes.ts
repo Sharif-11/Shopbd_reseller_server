@@ -25,6 +25,14 @@ class OrderRouter {
       validateRequest,
       orderControllers.createSellerOrder,
     )
+    this.router.post(
+      '/customer',
+      // isAuthenticated,
+      // verifyRole('Customer'),
+      // OrderValidator.createCustomerOrder(),
+      // validateRequest,
+      orderControllers.createCustomerOrder,
+    )
 
     this.router.get(
       '/seller',

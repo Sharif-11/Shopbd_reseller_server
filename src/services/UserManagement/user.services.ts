@@ -457,7 +457,8 @@ class UserManagementServices {
     if (!verifiedPhoneNo.isVerified) {
       throw new ApiError(400, 'Customer phone number is not verified')
     }
-    return await prisma.customer.create({
+
+    const customer = await prisma.customer.create({
       data: {
         customerPhoneNo,
         sellerCode,
@@ -467,6 +468,26 @@ class UserManagementServices {
         sellerPhone: seller.phoneNo,
       },
     })
+    const token = this.generateAccessToken(
+      customer.customerId,
+      customer.role,
+      customer.customerPhoneNo,
+    )
+    return { customer, token }
+  }
+
+  public async getCustomerByPhoneNoAndSellerCode({
+    customerPhoneNo,
+  }: {
+    customerPhoneNo: string
+  }): Promise<Prisma.CustomerGetPayload<{}> | null> {
+    const customer = await prisma.customer.findUnique({
+      where: { customerPhoneNo },
+    })
+    if (!customer) {
+      throw new ApiError(404, 'Customer not found')
+    }
+    return customer
   }
   /**
    * Make Super Admin a normal admin

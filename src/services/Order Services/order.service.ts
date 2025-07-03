@@ -19,7 +19,7 @@ import commissionServices from '../Commission Management/commission.services'
 import SmsServices from '../Utility Services/Sms Service/sms.services'
 import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
 import walletServices from '../WalletManagement/wallet.services'
-import { OrderData } from './order.types'
+import { OrderData, OrderProductData } from './order.types'
 
 class OrderService {
   private async checkExistingTrackingUrl(trackingUrl?: string) {
@@ -152,6 +152,152 @@ class OrderService {
 
     return order
   }
+  public async createCustomerOrder({
+    shopId,
+    customerName,
+    customerPhoneNo,
+    customerZilla,
+    customerUpazilla,
+    deliveryAddress,
+    comments,
+    systemWalletPhoneNo,
+    systemWalletName,
+    customerWalletPhoneNo,
+    transactionId,
+    products,
+    amount,
+  }: {
+    shopId: number
+    customerName: string
+    customerPhoneNo: string
+    customerZilla: string
+    customerUpazilla: string
+    deliveryAddress: string
+    comments?: string
+    systemWalletPhoneNo: string
+    systemWalletName: string
+    customerWalletPhoneNo: string
+    transactionId: string
+    amount: number
+    products: OrderProductData[]
+  }) {
+    // find customer by phone number
+    const customer = await userServices.getCustomerByPhoneNoAndSellerCode({
+      customerPhoneNo,
+    })
+    const isBlocked = await blockServices.isUserBlocked(
+      customerPhoneNo,
+      BlockActionType.ORDER_REQUEST,
+    )
+    if (isBlocked) {
+      throw new Error(
+        'You are blocked from placing orders. Please contact support.',
+      )
+    }
+    const shop = await shopCategoryServices.checkShopStatus(shopId)
+    if (!shop || !shop.isActive) {
+      throw new ApiError(400, 'Shop is not active')
+    }
+    const { shopName, shopLocation } = shop
+    const verifiedOrderData =
+      await productServices.verifyOrderProducts(products)
+    console.clear()
+    console.log('verifiedOrderData', verifiedOrderData)
+    const deliveryCharge = await this.calculateDeliveryCharge({
+      shopId,
+      customerZilla,
+      productQuantity: verifiedOrderData.totalProductQuantity,
+    })
+    if (amount < deliveryCharge.toNumber()) {
+      throw new ApiError(
+        400,
+        `Insufficient amount to pay for the order. Minimum amount: ${deliveryCharge.toFixed(
+          2,
+        )} BDT`,
+      )
+    }
+    // check system wallet ownership
+    const systemWallet = await walletServices.verifySystemWalletOwnership({
+      systemWalletName,
+      systemWalletPhoneNo,
+    })
+    if (!systemWallet) {
+      throw new ApiError(400, 'Invalid system wallet details')
+    }
+    // check existing Payment with same transactionId
+    const existingPayment =
+      await paymentService.checkExistingTransactionId(transactionId)
+    if (existingPayment) {
+      throw new ApiError(400, 'Payment with this transaction ID already exists')
+    }
+    // now create order connecting with payment
+    const order = await prisma.order.create({
+      data: {
+        shopId,
+        customerName,
+        customerPhoneNo,
+        customerZilla,
+        customerUpazilla,
+        customerAddress: deliveryAddress,
+        customerComments: comments,
+        shopName,
+        shopLocation,
+        isDeliveryChargePaid: true,
+        deliveryChargePaidAt: new Date(),
+        Payment: {
+          create: {
+            paymentType: 'ORDER_PAYMENT',
+            amount,
+            transactionId,
+            sender: 'CUSTOMER',
+            userWalletName: customerWalletPhoneNo,
+            userWalletPhoneNo: customerWalletPhoneNo,
+            systemWalletPhoneNo,
+            userName: customer?.customerName || customerName,
+            userPhoneNo: customer?.customerPhoneNo || customerPhoneNo,
+          },
+        },
+        OrderProduct: {
+          create: verifiedOrderData.products.map(product => ({
+            productId: product.productId,
+            productImage: product.productImage,
+            productQuantity: product.productQuantity,
+            productSellingPrice: product.productSellingPrice,
+            productVariant: product.productVariant,
+            productBasePrice: product.productBasePrice,
+            productName: product.productName,
+            totalProductBasePrice: product.totalProductBasePrice,
+            totalProductSellingPrice: product.totalProductSellingPrice,
+            totalProductQuantity: product.totalProductQuantity,
+          })),
+        },
+        deliveryCharge,
+        sellerId: customer?.sellerId || '',
+        sellerName: customer?.sellerName || '',
+        sellerPhoneNo: customer?.sellerPhone || '',
+        orderStatus: 'PAID',
+        orderType: 'CUSTOMER_ORDER',
+
+        totalCommission: verifiedOrderData.totalCommission,
+        actualCommission: verifiedOrderData.totalCommission,
+        totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
+        totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
+        totalProductQuantity: verifiedOrderData.totalProductQuantity,
+      },
+    })
+    // send order notification to admin
+    try {
+      const phoneNumbers = await this.getOrderSmsRecipients()
+      await SmsServices.sendOrderNotificationToAdmin({
+        mobileNo: phoneNumbers,
+        orderId: order.orderId,
+      })
+    } catch (error) {
+      console.error('Failed to send order notification to admin:', error)
+    }
+    return order
+  }
+
   public async getSellerOrders({
     userId,
     orderStatus,
