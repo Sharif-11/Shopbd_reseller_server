@@ -588,7 +588,7 @@ class OrderService {
         where: { orderId },
         data: {
           orderStatus: 'PAID',
-          paymentType: 'BALANCE',
+          paymentType: 'WALLET',
           isDeliveryChargePaid: true,
           deliveryChargePaidAt: new Date(),
           paymentVerified: false,
@@ -660,6 +660,56 @@ class OrderService {
           cancelled: true,
           cancelledReason: reason,
           cancelledBy: 'SELLER',
+          cancelledAt: new Date(),
+        },
+      })
+    }
+  }
+  public async cancelOrderByCustomer({
+    phoneNo,
+    orderId,
+    reason,
+  }: {
+    phoneNo: string
+    orderId: number
+    reason: string
+  }) {
+    const customer = await userServices.getCustomerByPhoneNo({
+      customerPhoneNo: phoneNo,
+    })
+
+    const order = await prisma.order.findUnique({
+      where: { orderId, sellerId: customer?.sellerId },
+      include: { OrderProduct: true },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+    if (!(order.orderStatus === 'UNPAID' || order.orderStatus === 'PAID')) {
+      throw new ApiError(400, 'Only unpaid or paid orders can be canceled')
+    }
+    if (order.cancelled) {
+      throw new ApiError(400, 'Order already cancelled by you')
+    }
+
+    if (order.orderStatus === 'UNPAID') {
+      return await prisma.order.update({
+        where: { orderId },
+        data: {
+          cancelled: true,
+          cancelledReason: reason,
+          cancelledBy: 'CUSTOMER',
+          cancelledAt: new Date(),
+          orderStatus: 'CANCELLED',
+        },
+      })
+    } else {
+      return await prisma.order.update({
+        where: { orderId },
+        data: {
+          cancelled: true,
+          cancelledReason: reason,
+          cancelledBy: 'CUSTOMER',
           cancelledAt: new Date(),
         },
       })

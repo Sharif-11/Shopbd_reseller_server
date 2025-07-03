@@ -117,13 +117,26 @@ class OrderValidator {
   static getCustomerOrders(): RequestHandler[] {
     return [
       // must be eleven digit bangladeshi phone number
-      body('phoneNo')
+      query('phoneNo')
         .notEmpty()
         .withMessage('গ্রাহকের ফোন নম্বর প্রয়োজন')
         .isString()
         .withMessage('গ্রাহকের ফোন নম্বর অবশ্যই স্ট্রিং হতে হবে')
         .isLength({ min: 11, max: 11 })
         .withMessage('গ্রাহকের ফোন নম্বর অবশ্যই ১১ ডিজিট হতে হবে'),
+      query('orderStatus').optional(),
+      query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('পৃষ্ঠা নম্বর অবশ্যই একটি ধনাত্মক সংখ্যা হতে হবে'),
+      query('limit')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('সীমা অবশ্যই একটি ধনাত্মক সংখ্যা হতে হবে'),
+      query('search')
+        .optional()
+        .isString()
+        .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
     ]
   }
 
@@ -226,8 +239,17 @@ class OrderValidator {
         .withMessage('বাতিলের কারণ অবশ্যই স্ট্রিং হতে হবে'),
     ]
   }
+
   static cancelOrderByCustomer(): RequestHandler[] {
     return [
+      // must be eleven digit bangladeshi phone number
+      body('phoneNo')
+        .notEmpty()
+        .withMessage('ফোন নম্বর প্রয়োজন')
+        .isString()
+        .withMessage('ফোন নম্বর অবশ্যই স্ট্রিং হতে হবে')
+        .isLength({ min: 11, max: 11 })
+        .withMessage('ফোন নম্বর অবশ্যই ১১ ডিজিট হতে হবে'),
       body('orderId')
         .notEmpty()
         .withMessage('অর্ডার আইডি প্রয়োজন')

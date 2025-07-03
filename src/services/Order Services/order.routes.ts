@@ -72,6 +72,12 @@ class OrderRouter {
       validateRequest,
       orderControllers.cancelOrderBySeller,
     )
+    this.router.post(
+      '/customer/cancel',
+      OrderValidator.cancelOrderByCustomer(),
+      validateRequest,
+      orderControllers.cancelOrderByCustomer,
+    )
 
     this.router.post(
       '/seller/confirm/:orderId',

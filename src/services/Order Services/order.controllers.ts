@@ -99,14 +99,14 @@ class OrderController {
   }
   async getCustomerOrders(req: Request, res: Response, next: NextFunction) {
     try {
-      const { orderStatus, page, limit, search } = req.query
-      const { phoneNo } = req.body
+      const { orderStatus, page, limit, search, phoneNo } = req.query
+
       const orders = await orderService.getCustomerOrders({
         orderStatus: orderStatus as OrderStatus | OrderStatus[],
         page: page ? Number(page) : undefined,
         limit: limit ? Number(limit) : undefined,
         search: search ? String(search) : undefined,
-        phoneNo,
+        phoneNo: phoneNo as string,
       })
 
       res.status(200).json({
@@ -196,6 +196,27 @@ class OrderController {
 
       const order = await orderService.cancelOrderBySeller({
         userId: userId!,
+        orderId: Number(orderId),
+        reason,
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order cancelled successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async cancelOrderByCustomer(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { orderId, reason, phoneNo } = req.body
+
+      const order = await orderService.cancelOrderByCustomer({
+        phoneNo,
         orderId: Number(orderId),
         reason,
       })
