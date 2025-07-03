@@ -176,7 +176,7 @@ model User {
 
 model Customer {
   customerId      String   @id @default(cuid())
-  customerName    String
+  customerName    String?
   customerPhoneNo String   @unique
   role            String   @default("Customer") // Constant string value
   sellerId        String

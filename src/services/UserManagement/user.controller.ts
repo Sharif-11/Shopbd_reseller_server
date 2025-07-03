@@ -132,10 +132,9 @@ class UserManagementController {
    */
   async createCustomer(req: Request, res: Response, next: NextFunction) {
     try {
-      const { customerName, customerPhoneNo, sellerCode } = req.body
+      const { customerPhoneNo, sellerCode } = req.body
 
       const customer = await userManagementServices.createCustomer({
-        customerName,
         customerPhoneNo,
         sellerCode,
       })

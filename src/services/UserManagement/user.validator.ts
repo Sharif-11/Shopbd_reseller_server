@@ -113,16 +113,7 @@ class UserManagementValidator {
         .withMessage('সঠিক বাংলাদেশী ফোন নম্বর প্রদান করুন')
         .isLength({ min: 11, max: 11 })
         .withMessage('ফোন নম্বরটি অবশ্যই ১১ ডিজিটের হতে হবে'),
-      body('customerName')
-        .notEmpty()
-        .withMessage('গ্রাহকের নাম প্রয়োজন')
-        .isLength({ min: 3 })
-        .withMessage('গ্রাহকের নাম অবশ্যই ৩ অক্ষরের বেশি হতে হবে'),
-      body('sellerCode')
-        .notEmpty()
-        .withMessage('বিক্রেতা কোড প্রয়োজন')
-        .isString()
-        .withMessage('বিক্রেতা কোড অবশ্যই স্ট্রিং হতে হবে'),
+      body('sellerCode').optional(),
     ]
   }
 

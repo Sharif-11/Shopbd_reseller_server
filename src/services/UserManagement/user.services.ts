@@ -425,11 +425,9 @@ class UserManagementServices {
    * Create a new customer
    */
   async createCustomer({
-    customerName,
     customerPhoneNo,
     sellerCode,
   }: {
-    customerName: string
     customerPhoneNo: string
     sellerCode: string
   }) {
@@ -461,7 +459,6 @@ class UserManagementServices {
     }
     return await prisma.customer.create({
       data: {
-        customerName,
         customerPhoneNo,
         sellerCode,
         role: 'Customer',
