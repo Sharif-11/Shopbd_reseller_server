@@ -840,7 +840,10 @@ class OrderService {
     if (result) {
       try {
         await SmsServices.notifyOrderShipped({
-          sellerPhoneNo: order.sellerPhoneNo!,
+          sellerPhoneNo:
+            result.orderType === 'SELLER_ORDER'
+              ? order.sellerPhoneNo!
+              : order.customerPhoneNo,
           orderId: order.orderId,
           trackingUrl: trackingUrl || '',
         })
@@ -981,10 +984,14 @@ class OrderService {
     adminId,
     orderId,
     reason,
+    transactionId,
+    systemWalletPhoneNo,
   }: {
     adminId: string
     orderId: number
     reason: string
+    transactionId?: string
+    systemWalletPhoneNo?: string
   }) {
     // check admin permission
     await userServices.verifyUserPermission(
@@ -1004,39 +1011,90 @@ class OrderService {
     if (order.orderStatus !== 'CONFIRMED') {
       throw new ApiError(400, 'Only confirmed orders can be cancelled by admin')
     }
-    if (
-      order.Payment?.paymentStatus === 'COMPLETED' ||
-      order.paymentType === 'BALANCE'
-    ) {
-      // we need to refund the payment to the seller and update the order status as refunded within the transaction
-      const result = await prisma.$transaction(async tx => {
-        await transactionServices.createTransaction({
-          tx,
-          userId: order.sellerId!,
-          transactionType: 'Credit',
-          amount: order.deliveryCharge.toNumber(),
-          reason: 'অর্ডার বাতিলের জন্য রিফান্ড',
+    if (order.orderType === 'SELLER_ORDER') {
+      if (
+        order.Payment?.paymentStatus === 'COMPLETED' ||
+        order.paymentType === 'BALANCE'
+      ) {
+        // we need to refund the payment to the seller and update the order status as refunded within the transaction
+        const result = await prisma.$transaction(async tx => {
+          await transactionServices.createTransaction({
+            tx,
+            userId: order.sellerId!,
+            transactionType: 'Credit',
+            amount: order.deliveryCharge.toNumber(),
+            reason: 'অর্ডার বাতিলের জন্য রিফান্ড',
+          })
+          await tx.order.update({
+            where: { orderId },
+            data: {
+              orderStatus: 'REFUNDED',
+              cancelledReason: reason,
+            },
+          })
+          return order
         })
-        await tx.order.update({
+        return result
+      }
+      return await prisma.order.update({
+        where: { orderId },
+        data: {
+          orderStatus: 'CANCELLED',
+          cancelledReason: reason,
+          cancelledBy: 'SYSTEM',
+          cancelledAt: new Date(),
+        },
+      })
+    } else {
+      // handle customer order cancellation
+      if (order?.Payment?.paymentStatus === 'COMPLETED') {
+        if (!transactionId) {
+          throw new ApiError(400, 'Transaction ID is required for refund')
+        }
+        if (!systemWalletPhoneNo) {
+          throw new ApiError(
+            400,
+            'System wallet phone number is required for refund',
+          )
+        }
+        const result = await prisma.$transaction(async tx => {
+          await paymentService.createPayment({
+            tx,
+            paymentType: 'CUSTOMER_REFUND',
+            sender: 'SYSTEM',
+            amount: order.deliveryCharge.toNumber(),
+            transactionId: transactionId || '',
+            userWalletName: order.Payment?.userWalletName!,
+            userWalletPhoneNo: order.Payment?.userWalletPhoneNo!,
+            systemWalletPhoneNo: systemWalletPhoneNo!,
+            userName: order.customerName,
+            userPhoneNo: order.customerPhoneNo,
+          })
+          await tx.order.update({
+            where: { orderId },
+            data: {
+              orderStatus: 'REFUNDED',
+              cancelledReason: reason,
+              cancelledBy: 'SYSTEM',
+              cancelledAt: new Date(),
+            },
+          })
+          return order
+        })
+        return result
+      } else {
+        const updatedOrder = await prisma.order.update({
           where: { orderId },
           data: {
-            orderStatus: 'REFUNDED',
+            orderStatus: 'CANCELLED',
             cancelledReason: reason,
+            cancelledBy: 'SYSTEM',
+            cancelledAt: new Date(),
           },
         })
-        return order
-      })
-      return result
+        return updatedOrder
+      }
     }
-    return await prisma.order.update({
-      where: { orderId },
-      data: {
-        orderStatus: 'CANCELLED',
-        cancelledReason: reason,
-        cancelledBy: 'SYSTEM',
-        cancelledAt: new Date(),
-      },
-    })
   }
   public async completeOrderByAdmin({
     adminId,
@@ -1109,10 +1167,21 @@ class OrderService {
           transactionType: 'Credit',
           amount: actualCommission,
           reason: 'অর্ডার সম্পন্নের কমিশন',
+          reference:
+            order.orderType === 'CUSTOMER_ORDER'
+              ? {
+                  customerName: updatedOrder.customerName,
+                  customerPhoneNo: updatedOrder.customerPhoneNo,
+                  orderId: updatedOrder.orderId,
+                }
+              : undefined,
         }))
       return updatedOrder
     })
-    if (result.orderStatus === 'COMPLETED') {
+    if (
+      result.orderStatus === 'COMPLETED' &&
+      result.orderType === 'SELLER_ORDER'
+    ) {
       try {
         const referrers = await commissionServices.calculateUserCommissions(
           order.sellerPhoneNo!,
@@ -1143,10 +1212,14 @@ class OrderService {
     }
     try {
       await SmsServices.notifyOrderCompleted({
-        sellerPhoneNo: order.sellerPhoneNo!,
+        sellerPhoneNo:
+          order.orderType === 'SELLER_ORDER'
+            ? order.sellerPhoneNo!
+            : order.customerPhoneNo,
         orderId: order.orderId,
         commission: result.actualCommission!.toNumber() || 0,
         orderAmount: result.totalProductSellingPrice.toNumber(),
+        orderType: result.orderType,
       })
     } catch (error) {
       console.error('Error sending order SMS:', error)

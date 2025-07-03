@@ -352,11 +352,13 @@ class OrderController {
     try {
       const userId = req.user?.userId
       const { orderId } = req.params
-      const { reason } = req.body
+      const { reason, transactionId, systemWalletPhoneNo } = req.body
       const order = await orderService.cancelOrderByAdmin({
         orderId: Number(orderId),
         reason,
         adminId: userId!,
+        transactionId,
+        systemWalletPhoneNo,
       })
       res.status(200).json({
         statusCode: 200,

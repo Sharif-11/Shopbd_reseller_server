@@ -93,6 +93,7 @@ enum PaymentType {
   ORDER_PAYMENT
   WITHDRAWAL_PAYMENT
   DUE_PAYMENT
+  CUSTOMER_REFUND
 }
 
 enum SenderType {

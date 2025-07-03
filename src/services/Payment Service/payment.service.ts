@@ -168,6 +168,8 @@ class PaymentService {
         transactionId,
         userName,
         userPhoneNo,
+        paymentStatus:
+          paymentType === 'CUSTOMER_REFUND' ? 'COMPLETED' : 'PENDING',
       },
     })
     return payment

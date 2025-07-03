@@ -351,13 +351,26 @@ class SmsServices {
     orderId,
     orderAmount,
     commission,
+    orderType = 'SELLER_ORDER',
   }: {
     sellerPhoneNo: string
     orderId: number
     orderAmount: number
     commission: number
+    orderType?: 'SELLER_ORDER' | 'CUSTOMER_ORDER'
   }): Promise<SmsResponse | BulkSmsResponse> {
-    const message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK. Your commission: ${commission} TK.`
+    let message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK. Your commission: ${commission} TK.`
+    if (orderType === 'CUSTOMER_ORDER') {
+      message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK.`
+    }
+    if (config.env === 'development') {
+      console.log(`Order completed message for ${sellerPhoneNo}: ${message}`)
+      return {
+        response_code: 200,
+        success_message:
+          'Order completed message sent successfully (development mode)',
+      }
+    }
     return this.sendSingleSms(sellerPhoneNo, message)
   }
 
