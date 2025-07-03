@@ -160,12 +160,7 @@ class OrderService {
     customerUpazilla,
     deliveryAddress,
     comments,
-    systemWalletPhoneNo,
-    systemWalletName,
-    customerWalletPhoneNo,
-    transactionId,
     products,
-    amount,
   }: {
     shopId: number
     customerName: string
@@ -174,15 +169,10 @@ class OrderService {
     customerUpazilla: string
     deliveryAddress: string
     comments?: string
-    systemWalletPhoneNo: string
-    systemWalletName: string
-    customerWalletPhoneNo: string
-    transactionId: string
-    amount: number
     products: OrderProductData[]
   }) {
     // find customer by phone number
-    const customer = await userServices.getCustomerByPhoneNoAndSellerCode({
+    const customer = await userServices.getCustomerByPhoneNo({
       customerPhoneNo,
     })
     const isBlocked = await blockServices.isUserBlocked(
@@ -208,28 +198,7 @@ class OrderService {
       customerZilla,
       productQuantity: verifiedOrderData.totalProductQuantity,
     })
-    if (amount < deliveryCharge.toNumber()) {
-      throw new ApiError(
-        400,
-        `Insufficient amount to pay for the order. Minimum amount: ${deliveryCharge.toFixed(
-          2,
-        )} BDT`,
-      )
-    }
-    // check system wallet ownership
-    const systemWallet = await walletServices.verifySystemWalletOwnership({
-      systemWalletName,
-      systemWalletPhoneNo,
-    })
-    if (!systemWallet) {
-      throw new ApiError(400, 'Invalid system wallet details')
-    }
-    // check existing Payment with same transactionId
-    const existingPayment =
-      await paymentService.checkExistingTransactionId(transactionId)
-    if (existingPayment) {
-      throw new ApiError(400, 'Payment with this transaction ID already exists')
-    }
+
     // now create order connecting with payment
     const order = await prisma.order.create({
       data: {
@@ -242,21 +211,7 @@ class OrderService {
         customerComments: comments,
         shopName,
         shopLocation,
-        isDeliveryChargePaid: true,
-        deliveryChargePaidAt: new Date(),
-        Payment: {
-          create: {
-            paymentType: 'ORDER_PAYMENT',
-            amount,
-            transactionId,
-            sender: 'CUSTOMER',
-            userWalletName: customerWalletPhoneNo,
-            userWalletPhoneNo: customerWalletPhoneNo,
-            systemWalletPhoneNo,
-            userName: customer?.customerName || customerName,
-            userPhoneNo: customer?.customerPhoneNo || customerPhoneNo,
-          },
-        },
+        isDeliveryChargePaid: false,
         OrderProduct: {
           create: verifiedOrderData.products.map(product => ({
             productId: product.productId,
@@ -275,7 +230,7 @@ class OrderService {
         sellerId: customer?.sellerId || '',
         sellerName: customer?.sellerName || '',
         sellerPhoneNo: customer?.sellerPhone || '',
-        orderStatus: 'PAID',
+        orderStatus: 'UNPAID',
         orderType: 'CUSTOMER_ORDER',
 
         totalCommission: verifiedOrderData.totalCommission,
@@ -286,15 +241,7 @@ class OrderService {
       },
     })
     // send order notification to admin
-    try {
-      const phoneNumbers = await this.getOrderSmsRecipients()
-      await SmsServices.sendOrderNotificationToAdmin({
-        mobileNo: phoneNumbers,
-        orderId: order.orderId,
-      })
-    } catch (error) {
-      console.error('Failed to send order notification to admin:', error)
-    }
+
     return order
   }
 
@@ -320,6 +267,72 @@ class OrderService {
     const where: any = {
       sellerId: user.userId,
       orderType: 'SELLER_ORDER',
+    }
+    if (orderStatus) {
+      where.orderStatus = Array.isArray(orderStatus)
+        ? { in: orderStatus }
+        : orderStatus
+    }
+    if (search) {
+      where.OR = [
+        { customerName: { contains: search, mode: 'insensitive' } },
+        { customerPhoneNo: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
+    const skip = ((page || 1) - 1) * (limit || 10)
+
+    const orders = await prisma.order
+      .findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit || 10,
+        include: {
+          OrderProduct: true,
+          Payment: true,
+        },
+      })
+      .then(orders =>
+        orders.map(order => ({
+          ...order,
+          OrderProduct: order.OrderProduct.map(product => ({
+            ...product,
+            productVariant: JSON.parse(product.productVariant as string),
+          })),
+        })),
+      )
+    const totalOrders = await prisma.order.count({
+      where,
+    })
+    return {
+      orders,
+      totalOrders,
+      currentPage: page || 1,
+      totalPages: Math.ceil(totalOrders / (limit || 10)),
+      pageSize: limit || 10,
+    }
+  }
+  public async getCustomerOrders({
+    phoneNo,
+    orderStatus,
+    page,
+    limit,
+    search,
+  }: {
+    phoneNo: string
+    orderStatus?: OrderStatus | OrderStatus[]
+    page?: number
+    limit?: number
+    search?: string
+  }) {
+    const customer = await userServices.getCustomerByPhoneNo({
+      customerPhoneNo: phoneNo,
+    })
+
+    const where: any = {
+      sellerId: customer?.sellerId,
+      orderType: 'CUSTOMER_ORDER',
     }
     if (orderStatus) {
       where.orderStatus = Array.isArray(orderStatus)
@@ -508,6 +521,98 @@ class OrderService {
       }
       return updatedOrder
     }
+  }
+  public async orderPaymentByCustomer({
+    orderId,
+    customerWalletName,
+    customerWalletPhoneNo,
+    systemWalletPhoneNo,
+    amount,
+    transactionId,
+  }: {
+    orderId: number
+    customerWalletName: string
+    customerWalletPhoneNo: string
+    systemWalletPhoneNo: string
+    amount: number
+    transactionId: string
+  }) {
+    const customer = await userServices.getCustomerByPhoneNo({
+      customerPhoneNo: customerWalletPhoneNo,
+    })
+    const order = await prisma.order.findUnique({
+      where: { orderId, sellerId: customer?.sellerId },
+      include: { OrderProduct: true },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
+    if (order.orderStatus !== 'UNPAID') {
+      throw new ApiError(400, 'Only unpaid orders can be paid')
+    }
+    if (order.cancelled) {
+      throw new ApiError(400, 'Order already cancelled by you')
+    }
+
+    if (
+      !systemWalletPhoneNo ||
+      !customerWalletName ||
+      !customerWalletPhoneNo ||
+      !amount ||
+      !transactionId
+    ) {
+      throw new ApiError(400, 'Missing required fields')
+    }
+    const systemWallet = await walletServices.verifySystemWalletOwnership({
+      systemWalletName: customerWalletName!,
+      systemWalletPhoneNo: systemWalletPhoneNo!,
+    })
+    if (amount < order.deliveryCharge.toNumber()) {
+      throw new ApiError(400, 'Insufficient amount to pay for the order')
+    }
+
+    const updatedOrder = await prisma.$transaction(async tx => {
+      const payment = await paymentService.createPayment({
+        tx,
+        paymentType: 'ORDER_PAYMENT',
+        amount,
+        transactionId,
+        sender: 'CUSTOMER',
+        userWalletName: customerWalletName,
+        userWalletPhoneNo: customerWalletPhoneNo,
+        systemWalletPhoneNo,
+        userName: order.customerName,
+        userPhoneNo: order.customerPhoneNo,
+      })
+      const updatedOrder = await tx.order.update({
+        where: { orderId },
+        data: {
+          orderStatus: 'PAID',
+          paymentType: 'BALANCE',
+          isDeliveryChargePaid: true,
+          deliveryChargePaidAt: new Date(),
+          paymentVerified: false,
+          cashOnAmount: order.totalProductSellingPrice,
+          Payment: {
+            connect: { paymentId: payment.paymentId },
+          },
+        },
+      })
+      return updatedOrder
+    })
+    try {
+      const phoneNumbers = await this.getOrderSmsRecipients()
+      console.clear()
+      console.log('Order SMS recipients:', phoneNumbers)
+
+      await SmsServices.sendOrderNotificationToAdmin({
+        mobileNo: phoneNumbers,
+        orderId: order.orderId,
+      })
+    } catch (error) {
+      console.error('Error sending order SMS:', error)
+    }
+    return updatedOrder
   }
   public async cancelOrderBySeller({
     userId,

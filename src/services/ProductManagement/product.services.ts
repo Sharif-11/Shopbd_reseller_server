@@ -452,7 +452,14 @@ class ProductServices {
         published: true,
       },
       include: {
-        shop: { select: { shopName: true, shopLocation: true } },
+        shop: {
+          select: {
+            shopName: true,
+            shopLocation: true,
+            deliveryChargeInside: true,
+            deliveryChargeOutside: true,
+          },
+        },
         category: { select: { name: true } },
         ProductVariant: true,
         ProductImage: {

@@ -476,7 +476,7 @@ class UserManagementServices {
     return { customer, token }
   }
 
-  public async getCustomerByPhoneNoAndSellerCode({
+  public async getCustomerByPhoneNo({
     customerPhoneNo,
   }: {
     customerPhoneNo: string
@@ -489,6 +489,7 @@ class UserManagementServices {
     }
     return customer
   }
+
   /**
    * Make Super Admin a normal admin
    */

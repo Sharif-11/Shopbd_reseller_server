@@ -50,11 +50,6 @@ class OrderController {
         deliveryAddress,
         comments,
         products,
-        systemWalletPhoneNo,
-        systemWalletName,
-        customerWalletPhoneNo,
-        transactionId,
-        amount,
       } = req.body
 
       const order = await orderService.createCustomerOrder({
@@ -66,11 +61,6 @@ class OrderController {
         deliveryAddress,
         comments,
         products,
-        systemWalletPhoneNo,
-        systemWalletName,
-        customerWalletPhoneNo,
-        transactionId,
-        amount: amount as number,
       })
 
       res.status(201).json({
@@ -107,6 +97,28 @@ class OrderController {
       next(error)
     }
   }
+  async getCustomerOrders(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { orderStatus, page, limit, search } = req.query
+      const { phoneNo } = req.body
+      const orders = await orderService.getCustomerOrders({
+        orderStatus: orderStatus as OrderStatus | OrderStatus[],
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+        search: search ? String(search) : undefined,
+        phoneNo,
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Orders retrieved successfully',
+        success: true,
+        data: orders,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 
   async orderPaymentBySeller(req: Request, res: Response, next: NextFunction) {
     try {
@@ -129,6 +141,40 @@ class OrderController {
         sellerWalletPhoneNo,
         systemWalletPhoneNo,
         amount: amount ? Number(amount) : undefined,
+        transactionId,
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order payment processed successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async orderPaymentByCustomer(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const {
+        orderId,
+        customerWalletName,
+        customerWalletPhoneNo,
+        systemWalletPhoneNo,
+        amount,
+        transactionId,
+      } = req.body
+
+      const order = await orderService.orderPaymentByCustomer({
+        orderId: Number(orderId),
+        customerWalletName,
+        customerWalletPhoneNo,
+        systemWalletPhoneNo,
+        amount: amount as number,
         transactionId,
       })
 

@@ -29,8 +29,8 @@ class OrderRouter {
       '/customer',
       // isAuthenticated,
       // verifyRole('Customer'),
-      // OrderValidator.createCustomerOrder(),
-      // validateRequest,
+      OrderValidator.createCustomerOrder(),
+      validateRequest,
       orderControllers.createCustomerOrder,
     )
 
@@ -42,6 +42,12 @@ class OrderRouter {
       validateRequest,
       orderControllers.getSellerOrders,
     )
+    this.router.get(
+      '/customer',
+      OrderValidator.getCustomerOrders(),
+      validateRequest,
+      orderControllers.getCustomerOrders,
+    )
 
     this.router.post(
       '/seller/payment',
@@ -50,6 +56,12 @@ class OrderRouter {
       OrderValidator.orderPaymentBySeller(),
       validateRequest,
       orderControllers.orderPaymentBySeller,
+    )
+    this.router.post(
+      '/customer/payment',
+      OrderValidator.orderPaymentByCustomer(),
+      validateRequest,
+      orderControllers.orderPaymentByCustomer,
     )
 
     this.router.post(
