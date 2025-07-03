@@ -28,7 +28,7 @@ class AnnouncementController {
       const userId = req.user?.userId // Assuming userId is available in req.user
       const { announcements } = req.body // Expecting array of strings
       console.clear()
-      console.log('Received announcements:', announcements)
+
       const updated = await announcementServices.replaceAllAnnouncements(
         userId!,
         announcements,

@@ -123,7 +123,6 @@ class WithdrawService {
         PermissionType.WITHDRAWAL_MANAGEMENT,
       )
       console.clear()
-      console.log('Withdraw SMS Recipients:', smsRecipients)
 
       await SmsServices.sendWithdrawalRequestToAdmin({
         sellerName: user.name,

@@ -14,7 +14,7 @@ CREATE TYPE "BlockActionType" AS ENUM ('ORDER_REQUEST', 'WITHDRAW_REQUEST', 'PAS
 CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'COMPLETED', 'CANCELLED', 'REJECTED', 'FAILED');
 
 -- CreateEnum
-CREATE TYPE "PaymentType" AS ENUM ('ORDER_PAYMENT', 'WITHDRAWAL_PAYMENT', 'DUE_PAYMENT');
+CREATE TYPE "PaymentType" AS ENUM ('ORDER_PAYMENT', 'WITHDRAWAL_PAYMENT', 'DUE_PAYMENT', 'CUSTOMER_REFUND');
 
 -- CreateEnum
 CREATE TYPE "SenderType" AS ENUM ('SELLER', 'SYSTEM', 'CUSTOMER');
@@ -94,7 +94,7 @@ CREATE TABLE "users" (
 -- CreateTable
 CREATE TABLE "customers" (
     "customerId" TEXT NOT NULL,
-    "customerName" TEXT NOT NULL,
+    "customerName" TEXT,
     "customerPhoneNo" TEXT NOT NULL,
     "role" TEXT NOT NULL DEFAULT 'Customer',
     "sellerId" TEXT NOT NULL,
@@ -485,6 +485,9 @@ CREATE UNIQUE INDEX "customers_customerPhoneNo_key" ON "customers"("customerPhon
 
 -- CreateIndex
 CREATE INDEX "customerPhoneIndex" ON "customers"("customerPhoneNo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "customers_customerPhoneNo_sellerId_key" ON "customers"("customerPhoneNo", "sellerId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "roles_roleName_key" ON "roles"("roleName");

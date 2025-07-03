@@ -70,7 +70,6 @@ class OtpServices {
             // Generate and send new OTP
             const otp = this.generateRandomOtp(config_1.default.otpLength);
             console.clear();
-            console.log(`Generated OTP for ${phoneNo}: ${otp}`);
             yield sms_services_1.default.sendOtp(phoneNo, otp);
             const result = yield prisma_1.default.otp.update({
                 where: { phoneNo },

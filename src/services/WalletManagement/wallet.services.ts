@@ -85,7 +85,7 @@ class WalletServices {
     if (!user || user.role !== 'Seller') {
       throw new ApiError(400, 'Wallets can only be created for sellers')
     }
-    console.log(`wallet length: ${JSON.stringify(user.Wallet)}`)
+   
     if (user.Wallet.length >= config.maximumWallets) {
       throw new ApiError(
         400,
@@ -163,9 +163,7 @@ class WalletServices {
         throw new ApiError(403, 'Unauthorized to view these wallets')
       } else {
         console.clear()
-        console.log(
-          `Requester is ${requester.role}, allowing access to seller wallets`,
-        )
+     
         // If requester is not the owner, verify permission
         await userManagementServices.verifyUserPermission(
           requesterId,
@@ -177,9 +175,7 @@ class WalletServices {
           await userManagementServices.getUserDetailByIdForWalletManagement(
             user.userId,
           )
-        console.log(
-          `User details for wallet management: ${JSON.stringify(result)}`,
-        )
+    
         return result
       }
     } else {
@@ -404,7 +400,7 @@ class WalletServices {
     })
 
     await SmsServices.sendOtp(walletPhoneNo, otp)
-    console.log(`Sending OTP ${otp} to ${walletPhoneNo}`)
+   
     return {
       sendOTP: true,
       isBlocked: false,
@@ -461,7 +457,7 @@ class WalletServices {
 
     if (otpRecord.otp !== otp) {
       if (otpRecord.failedAttempts + 1 >= config.maximumOtpAttempts) {
-        console.log(`Blocking wallet verification for user: ${user?.phoneNo}`)
+     
         // we need to create a block record and reset the otp  failed attempts within a transaction
         await prisma.$transaction(async tx => {
           await tx.walletOtp.update({

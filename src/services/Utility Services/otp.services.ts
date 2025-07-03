@@ -73,7 +73,7 @@ class OtpServices {
     // Generate and send new OTP
     const otp = this.generateRandomOtp(config.otpLength)
     console.clear()
-    console.log(`Generated OTP for ${phoneNo}: ${otp}`)
+
     await SmsServices.sendOtp(phoneNo, otp)
 
     const result = await prisma.otp.update({

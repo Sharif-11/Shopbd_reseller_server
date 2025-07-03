@@ -25,7 +25,13 @@ class UserManagementValidator {
                 .withMessage('পাসওয়ার্ড প্রয়োজন')
                 .isLength({ min: 6 })
                 .withMessage('পাসওয়ার্ড অবশ্যই ৬ অক্ষরের বেশি হতে হবে'),
-            (0, express_validator_1.body)('email').optional().isEmail().withMessage('সঠিক ইমেইল প্রদান করুন'),
+            (0, express_validator_1.body)('email')
+                .optional({
+                nullable: true,
+                checkFalsy: true,
+            })
+                .isEmail()
+                .withMessage('সঠিক ইমেইল প্রদান করুন'),
         ];
     }
     /**
@@ -101,16 +107,7 @@ class UserManagementValidator {
                 .withMessage('সঠিক বাংলাদেশী ফোন নম্বর প্রদান করুন')
                 .isLength({ min: 11, max: 11 })
                 .withMessage('ফোন নম্বরটি অবশ্যই ১১ ডিজিটের হতে হবে'),
-            (0, express_validator_1.body)('customerName')
-                .notEmpty()
-                .withMessage('গ্রাহকের নাম প্রয়োজন')
-                .isLength({ min: 3 })
-                .withMessage('গ্রাহকের নাম অবশ্যই ৩ অক্ষরের বেশি হতে হবে'),
-            (0, express_validator_1.body)('sellerCode')
-                .notEmpty()
-                .withMessage('বিক্রেতা কোড প্রয়োজন')
-                .isString()
-                .withMessage('বিক্রেতা কোড অবশ্যই স্ট্রিং হতে হবে'),
+            (0, express_validator_1.body)('sellerCode').optional(),
         ];
     }
     /**

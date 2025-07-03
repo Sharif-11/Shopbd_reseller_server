@@ -101,7 +101,7 @@ class OrderService {
     const verifiedOrderData =
       await productServices.verifyOrderProducts(products)
     console.clear()
-    console.log('verifiedOrderData', verifiedOrderData)
+
     const deliveryCharge = await this.calculateDeliveryCharge({
       shopId,
       customerZilla,
@@ -191,8 +191,7 @@ class OrderService {
     const { shopName, shopLocation } = shop
     const verifiedOrderData =
       await productServices.verifyOrderProducts(products)
-    console.clear()
-    console.log('verifiedOrderData', verifiedOrderData)
+
     const deliveryCharge = await this.calculateDeliveryCharge({
       shopId,
       customerZilla,
@@ -258,7 +257,6 @@ class OrderService {
     limit?: number
     search?: string
   }) {
-    console.log({ orderStatus, page, limit, search })
     const user = await userServices.getUserById(userId)
     if (!user) {
       throw new ApiError(404, 'User not found')
@@ -449,7 +447,7 @@ class OrderService {
         try {
           const phoneNumbers = await this.getOrderSmsRecipients()
           console.clear()
-          console.log('Order SMS recipients:(Balance Payment)', phoneNumbers)
+
           await SmsServices.sendOrderNotificationToAdmin({
             mobileNo: phoneNumbers,
             orderId: order.orderId,
@@ -510,7 +508,6 @@ class OrderService {
       try {
         const phoneNumbers = await this.getOrderSmsRecipients()
         console.clear()
-        console.log('Order SMS recipients:', phoneNumbers)
 
         await SmsServices.sendOrderNotificationToAdmin({
           mobileNo: phoneNumbers,
@@ -603,7 +600,6 @@ class OrderService {
     try {
       const phoneNumbers = await this.getOrderSmsRecipients()
       console.clear()
-      console.log('Order SMS recipients:', phoneNumbers)
 
       await SmsServices.sendOrderNotificationToAdmin({
         mobileNo: phoneNumbers,
@@ -764,7 +760,7 @@ class OrderService {
       try {
         const phoneNumbers = await this.getOrderSmsRecipients()
         console.clear()
-        console.log('Order SMS recipients:', phoneNumbers)
+
         await SmsServices.sendOrderNotificationToAdmin({
           mobileNo: phoneNumbers,
           orderId: order.orderId,

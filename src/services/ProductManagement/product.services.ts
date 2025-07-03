@@ -559,7 +559,7 @@ class ProductServices {
   }) {
     try {
       if (userId) {
-        console.log('fetching product detail for seller')
+      
         const product = await this.getProductDetailForSeller(productId)
         // Seller or admin view
         return {
@@ -567,10 +567,9 @@ class ProductServices {
           product,
         }
       } else {
-        console.log('fetching product detail for customer')
+   
         const product = await this.getProductDetailForCustomer(productId)
-        console.log('Customer view product:', product)
-        // Customer view
+   
         return {
           userType: 'customer',
           product,

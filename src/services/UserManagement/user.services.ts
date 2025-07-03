@@ -643,7 +643,7 @@ class UserManagementServices {
     // if (block) {
     //   throw new ApiError(403, 'Your account is currently blocked')
     // }
-    console.log('user login.....', user)
+
     const token = this.generateAccessToken(user.userId, user.role, user.phoneNo)
     const { password, ...userWithoutPassword } = user
     return {
@@ -697,7 +697,7 @@ class UserManagementServices {
     // if (block) {
     //   throw new ApiError(403, 'Your account is currently blocked')
     // }
-    console.log('user login.....', user)
+
     const token = this.generateAccessToken(user.userId, user.role, user.phoneNo)
     const { password, ...userWithoutPassword } = user
     return {
@@ -1101,7 +1101,7 @@ class UserManagementServices {
       PermissionType.USER_MANAGEMENT,
       ActionType.UPDATE,
     )
-    console.log('assignPermissionToRole input:', input)
+
     return await prisma.rolePermission.upsert({
       where: {
         roleId_permission: {
@@ -1326,12 +1326,6 @@ class UserManagementServices {
           },
         },
       },
-    })
-    console.log('Verifying user permission:', {
-      userId,
-      permission,
-      action,
-      phoneNo: user?.phoneNo,
     })
 
     if (!user) {

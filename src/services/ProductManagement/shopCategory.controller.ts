@@ -142,7 +142,6 @@ class ShopCategoryController {
 
       const { shopId } = req.params
       const { isActive } = req.body
-      console.log({ userId, shopId, isActive })
 
       const shop = await shopCategoryServices.openOrCloseShop(
         userId!,
@@ -214,7 +213,7 @@ class ShopCategoryController {
         name = '',
         subCategories = false,
       } = req.query
-      console.log({ page, limit, name, subCategories })
+
       const categories = await shopCategoryServices.getAllCategories(
         Number(page),
         Number(limit),

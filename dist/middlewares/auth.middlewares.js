@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyRole = exports.isAuthenticated = void 0;
+exports.verifyRole = exports.authenticate = exports.isAuthenticated = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = __importDefault(require("../config"));
 const ApiError_1 = __importDefault(require("../utils/ApiError"));
@@ -42,6 +42,35 @@ const isAuthenticated = (req, res, next) => __awaiter(void 0, void 0, void 0, fu
     }
 });
 exports.isAuthenticated = isAuthenticated;
+const authenticate = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const token = (_a = req.header('Authorization')) === null || _a === void 0 ? void 0 : _a.replace('Bearer ', '');
+    // console.log({meta:req?.body?.meta})
+    if (!token) {
+        next();
+    }
+    else {
+        try {
+            const payload = jsonwebtoken_1.default.verify(token, config_1.default.jwtSecret);
+            // check if user with userId exists
+            const { userId } = payload;
+            const user = yield prisma_1.default.user.findUnique({
+                where: { userId },
+            });
+            if (!user) {
+                next();
+            }
+            else {
+                req.user = payload;
+                next();
+            }
+        }
+        catch (error) {
+            next(new ApiError_1.default(401, 'Unauthorized'));
+        }
+    }
+});
+exports.authenticate = authenticate;
 const verifyRole = (role) => {
     return (req, res, next) => {
         var _a, _b, _c;

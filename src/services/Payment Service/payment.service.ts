@@ -189,7 +189,7 @@ class PaymentService {
       PermissionType.PAYMENT_MANAGEMENT,
       'APPROVE',
     )
-    console.log({ paymentId, transactionId })
+
     // check if payment exists
     const payment = await prisma.payment.findUnique({
       where: { paymentId },
@@ -288,7 +288,7 @@ class PaymentService {
         paymentStatus: 'REJECTED',
       },
     })
-    console.log({ totalRejectedPayments })
+
     if (totalRejectedPayments >= config.maxRejectedPaymentLimit) {
       // block user if they have 3 or more rejected payments
       await prisma.$transaction(async tx => {

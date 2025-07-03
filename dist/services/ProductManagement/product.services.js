@@ -364,17 +364,21 @@ class ProductServices {
                 where: {
                     productId,
                     published: true,
-                    ProductImage: {
-                        none: { hidden: true },
-                    },
                 },
                 include: {
-                    shop: { select: { shopName: true } },
+                    shop: {
+                        select: {
+                            shopName: true,
+                            shopLocation: true,
+                            deliveryChargeInside: true,
+                            deliveryChargeOutside: true,
+                        },
+                    },
                     category: { select: { name: true } },
                     ProductVariant: true,
                     ProductImage: {
                         where: { hidden: false },
-                        select: { imageUrl: true },
+                        select: { imageUrl: true, imageId: true },
                         orderBy: { isPrimary: 'desc' },
                     },
                 },
@@ -400,6 +404,7 @@ class ProductServices {
             const product = yield prisma_1.default.product.findFirst({
                 where: {
                     productId,
+                    published: true, // Only show published products
                 },
                 include: {
                     shop: {
@@ -432,6 +437,30 @@ class ProductServices {
             return {
                 product: Object.assign(Object.assign({}, product), { variants: groupedVariants, images: product.ProductImage }),
             };
+        });
+    }
+    getProductDetail(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ userId, productId, }) {
+            try {
+                if (userId) {
+                    const product = yield this.getProductDetailForSeller(productId);
+                    // Seller or admin view
+                    return {
+                        userType: 'seller',
+                        product,
+                    };
+                }
+                else {
+                    const product = yield this.getProductDetailForCustomer(productId);
+                    return {
+                        userType: 'customer',
+                        product,
+                    };
+                }
+            }
+            catch (error) {
+                throw error;
+            }
         });
     }
     // ==========================================
@@ -494,6 +523,9 @@ class ProductServices {
         return __awaiter(this, void 0, void 0, function* () {
             const where = {
                 published: true,
+                shop: {
+                    isActive: true, // Only show products from active shops
+                },
             };
             // Search filter
             if (filters.search) {
@@ -525,7 +557,7 @@ class ProductServices {
                         name: true,
                         description: true,
                         suggestedMaxPrice: true, // Only show suggested price to customers
-                        shop: { select: { shopName: true } },
+                        shop: { select: { shopName: true, shopLocation: true } },
                         category: { select: { name: true } },
                         ProductImage: {
                             where: { hidden: false },
@@ -602,6 +634,29 @@ class ProductServices {
                     totalPages: Math.ceil(totalCount / pagination.limit),
                 },
             };
+        });
+    }
+    getAllProducts(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ userId, filters, pagination, }) {
+            try {
+                if (userId) {
+                    const result = yield this.getAllProductsForSeller(filters, pagination);
+                    return {
+                        result,
+                        userType: 'seller',
+                    };
+                }
+                else {
+                    const result = yield this.getAllProductsForCustomer(filters, pagination);
+                    return {
+                        result,
+                        userType: 'customer',
+                    };
+                }
+            }
+            catch (error) {
+                throw error;
+            }
         });
     }
 }

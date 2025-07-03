@@ -108,6 +108,7 @@ class PaymentService {
                     transactionId,
                     userName,
                     userPhoneNo,
+                    paymentStatus: paymentType === 'CUSTOMER_REFUND' ? 'COMPLETED' : 'PENDING',
                 },
             });
             return payment;
@@ -117,7 +118,6 @@ class PaymentService {
         return __awaiter(this, arguments, void 0, function* ({ adminId, paymentId, transactionId, }) {
             // verify permission
             yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.PAYMENT_MANAGEMENT, 'APPROVE');
-            console.log({ paymentId, transactionId });
             // check if payment exists
             const payment = yield prisma_1.default.payment.findUnique({
                 where: { paymentId },
@@ -207,7 +207,6 @@ class PaymentService {
                     paymentStatus: 'REJECTED',
                 },
             });
-            console.log({ totalRejectedPayments });
             if (totalRejectedPayments >= config_1.default.maxRejectedPaymentLimit) {
                 // block user if they have 3 or more rejected payments
                 yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {

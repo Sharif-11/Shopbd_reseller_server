@@ -3,7 +3,6 @@ import { validationResult } from 'express-validator'
 
 const validateRequest: RequestHandler = (req, res, next) => {
   const errors = validationResult(req)
-  console.log(errors.array())
 
   if (!errors.isEmpty()) {
     const firstError = errors.array()[0]

@@ -105,7 +105,6 @@ class WithdrawService {
                 // send sms notification to  the admin
                 const smsRecipients = yield user_services_1.default.getSmsRecipientsForPermission(client_1.PermissionType.WITHDRAWAL_MANAGEMENT);
                 console.clear();
-                console.log('Withdraw SMS Recipients:', smsRecipients);
                 yield sms_services_1.default.sendWithdrawalRequestToAdmin({
                     sellerName: user.name,
                     sellerPhoneNo: user.phoneNo,

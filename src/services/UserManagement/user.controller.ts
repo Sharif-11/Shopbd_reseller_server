@@ -63,7 +63,6 @@ class UserManagementController {
     try {
       const currentAdminId = req.user?.userId
       const { phoneNo, name, password, email } = req.body
-      console.log(currentAdminId)
 
       const user = await userManagementServices.createAdmin(currentAdminId!, {
         phoneNo,
@@ -179,10 +178,6 @@ class UserManagementController {
     try {
       const currentAdminId = req.user?.userId
       const { adminId } = req.body
-      console.log({
-        currentAdminId,
-        adminId,
-      })
 
       const user = await userManagementServices.promoteAdminToSuperAdmin(
         currentAdminId!,
@@ -438,12 +433,6 @@ class UserManagementController {
     try {
       const adminId = req.user?.userId
       const { roleId, permission, actions } = req.body
-      console.log('Assigning permission to role:', {
-        adminId,
-        roleId,
-        permission,
-        actions,
-      })
 
       const rolePermission =
         await userManagementServices.assignPermissionToRole(adminId!, {

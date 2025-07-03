@@ -279,6 +279,24 @@ class ProductController {
             }
         });
     }
+    getProductDetail(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+            const { productId } = req.params;
+            console.clear();
+            const { userType, product } = yield product_services_1.default.getProductDetail({
+                userId,
+                productId: Number(productId),
+            });
+            res.status(200).json({
+                statusCode: 200,
+                message: 'Product details retrieved successfully',
+                success: true,
+                data: Object.assign({ userType }, product),
+            });
+        });
+    }
     // ==========================================
     // PRODUCT LISTING
     // ==========================================
@@ -291,7 +309,6 @@ class ProductController {
                 const page = Number(req.query.page) || 1;
                 const limit = Number(req.query.limit) || 10000;
                 // No need for optional checks since validation middleware ensures required fields
-                console.log(published, 'published value in controller');
                 const result = yield product_services_1.default.getAllProductsForAdmin(userId, {
                     search: search === null || search === void 0 ? void 0 : search.toString(),
                     shopId: Number(shopId),
@@ -362,6 +379,39 @@ class ProductController {
                     success: true,
                     data: result.data,
                     pagination: result.pagination,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    getAllProducts(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { search, minPrice, maxPrice, categoryId, shopId } = req.query;
+                const page = Number(req.query.page) || 1;
+                const limit = Number(req.query.limit) || 10;
+                const { result, userType } = yield product_services_1.default.getAllProducts({
+                    pagination: { page, limit },
+                    userId,
+                    filters: {
+                        search: search === null || search === void 0 ? void 0 : search.toString(),
+                        minPrice: minPrice ? Number(minPrice) : undefined,
+                        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+                        categoryId: Number(categoryId),
+                        shopId: Number(shopId),
+                    },
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Products retrieved successfully',
+                    success: true,
+                    data: result.data,
+                    pagination: result.pagination,
+                    userType,
                 });
             }
             catch (error) {

@@ -18,9 +18,16 @@ class OrderRouter {
         // SELLER ORDER MANAGEMENT ROUTES
         // ==========================================
         this.router.post('/seller', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.createSellerOrder(), validation_middleware_1.default, order_controllers_1.default.createSellerOrder);
+        this.router.post('/customer', 
+        // isAuthenticated,
+        // verifyRole('Customer'),
+        order_validator_1.default.createCustomerOrder(), validation_middleware_1.default, order_controllers_1.default.createCustomerOrder);
         this.router.get('/seller', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.getSellerOrders(), validation_middleware_1.default, order_controllers_1.default.getSellerOrders);
+        this.router.get('/customer', order_validator_1.default.getCustomerOrders(), validation_middleware_1.default, order_controllers_1.default.getCustomerOrders);
         this.router.post('/seller/payment', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.orderPaymentBySeller(), validation_middleware_1.default, order_controllers_1.default.orderPaymentBySeller);
+        this.router.post('/customer/payment', order_validator_1.default.orderPaymentByCustomer(), validation_middleware_1.default, order_controllers_1.default.orderPaymentByCustomer);
         this.router.post('/seller/cancel', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.cancelOrderBySeller(), validation_middleware_1.default, order_controllers_1.default.cancelOrderBySeller);
+        this.router.post('/customer/cancel', order_validator_1.default.cancelOrderByCustomer(), validation_middleware_1.default, order_controllers_1.default.cancelOrderByCustomer);
         this.router.post('/seller/confirm/:orderId', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.confirmOrderBySeller(), validation_middleware_1.default, order_controllers_1.default.confirmOrderBySeller);
         this.router.post('/seller/re-order/:orderId', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_controllers_1.default.reorderFailedOrder);
         // ==========================================

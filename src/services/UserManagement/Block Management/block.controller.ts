@@ -56,7 +56,6 @@ class BlockController {
       const adminId = req.user?.userId
       const { phoneNo } = req.params
       const { actions } = req.body
-      console.log(actions)
 
       const result = await blockServices.updateUserBlockActions({
         adminId: adminId!,

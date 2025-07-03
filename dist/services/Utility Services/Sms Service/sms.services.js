@@ -170,6 +170,13 @@ class SmsServices {
     static sendOtp(mobileNo, otp) {
         return __awaiter(this, void 0, void 0, function* () {
             const message = `আপনার ওটিপি কোডটি হলো: ${otp}। শপ বিডি রিসেলার জবস থেকে ধন্যবাদ।`;
+            if (config_1.default.env === 'development') {
+                console.log(`OTP for ${mobileNo}: ${otp}`);
+                return {
+                    response_code: 200,
+                    success_message: 'OTP sent successfully (development mode)',
+                };
+            }
             return this.sendSingleSms(mobileNo, message);
         });
     }
@@ -179,6 +186,13 @@ class SmsServices {
     static sendPassword(mobileNo, password) {
         return __awaiter(this, void 0, void 0, function* () {
             const message = `আপনার পাসওয়ার্ডটি হলো: ${password}। শপ বিডি রিসেলার জবস থেকে ধন্যবাদ।`;
+            if (config_1.default.env === 'development') {
+                console.log(`Password for ${mobileNo}: ${password}`);
+                return {
+                    response_code: 200,
+                    success_message: 'Password sent successfully (development mode)',
+                };
+            }
             return this.sendSingleSms(mobileNo, message);
         });
     }
@@ -188,6 +202,14 @@ class SmsServices {
     static sendOrderNotificationToAdmin(_a) {
         return __awaiter(this, arguments, void 0, function* ({ mobileNo, orderId, }) {
             const message = `New order received (Order ID: ${orderId})`;
+            if (config_1.default.enableSmsNotifications === false ||
+                config_1.default.env === 'development') {
+                console.log(message);
+                return {
+                    response_code: 200,
+                    success_message: 'SMS notifications are disabled',
+                };
+            }
             if (Array.isArray(mobileNo)) {
                 return this.sendBulkSms(mobileNo, message);
             }
@@ -200,6 +222,14 @@ class SmsServices {
     static sendWithdrawalRequestToAdmin(_a) {
         return __awaiter(this, arguments, void 0, function* ({ mobileNo, sellerName, sellerPhoneNo, amount, }) {
             const message = `Withdrawal Request: ${sellerName} (Phone: ${sellerPhoneNo}) requested ${amount} TK.`;
+            if (config_1.default.enableSmsNotifications === false ||
+                config_1.default.env === 'development') {
+                console.log(message);
+                return {
+                    response_code: 200,
+                    success_message: 'SMS notifications are disabled',
+                };
+            }
             if (Array.isArray(mobileNo)) {
                 return this.sendBulkSms(mobileNo, message);
             }
@@ -221,6 +251,14 @@ class SmsServices {
     static notifyOrderShipped(_a) {
         return __awaiter(this, arguments, void 0, function* ({ sellerPhoneNo, orderId, trackingUrl, }) {
             const message = `Your order (#${orderId}) has been shipped. Track it here: ${trackingUrl}`;
+            if (config_1.default.env === 'development') {
+                console.clear();
+                console.log(message);
+                return {
+                    response_code: 200,
+                    success_message: 'Order shipped message sent successfully (development mode)',
+                };
+            }
             return this.sendSingleSms(sellerPhoneNo, message);
         });
     }
@@ -228,8 +266,19 @@ class SmsServices {
      * Notify seller about order completion and commission
      */
     static notifyOrderCompleted(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ sellerPhoneNo, orderId, orderAmount, commission, }) {
-            const message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK. Your commission: ${commission} TK.`;
+        return __awaiter(this, arguments, void 0, function* ({ sellerPhoneNo, orderId, orderAmount, commission, orderType = 'SELLER_ORDER', }) {
+            let message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK. Your commission: ${commission} TK.`;
+            if (orderType === 'CUSTOMER_ORDER') {
+                message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK.`;
+            }
+            if (config_1.default.env === 'development') {
+                console.clear();
+                console.log(`Order completed message for ${sellerPhoneNo}: ${message}`);
+                return {
+                    response_code: 200,
+                    success_message: 'Order completed message sent successfully (development mode)',
+                };
+            }
             return this.sendSingleSms(sellerPhoneNo, message);
         });
     }

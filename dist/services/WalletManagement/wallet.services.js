@@ -79,7 +79,6 @@ class WalletServices {
             if (!user || user.role !== 'Seller') {
                 throw new ApiError_1.default(400, 'Wallets can only be created for sellers');
             }
-            console.log(`wallet length: ${JSON.stringify(user.Wallet)}`);
             if (user.Wallet.length >= config_1.default.maximumWallets) {
                 throw new ApiError_1.default(400, `Seller can have maximum ${config_1.default.maximumWallets} wallets`);
             }
@@ -110,11 +109,18 @@ class WalletServices {
      */
     getAllSystemWallets(requesterId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const requester = yield user_services_1.default.getUserById(requesterId);
-            const isActive = (requester === null || requester === void 0 ? void 0 : requester.role) === 'SuperAdmin' ? undefined : true;
-            return yield prisma_1.default.wallet.findMany({
-                where: { walletType: 'SYSTEM', isActive },
-            });
+            if (requesterId) {
+                const requester = yield user_services_1.default.getUserById(requesterId);
+                const isActive = (requester === null || requester === void 0 ? void 0 : requester.role) === 'SuperAdmin' ? undefined : true;
+                return yield prisma_1.default.wallet.findMany({
+                    where: { walletType: 'SYSTEM', isActive },
+                });
+            }
+            else {
+                return yield prisma_1.default.wallet.findMany({
+                    where: { walletType: 'SYSTEM', isActive: true },
+                });
+            }
         });
     }
     /**
@@ -141,11 +147,9 @@ class WalletServices {
                 }
                 else {
                     console.clear();
-                    console.log(`Requester is ${requester.role}, allowing access to seller wallets`);
                     // If requester is not the owner, verify permission
                     yield user_services_1.default.verifyUserPermission(requesterId, 'WALLET_MANAGEMENT', 'READ');
                     const result = yield user_services_1.default.getUserDetailByIdForWalletManagement(user.userId);
-                    console.log(`User details for wallet management: ${JSON.stringify(result)}`);
                     return result;
                 }
             }
@@ -329,7 +333,6 @@ class WalletServices {
                 create: newOtpRecord,
             });
             yield sms_services_1.default.sendOtp(walletPhoneNo, otp);
-            console.log(`Sending OTP ${otp} to ${walletPhoneNo}`);
             return {
                 sendOTP: true,
                 isBlocked: false,
@@ -371,7 +374,6 @@ class WalletServices {
             }
             if (otpRecord.otp !== otp) {
                 if (otpRecord.failedAttempts + 1 >= config_1.default.maximumOtpAttempts) {
-                    console.log(`Blocking wallet verification for user: ${user === null || user === void 0 ? void 0 : user.phoneNo}`);
                     // we need to create a block record and reset the otp  failed attempts within a transaction
                     yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                         yield tx.walletOtp.update({

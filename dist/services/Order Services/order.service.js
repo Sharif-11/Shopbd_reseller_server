@@ -79,7 +79,6 @@ class OrderService {
             // verify products
             const verifiedOrderData = yield product_services_1.default.verifyOrderProducts(products);
             console.clear();
-            console.log('verifiedOrderData', verifiedOrderData);
             const deliveryCharge = yield this.calculateDeliveryCharge({
                 shopId,
                 customerZilla,
@@ -129,9 +128,73 @@ class OrderService {
             return order;
         });
     }
+    createCustomerOrder(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ shopId, customerName, customerPhoneNo, customerZilla, customerUpazilla, deliveryAddress, comments, products, }) {
+            // find customer by phone number
+            const customer = yield user_services_1.default.getCustomerByPhoneNo({
+                customerPhoneNo,
+            });
+            const isBlocked = yield block_services_1.blockServices.isUserBlocked(customerPhoneNo, client_1.BlockActionType.ORDER_REQUEST);
+            if (isBlocked) {
+                throw new Error('You are blocked from placing orders. Please contact support.');
+            }
+            const shop = yield shopCategory_services_1.default.checkShopStatus(shopId);
+            if (!shop || !shop.isActive) {
+                throw new ApiError_1.default(400, 'Shop is not active');
+            }
+            const { shopName, shopLocation } = shop;
+            const verifiedOrderData = yield product_services_1.default.verifyOrderProducts(products);
+            const deliveryCharge = yield this.calculateDeliveryCharge({
+                shopId,
+                customerZilla,
+                productQuantity: verifiedOrderData.totalProductQuantity,
+            });
+            // now create order connecting with payment
+            const order = yield prisma_1.default.order.create({
+                data: {
+                    shopId,
+                    customerName,
+                    customerPhoneNo,
+                    customerZilla,
+                    customerUpazilla,
+                    customerAddress: deliveryAddress,
+                    customerComments: comments,
+                    shopName,
+                    shopLocation,
+                    isDeliveryChargePaid: false,
+                    OrderProduct: {
+                        create: verifiedOrderData.products.map(product => ({
+                            productId: product.productId,
+                            productImage: product.productImage,
+                            productQuantity: product.productQuantity,
+                            productSellingPrice: product.productSellingPrice,
+                            productVariant: product.productVariant,
+                            productBasePrice: product.productBasePrice,
+                            productName: product.productName,
+                            totalProductBasePrice: product.totalProductBasePrice,
+                            totalProductSellingPrice: product.totalProductSellingPrice,
+                            totalProductQuantity: product.totalProductQuantity,
+                        })),
+                    },
+                    deliveryCharge,
+                    sellerId: (customer === null || customer === void 0 ? void 0 : customer.sellerId) || '',
+                    sellerName: (customer === null || customer === void 0 ? void 0 : customer.sellerName) || '',
+                    sellerPhoneNo: (customer === null || customer === void 0 ? void 0 : customer.sellerPhone) || '',
+                    orderStatus: 'UNPAID',
+                    orderType: 'CUSTOMER_ORDER',
+                    totalCommission: verifiedOrderData.totalCommission,
+                    actualCommission: verifiedOrderData.totalCommission,
+                    totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
+                    totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
+                    totalProductQuantity: verifiedOrderData.totalProductQuantity,
+                },
+            });
+            // send order notification to admin
+            return order;
+        });
+    }
     getSellerOrders(_a) {
         return __awaiter(this, arguments, void 0, function* ({ userId, orderStatus, page, limit, search, }) {
-            console.log({ orderStatus, page, limit, search });
             const user = yield user_services_1.default.getUserById(userId);
             if (!user) {
                 throw new ApiError_1.default(404, 'User not found');
@@ -139,6 +202,51 @@ class OrderService {
             const where = {
                 sellerId: user.userId,
                 orderType: 'SELLER_ORDER',
+            };
+            if (orderStatus) {
+                where.orderStatus = Array.isArray(orderStatus)
+                    ? { in: orderStatus }
+                    : orderStatus;
+            }
+            if (search) {
+                where.OR = [
+                    { customerName: { contains: search, mode: 'insensitive' } },
+                    { customerPhoneNo: { contains: search, mode: 'insensitive' } },
+                ];
+            }
+            const skip = ((page || 1) - 1) * (limit || 10);
+            const orders = yield prisma_1.default.order
+                .findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: limit || 10,
+                include: {
+                    OrderProduct: true,
+                    Payment: true,
+                },
+            })
+                .then(orders => orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant) }))) }))));
+            const totalOrders = yield prisma_1.default.order.count({
+                where,
+            });
+            return {
+                orders,
+                totalOrders,
+                currentPage: page || 1,
+                totalPages: Math.ceil(totalOrders / (limit || 10)),
+                pageSize: limit || 10,
+            };
+        });
+    }
+    getCustomerOrders(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ phoneNo, orderStatus, page, limit, search, }) {
+            const customer = yield user_services_1.default.getCustomerByPhoneNo({
+                customerPhoneNo: phoneNo,
+            });
+            const where = {
+                sellerId: customer === null || customer === void 0 ? void 0 : customer.sellerId,
+                orderType: 'CUSTOMER_ORDER',
             };
             if (orderStatus) {
                 where.orderStatus = Array.isArray(orderStatus)
@@ -224,7 +332,6 @@ class OrderService {
                     try {
                         const phoneNumbers = yield this.getOrderSmsRecipients();
                         console.clear();
-                        console.log('Order SMS recipients:(Balance Payment)', phoneNumbers);
                         yield sms_services_1.default.sendOrderNotificationToAdmin({
                             mobileNo: phoneNumbers,
                             orderId: order.orderId,
@@ -284,7 +391,6 @@ class OrderService {
                 try {
                     const phoneNumbers = yield this.getOrderSmsRecipients();
                     console.clear();
-                    console.log('Order SMS recipients:', phoneNumbers);
                     yield sms_services_1.default.sendOrderNotificationToAdmin({
                         mobileNo: phoneNumbers,
                         orderId: order.orderId,
@@ -295,6 +401,81 @@ class OrderService {
                 }
                 return updatedOrder;
             }
+        });
+    }
+    orderPaymentByCustomer(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ orderId, customerWalletName, customerWalletPhoneNo, systemWalletPhoneNo, amount, transactionId, }) {
+            const customer = yield user_services_1.default.getCustomerByPhoneNo({
+                customerPhoneNo: customerWalletPhoneNo,
+            });
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId, sellerId: customer === null || customer === void 0 ? void 0 : customer.sellerId },
+                include: { OrderProduct: true },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (order.orderStatus !== 'UNPAID') {
+                throw new ApiError_1.default(400, 'Only unpaid orders can be paid');
+            }
+            if (order.cancelled) {
+                throw new ApiError_1.default(400, 'Order already cancelled by you');
+            }
+            if (!systemWalletPhoneNo ||
+                !customerWalletName ||
+                !customerWalletPhoneNo ||
+                !amount ||
+                !transactionId) {
+                throw new ApiError_1.default(400, 'Missing required fields');
+            }
+            const systemWallet = yield wallet_services_1.default.verifySystemWalletOwnership({
+                systemWalletName: customerWalletName,
+                systemWalletPhoneNo: systemWalletPhoneNo,
+            });
+            if (amount < order.deliveryCharge.toNumber()) {
+                throw new ApiError_1.default(400, 'Insufficient amount to pay for the order');
+            }
+            const updatedOrder = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                const payment = yield payment_service_1.default.createPayment({
+                    tx,
+                    paymentType: 'ORDER_PAYMENT',
+                    amount,
+                    transactionId,
+                    sender: 'CUSTOMER',
+                    userWalletName: customerWalletName,
+                    userWalletPhoneNo: customerWalletPhoneNo,
+                    systemWalletPhoneNo,
+                    userName: order.customerName,
+                    userPhoneNo: order.customerPhoneNo,
+                });
+                const updatedOrder = yield tx.order.update({
+                    where: { orderId },
+                    data: {
+                        orderStatus: 'PAID',
+                        paymentType: 'WALLET',
+                        isDeliveryChargePaid: true,
+                        deliveryChargePaidAt: new Date(),
+                        paymentVerified: false,
+                        cashOnAmount: order.totalProductSellingPrice,
+                        Payment: {
+                            connect: { paymentId: payment.paymentId },
+                        },
+                    },
+                });
+                return updatedOrder;
+            }));
+            try {
+                const phoneNumbers = yield this.getOrderSmsRecipients();
+                console.clear();
+                yield sms_services_1.default.sendOrderNotificationToAdmin({
+                    mobileNo: phoneNumbers,
+                    orderId: order.orderId,
+                });
+            }
+            catch (error) {
+                console.error('Error sending order SMS:', error);
+            }
+            return updatedOrder;
         });
     }
     cancelOrderBySeller(_a) {
@@ -341,6 +522,49 @@ class OrderService {
             }
         });
     }
+    cancelOrderByCustomer(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ phoneNo, orderId, reason, }) {
+            const customer = yield user_services_1.default.getCustomerByPhoneNo({
+                customerPhoneNo: phoneNo,
+            });
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId, sellerId: customer === null || customer === void 0 ? void 0 : customer.sellerId },
+                include: { OrderProduct: true },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (!(order.orderStatus === 'UNPAID' || order.orderStatus === 'PAID')) {
+                throw new ApiError_1.default(400, 'Only unpaid or paid orders can be canceled');
+            }
+            if (order.cancelled) {
+                throw new ApiError_1.default(400, 'Order already cancelled by you');
+            }
+            if (order.orderStatus === 'UNPAID') {
+                return yield prisma_1.default.order.update({
+                    where: { orderId },
+                    data: {
+                        cancelled: true,
+                        cancelledReason: reason,
+                        cancelledBy: 'CUSTOMER',
+                        cancelledAt: new Date(),
+                        orderStatus: 'CANCELLED',
+                    },
+                });
+            }
+            else {
+                return yield prisma_1.default.order.update({
+                    where: { orderId },
+                    data: {
+                        cancelled: true,
+                        cancelledReason: reason,
+                        cancelledBy: 'CUSTOMER',
+                        cancelledAt: new Date(),
+                    },
+                });
+            }
+        });
+    }
     confirmOrderBySeller(_a) {
         return __awaiter(this, arguments, void 0, function* ({ userId, orderId, }) {
             const user = yield user_services_1.default.getUserById(userId);
@@ -377,7 +601,6 @@ class OrderService {
                 try {
                     const phoneNumbers = yield this.getOrderSmsRecipients();
                     console.clear();
-                    console.log('Order SMS recipients:', phoneNumbers);
                     yield sms_services_1.default.sendOrderNotificationToAdmin({
                         mobileNo: phoneNumbers,
                         orderId: order.orderId,
@@ -420,7 +643,7 @@ class OrderService {
             if (!order) {
                 throw new ApiError_1.default(404, 'Order not found');
             }
-            yield this.checkExistingTrackingUrl(trackingUrl);
+            yield this.checkExistingTrackingUrl(trackingUrl === null || trackingUrl === void 0 ? void 0 : trackingUrl.trim());
             if (order.orderStatus !== 'CONFIRMED') {
                 throw new ApiError_1.default(400, 'Only confirmed orders can be delivered');
             }
@@ -433,13 +656,15 @@ class OrderService {
                 where: { orderId },
                 data: {
                     orderStatus: 'DELIVERED',
-                    trackingUrl,
+                    trackingUrl: (trackingUrl === null || trackingUrl === void 0 ? void 0 : trackingUrl.trim()) || null,
                 },
             });
             if (result) {
                 try {
                     yield sms_services_1.default.notifyOrderShipped({
-                        sellerPhoneNo: order.sellerPhoneNo,
+                        sellerPhoneNo: result.orderType === 'SELLER_ORDER'
+                            ? order.sellerPhoneNo
+                            : order.customerPhoneNo,
                         orderId: order.orderId,
                         trackingUrl: trackingUrl || '',
                     });
@@ -546,8 +771,8 @@ class OrderService {
         });
     }
     cancelOrderByAdmin(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ adminId, orderId, reason, }) {
-            var _b;
+        return __awaiter(this, arguments, void 0, function* ({ adminId, orderId, reason, transactionId, systemWalletPhoneNo, }) {
+            var _b, _c;
             // check admin permission
             yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
             const order = yield prisma_1.default.order.findUnique({
@@ -562,39 +787,88 @@ class OrderService {
             if (order.orderStatus !== 'CONFIRMED') {
                 throw new ApiError_1.default(400, 'Only confirmed orders can be cancelled by admin');
             }
-            if (((_b = order.Payment) === null || _b === void 0 ? void 0 : _b.paymentStatus) === 'COMPLETED' ||
-                order.paymentType === 'BALANCE') {
-                // we need to refund the payment to the seller and update the order status as refunded within the transaction
-                const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                    yield transaction_services_1.transactionServices.createTransaction({
-                        tx,
-                        userId: order.sellerId,
-                        transactionType: 'Credit',
-                        amount: order.deliveryCharge.toNumber(),
-                        reason: 'অর্ডার বাতিলের জন্য রিফান্ড',
-                    });
-                    yield tx.order.update({
+            if (order.orderType === 'SELLER_ORDER') {
+                if (((_b = order.Payment) === null || _b === void 0 ? void 0 : _b.paymentStatus) === 'COMPLETED' ||
+                    order.paymentType === 'BALANCE') {
+                    // we need to refund the payment to the seller and update the order status as refunded within the transaction
+                    const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                        yield transaction_services_1.transactionServices.createTransaction({
+                            tx,
+                            userId: order.sellerId,
+                            transactionType: 'Credit',
+                            amount: order.deliveryCharge.toNumber(),
+                            reason: 'অর্ডার বাতিলের জন্য রিফান্ড',
+                        });
+                        yield tx.order.update({
+                            where: { orderId },
+                            data: {
+                                orderStatus: 'REFUNDED',
+                                cancelledReason: reason,
+                            },
+                        });
+                        return order;
+                    }));
+                    return result;
+                }
+                return yield prisma_1.default.order.update({
+                    where: { orderId },
+                    data: {
+                        orderStatus: 'CANCELLED',
+                        cancelledReason: reason,
+                        cancelledBy: 'SYSTEM',
+                        cancelledAt: new Date(),
+                    },
+                });
+            }
+            else {
+                // handle customer order cancellation
+                if (((_c = order === null || order === void 0 ? void 0 : order.Payment) === null || _c === void 0 ? void 0 : _c.paymentStatus) === 'COMPLETED') {
+                    if (!transactionId) {
+                        throw new ApiError_1.default(400, 'Transaction ID is required for refund');
+                    }
+                    if (!systemWalletPhoneNo) {
+                        throw new ApiError_1.default(400, 'System wallet phone number is required for refund');
+                    }
+                    const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                        var _a, _b;
+                        yield payment_service_1.default.createPayment({
+                            tx,
+                            paymentType: 'CUSTOMER_REFUND',
+                            sender: 'SYSTEM',
+                            amount: order.deliveryCharge.toNumber(),
+                            transactionId: transactionId || '',
+                            userWalletName: (_a = order.Payment) === null || _a === void 0 ? void 0 : _a.userWalletName,
+                            userWalletPhoneNo: (_b = order.Payment) === null || _b === void 0 ? void 0 : _b.userWalletPhoneNo,
+                            systemWalletPhoneNo: systemWalletPhoneNo,
+                            userName: order.customerName,
+                            userPhoneNo: order.customerPhoneNo,
+                        });
+                        yield tx.order.update({
+                            where: { orderId },
+                            data: {
+                                orderStatus: 'REFUNDED',
+                                cancelledReason: reason,
+                                cancelledBy: 'SYSTEM',
+                                cancelledAt: new Date(),
+                            },
+                        });
+                        return order;
+                    }));
+                    return result;
+                }
+                else {
+                    const updatedOrder = yield prisma_1.default.order.update({
                         where: { orderId },
                         data: {
-                            orderStatus: 'REFUNDED',
+                            orderStatus: 'CANCELLED',
                             cancelledReason: reason,
                             cancelledBy: 'SYSTEM',
                             cancelledAt: new Date(),
                         },
                     });
-                    return order;
-                }));
-                return result;
+                    return updatedOrder;
+                }
             }
-            return yield prisma_1.default.order.update({
-                where: { orderId },
-                data: {
-                    orderStatus: 'CANCELLED',
-                    cancelledReason: reason,
-                    cancelledBy: 'SYSTEM',
-                    cancelledAt: new Date(),
-                },
-            });
         });
     }
     completeOrderByAdmin(_a) {
@@ -644,20 +918,29 @@ class OrderService {
                     yield user_services_1.default.verifySeller({ tx, userId: updatedOrder.sellerId });
                 }
                 // add seller commission to seller wallet
-                yield transaction_services_1.transactionServices.createTransaction({
-                    tx,
-                    userId: updatedOrder.sellerId,
-                    transactionType: 'Credit',
-                    amount: actualCommission,
-                    reason: 'অর্ডার সম্পন্নের কমিশন',
-                });
+                actualCommission > 0 &&
+                    (yield transaction_services_1.transactionServices.createTransaction({
+                        tx,
+                        userId: updatedOrder.sellerId,
+                        transactionType: 'Credit',
+                        amount: actualCommission,
+                        reason: 'অর্ডার সম্পন্নের কমিশন',
+                        reference: order.orderType === 'CUSTOMER_ORDER'
+                            ? {
+                                customerName: updatedOrder.customerName,
+                                customerPhoneNo: updatedOrder.customerPhoneNo,
+                                orderId: updatedOrder.orderId,
+                            }
+                            : undefined,
+                    }));
                 return updatedOrder;
             }));
-            if (result.orderStatus === 'COMPLETED') {
+            if (result.orderStatus === 'COMPLETED' &&
+                result.orderType === 'SELLER_ORDER') {
                 try {
                     const referrers = yield commission_services_1.default.calculateUserCommissions(order.sellerPhoneNo, order.totalProductSellingPrice.toNumber());
                     if (referrers.length > 0) {
-                        const sendCommissions = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                        yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                             const commissionPromises = referrers.map(referrer => {
                                 return transaction_services_1.transactionServices.createTransaction({
                                     tx,
@@ -682,10 +965,13 @@ class OrderService {
             }
             try {
                 yield sms_services_1.default.notifyOrderCompleted({
-                    sellerPhoneNo: order.sellerPhoneNo,
+                    sellerPhoneNo: order.orderType === 'SELLER_ORDER'
+                        ? order.sellerPhoneNo
+                        : order.customerPhoneNo,
                     orderId: order.orderId,
                     commission: result.actualCommission.toNumber() || 0,
                     orderAmount: result.totalProductSellingPrice.toNumber(),
+                    orderType: result.orderType,
                 });
             }
             catch (error) {

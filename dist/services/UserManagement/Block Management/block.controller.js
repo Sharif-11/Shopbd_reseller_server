@@ -64,7 +64,6 @@ class BlockController {
                 const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { phoneNo } = req.params;
                 const { actions } = req.body;
-                console.log(actions);
                 const result = yield block_services_1.blockServices.updateUserBlockActions({
                     adminId: adminId,
                     userPhoneNo: phoneNo,

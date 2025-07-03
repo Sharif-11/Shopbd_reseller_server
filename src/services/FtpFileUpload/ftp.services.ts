@@ -170,7 +170,7 @@ const ftpUploader = new FTPUploader({
 
 const fileBuffer = Buffer.from('some file content');
 const url = await ftpUploader.upload(fileBuffer, 'test.txt');
-console.log('File uploaded to:', url);
+
 */
 const ftpUploader = new FTPUploader({
   host: config.ftpHost,

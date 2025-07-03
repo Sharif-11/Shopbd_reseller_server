@@ -87,7 +87,6 @@ class UserManagementController {
             try {
                 const currentAdminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { phoneNo, name, password, email } = req.body;
-                console.log(currentAdminId);
                 const user = yield user_services_1.default.createAdmin(currentAdminId, {
                     phoneNo,
                     name,
@@ -144,9 +143,8 @@ class UserManagementController {
     createCustomer(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { customerName, customerPhoneNo, sellerCode } = req.body;
+                const { customerPhoneNo, sellerCode } = req.body;
                 const customer = yield user_services_1.default.createCustomer({
-                    customerName,
                     customerPhoneNo,
                     sellerCode,
                 });
@@ -193,10 +191,6 @@ class UserManagementController {
             try {
                 const currentAdminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { adminId } = req.body;
-                console.log({
-                    currentAdminId,
-                    adminId,
-                });
                 const user = yield user_services_1.default.promoteAdminToSuperAdmin(currentAdminId, adminId);
                 res.status(200).json({
                     statusCode: 200,
@@ -449,12 +443,6 @@ class UserManagementController {
             try {
                 const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { roleId, permission, actions } = req.body;
-                console.log('Assigning permission to role:', {
-                    adminId,
-                    roleId,
-                    permission,
-                    actions,
-                });
                 const rolePermission = yield user_services_1.default.assignPermissionToRole(adminId, {
                     roleId,
                     permission,

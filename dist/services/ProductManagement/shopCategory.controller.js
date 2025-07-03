@@ -133,7 +133,6 @@ class ShopCategoryController {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { shopId } = req.params;
                 const { isActive } = req.body;
-                console.log({ userId, shopId, isActive });
                 const shop = yield shopCategory_services_1.default.openOrCloseShop(userId, Number(shopId), isActive);
                 res.status(200).json({
                     statusCode: 200,
@@ -195,7 +194,6 @@ class ShopCategoryController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { page = 1, limit = 10, name = '', subCategories = false, } = req.query;
-                console.log({ page, limit, name, subCategories });
                 const categories = yield shopCategory_services_1.default.getAllCategories(Number(page), Number(limit), String(name), Boolean(subCategories));
                 res.status(200).json({
                     statusCode: 200,

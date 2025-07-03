@@ -39,12 +39,14 @@ class ProductRouter {
         this.router.get('/admin/:productId', auth_middlewares_1.isAuthenticated, product_validator_1.default.getProductDetailForAdmin(), validation_middleware_1.default, product_controller_1.default.getProductDetailForAdmin);
         this.router.get('/customer/:productId', product_validator_1.default.getProductDetailForCustomer(), validation_middleware_1.default, product_controller_1.default.getProductDetailForCustomer);
         this.router.get('/seller/:productId', auth_middlewares_1.isAuthenticated, product_validator_1.default.getProductDetailForSeller(), validation_middleware_1.default, product_controller_1.default.getProductDetailForSeller);
+        this.router.get('/user/:productId', auth_middlewares_1.authenticate, product_validator_1.default.getProductDetailForSeller(), validation_middleware_1.default, product_controller_1.default.getProductDetail);
         // ==========================================
         // PRODUCT LISTING ROUTES
         // ==========================================
         this.router.get('/admin', auth_middlewares_1.isAuthenticated, product_validator_1.default.getAllProductsForAdmin(), validation_middleware_1.default, product_controller_1.default.getAllProductsForAdmin);
         this.router.get('/customer', product_validator_1.default.getAllProductsForCustomer(), validation_middleware_1.default, product_controller_1.default.getAllProductsForCustomer);
         this.router.get('/seller', auth_middlewares_1.isAuthenticated, product_validator_1.default.getAllProductsForSeller(), validation_middleware_1.default, product_controller_1.default.getAllProductsForSeller);
+        this.router.get('/user', auth_middlewares_1.authenticate, product_validator_1.default.getAllProductsForSeller(), validation_middleware_1.default, product_controller_1.default.getAllProducts);
     }
     getRouter() {
         return this.router;

@@ -9,6 +9,7 @@ const express_1 = __importDefault(require("express"));
 const helmet_1 = __importDefault(require("helmet"));
 const config_1 = __importDefault(require("./config"));
 const globalErrorHandler_1 = __importDefault(require("./middlewares/globalErrorHandler"));
+const trim_middlewares_1 = __importDefault(require("./middlewares/trim.middlewares"));
 const global_routes_1 = __importDefault(require("./routes/global.routes"));
 const db_controller_1 = __importDefault(require("./services/Utility Services/db.controller"));
 const app = (0, express_1.default)();
@@ -26,6 +27,7 @@ app.use((0, helmet_1.default)());
 app.use(express_1.default.json({ limit: '10kb' }));
 app.use(express_1.default.urlencoded({ extended: true, limit: '10kb' }));
 app.use((0, cookie_parser_1.default)());
+app.use(trim_middlewares_1.default);
 // CORS configuration
 const corsOptions = {
     origin: (origin, callback) => {

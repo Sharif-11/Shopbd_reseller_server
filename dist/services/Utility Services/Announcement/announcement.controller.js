@@ -43,7 +43,6 @@ class AnnouncementController {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId; // Assuming userId is available in req.user
                 const { announcements } = req.body; // Expecting array of strings
                 console.clear();
-                console.log('Received announcements:', announcements);
                 const updated = yield announcement_service_1.default.replaceAllAnnouncements(userId, announcements);
                 res.status(200).json({
                     statusCode: 200,

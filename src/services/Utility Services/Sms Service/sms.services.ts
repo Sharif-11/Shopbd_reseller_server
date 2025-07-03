@@ -340,6 +340,15 @@ class SmsServices {
     trackingUrl: string
   }): Promise<SmsResponse | BulkSmsResponse> {
     const message = `Your order (#${orderId}) has been shipped. Track it here: ${trackingUrl}`
+    if (config.env === 'development') {
+      console.clear()
+      console.log(message)
+      return {
+        response_code: 200,
+        success_message:
+          'Order shipped message sent successfully (development mode)',
+      }
+    }
     return this.sendSingleSms(sellerPhoneNo, message)
   }
 
@@ -364,6 +373,7 @@ class SmsServices {
       message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK.`
     }
     if (config.env === 'development') {
+      console.clear()
       console.log(`Order completed message for ${sellerPhoneNo}: ${message}`)
       return {
         response_code: 200,

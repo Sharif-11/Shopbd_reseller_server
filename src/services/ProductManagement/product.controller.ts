@@ -323,9 +323,6 @@ class ProductController {
     const userId = req.user?.userId
     const { productId } = req.params
     console.clear()
-    console.log(
-      `Fetching product details for productId: ${productId} by userId: ${userId}`,
-    )
 
     const { userType, product } = await productServices.getProductDetail({
       userId,
@@ -355,7 +352,7 @@ class ProductController {
       const limit = Number(req.query.limit) || 10000
 
       // No need for optional checks since validation middleware ensures required fields
-      console.log(published, 'published value in controller')
+
       const result = await productServices.getAllProductsForAdmin(
         userId!,
         {

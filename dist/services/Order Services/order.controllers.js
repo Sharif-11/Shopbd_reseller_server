@@ -39,6 +39,34 @@ class OrderController {
             }
         });
     }
+    createCustomerOrder(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { shopId, customerName, customerPhoneNo, customerZilla, customerUpazilla, deliveryAddress, comments, products, } = req.body;
+                const order = yield order_service_1.orderService.createCustomerOrder({
+                    shopId: Number(shopId),
+                    customerName,
+                    customerPhoneNo,
+                    customerZilla,
+                    customerUpazilla,
+                    deliveryAddress,
+                    comments,
+                    products,
+                });
+                res.status(201).json({
+                    statusCode: 201,
+                    message: 'Order created successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     getSellerOrders(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
@@ -51,6 +79,29 @@ class OrderController {
                     page: page ? Number(page) : undefined,
                     limit: limit ? Number(limit) : undefined,
                     search: search ? String(search) : undefined,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Orders retrieved successfully',
+                    success: true,
+                    data: orders,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    getCustomerOrders(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { orderStatus, page, limit, search, phoneNo } = req.query;
+                const orders = yield order_service_1.orderService.getCustomerOrders({
+                    orderStatus: orderStatus,
+                    page: page ? Number(page) : undefined,
+                    limit: limit ? Number(limit) : undefined,
+                    search: search ? String(search) : undefined,
+                    phoneNo: phoneNo,
                 });
                 res.status(200).json({
                     statusCode: 200,
@@ -92,6 +143,30 @@ class OrderController {
             }
         });
     }
+    orderPaymentByCustomer(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { orderId, customerWalletName, customerWalletPhoneNo, systemWalletPhoneNo, amount, transactionId, } = req.body;
+                const order = yield order_service_1.orderService.orderPaymentByCustomer({
+                    orderId: Number(orderId),
+                    customerWalletName,
+                    customerWalletPhoneNo,
+                    systemWalletPhoneNo,
+                    amount: amount,
+                    transactionId,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order payment processed successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     cancelOrderBySeller(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
@@ -100,6 +175,29 @@ class OrderController {
                 const { orderId, reason } = req.body;
                 const order = yield order_service_1.orderService.cancelOrderBySeller({
                     userId: userId,
+                    orderId: Number(orderId),
+                    reason,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order cancelled successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    cancelOrderByCustomer(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { orderId, reason, phoneNo } = req.body;
+                const order = yield order_service_1.orderService.cancelOrderByCustomer({
+                    phoneNo,
                     orderId: Number(orderId),
                     reason,
                 });
@@ -251,11 +349,13 @@ class OrderController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { orderId } = req.params;
-                const { reason } = req.body;
+                const { reason, transactionId, systemWalletPhoneNo } = req.body;
                 const order = yield order_service_1.orderService.cancelOrderByAdmin({
                     orderId: Number(orderId),
                     reason,
                     adminId: userId,
+                    transactionId,
+                    systemWalletPhoneNo,
                 });
                 res.status(200).json({
                     statusCode: 200,

@@ -61,7 +61,8 @@ class WithdrawValidator {
                 .notEmpty()
                 .withMessage('Transaction ID is required')
                 .isString()
-                .withMessage('Transaction ID must be a string'),
+                .withMessage('Transaction ID must be a string')
+                .trim(),
         ];
     }
     static rejectWithdraw() {

@@ -361,7 +361,7 @@ class UserManagementServices {
      * Create a new customer
      */
     createCustomer(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ customerName, customerPhoneNo, sellerCode, }) {
+        return __awaiter(this, arguments, void 0, function* ({ customerPhoneNo, sellerCode, }) {
             // check if the customer already exists
             const existingCustomer = yield prisma_1.default.customer.findUnique({
                 where: { customerPhoneNo },
@@ -388,9 +388,8 @@ class UserManagementServices {
             if (!verifiedPhoneNo.isVerified) {
                 throw new ApiError_1.default(400, 'Customer phone number is not verified');
             }
-            return yield prisma_1.default.customer.create({
+            const customer = yield prisma_1.default.customer.create({
                 data: {
-                    customerName,
                     customerPhoneNo,
                     sellerCode,
                     role: 'Customer',
@@ -399,6 +398,19 @@ class UserManagementServices {
                     sellerPhone: seller.phoneNo,
                 },
             });
+            const token = this.generateAccessToken(customer.customerId, customer.role, customer.customerPhoneNo);
+            return { customer, token };
+        });
+    }
+    getCustomerByPhoneNo(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ customerPhoneNo, }) {
+            const customer = yield prisma_1.default.customer.findUnique({
+                where: { customerPhoneNo },
+            });
+            if (!customer) {
+                throw new ApiError_1.default(404, 'Customer not found');
+            }
+            return customer;
         });
     }
     /**
@@ -536,7 +548,6 @@ class UserManagementServices {
             // if (block) {
             //   throw new ApiError(403, 'Your account is currently blocked')
             // }
-            console.log('user login.....', user);
             const token = this.generateAccessToken(user.userId, user.role, user.phoneNo);
             const { password } = user, userWithoutPassword = __rest(user, ["password"]);
             return {
@@ -588,7 +599,6 @@ class UserManagementServices {
             // if (block) {
             //   throw new ApiError(403, 'Your account is currently blocked')
             // }
-            console.log('user login.....', user);
             const token = this.generateAccessToken(user.userId, user.role, user.phoneNo);
             const { password } = user, userWithoutPassword = __rest(user, ["password"]);
             return {
@@ -896,6 +906,9 @@ class UserManagementServices {
             if (!seller) {
                 throw new ApiError_1.default(404, 'Seller not found');
             }
+            if (seller.referralCode) {
+                throw new ApiError_1.default(400, 'Seller already has a referral code');
+            }
             // Check if referral code already exists
             const existingReferral = yield prisma_1.default.user.findUnique({
                 where: { referralCode },
@@ -956,7 +969,6 @@ class UserManagementServices {
     assignPermissionToRole(adminId, input) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.UPDATE);
-            console.log('assignPermissionToRole input:', input);
             return yield prisma_1.default.rolePermission.upsert({
                 where: {
                     roleId_permission: {
@@ -1148,12 +1160,6 @@ class UserManagementServices {
                         },
                     },
                 },
-            });
-            console.log('Verifying user permission:', {
-                userId,
-                permission,
-                action,
-                phoneNo: user === null || user === void 0 ? void 0 : user.phoneNo,
             });
             if (!user) {
                 throw new ApiError_1.default(404, 'User not found');
