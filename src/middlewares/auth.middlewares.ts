@@ -1,7 +1,8 @@
-import { UserType } from '@prisma/client'
+import { ActionType, PermissionType, UserType } from '@prisma/client'
 import { NextFunction, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import config from '../config'
+import userServices from '../services/UserManagement/user.services'
 import ApiError from '../utils/ApiError'
 import prisma from '../utils/prisma'
 
@@ -78,5 +79,33 @@ export const verifyRole = (role: UserType | UserType[]) => {
       return next(new ApiError(403, 'Forbidden'))
     }
     next()
+  }
+}
+
+export const verifyPermission = (
+  permissionType: PermissionType,
+  actionType: ActionType,
+) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.userId
+
+      if (!userId) {
+        throw new ApiError(401, 'Unauthorized')
+      }
+
+      // Verify the user has the required permission
+      await userServices.verifyUserPermission(
+        userId,
+        permissionType,
+        actionType,
+      )
+
+      // If verification succeeds, proceed to next middleware
+      next()
+    } catch (error) {
+      // Pass any errors to the error handling middleware
+      next(error)
+    }
   }
 }

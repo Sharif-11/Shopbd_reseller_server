@@ -590,6 +590,22 @@ model Announcements {
   @@unique([id])
   @@map("announcements")
 }
+//Config  Settings
+
+model Config {
+  id        String  @id @default(cuid())  // Better than autoincrement for distributed systems
+  type      String                       // The config type/category
+  content   Json                         // Flexible content storage
+  version   Int     @default(1)          // For versioning/config migrations
+  isActive  Boolean @default(true)       // To toggle configs without deleting
+  
+  // System metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([type])  // Ensure each config type is unique
+}
+// =============================
 
 //===============================
 // Support Ticket Management
