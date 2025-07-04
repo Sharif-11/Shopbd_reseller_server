@@ -2,6 +2,7 @@ import axios from 'axios'
 import config from '../../../config'
 import ApiError from '../../../utils/ApiError'
 import SmsServiceError from '../../../utils/SmsServiceError'
+import configServices from '../Configuration/config.services'
 
 type SmsResponse = {
   response_code: number
@@ -22,6 +23,13 @@ type BulkSmsResponse = {
 type PersonalizedMessage = {
   number: string
   message: string
+}
+const DEFAULT_NOTIFICATIONS = {
+  withdrawRequestNotification: false,
+  orderArrivalNotification: true,
+  orderDeliveryNotification: true,
+  orderCompletionNotification: false,
+  withdrawCompletionNotification: true,
 }
 
 class SmsServices {
@@ -264,11 +272,12 @@ class SmsServices {
     mobileNo: string | string[]
     orderId: number
   }): Promise<SmsResponse | BulkSmsResponse> {
+    const { enabled } = await configServices.checkFeature(
+      'notifications',
+      'orderArrivalNotification',
+    )
     const message = `New order received (Order ID: ${orderId})`
-    if (
-      config.enableSmsNotifications === false ||
-      config.env === 'development'
-    ) {
+    if (config.env === 'development' || !enabled) {
       console.log(message)
       return {
         response_code: 200,
@@ -296,11 +305,12 @@ class SmsServices {
     sellerPhoneNo: string
     amount: number
   }): Promise<SmsResponse | BulkSmsResponse> {
+    const { enabled } = await configServices.checkFeature(
+      'notifications',
+      'withdrawRequestNotification',
+    )
     const message = `Withdrawal Request: ${sellerName} (Phone: ${sellerPhoneNo}) requested ${amount} TK.`
-    if (
-      config.enableSmsNotifications === false ||
-      config.env === 'development'
-    ) {
+    if (!enabled || config.env === 'development') {
       console.log(message)
       return {
         response_code: 200,
@@ -339,8 +349,12 @@ class SmsServices {
     orderId: number
     trackingUrl: string
   }): Promise<SmsResponse | BulkSmsResponse> {
+    const { enabled } = await configServices.checkFeature(
+      'notifications',
+      'orderDeliveryNotification',
+    )
     const message = `Your order (#${orderId}) has been shipped. Track it here: ${trackingUrl}`
-    if (config.env === 'development') {
+    if (config.env === 'development' || !enabled) {
       console.clear()
       console.log(message)
       return {
@@ -368,17 +382,20 @@ class SmsServices {
     commission: number
     orderType?: 'SELLER_ORDER' | 'CUSTOMER_ORDER'
   }): Promise<SmsResponse | BulkSmsResponse> {
+    const { enabled } = await configServices.checkFeature(
+      'notifications',
+      'orderCompletionNotification',
+    )
     let message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK. Your commission: ${commission} TK.`
     if (orderType === 'CUSTOMER_ORDER') {
       message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK.`
     }
-    if (config.env === 'development') {
+    if (config.env === 'development' || !enabled) {
       console.clear()
       console.log(`Order completed message for ${sellerPhoneNo}: ${message}`)
       return {
         response_code: 200,
-        success_message:
-          'Order completed message sent successfully (development mode)',
+        success_message: `Order completed message sent successfully ${!enabled ? 'disabled' : '(development mode)'}`,
       }
     }
     return this.sendSingleSms(sellerPhoneNo, message)
