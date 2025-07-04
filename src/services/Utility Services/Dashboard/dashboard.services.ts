@@ -9,5 +9,12 @@ class Dashboard {
     ])
     return { ...userData, ...salesData }
   }
+  public async getResellerDashboardData(userId: string) {
+    const [userData, salesData] = await Promise.all([
+      userServices.getUserStatisticsForSeller(userId),
+      orderService.getOrderStatisticsForSeller(userId),
+    ])
+    return { ...userData, ...salesData }
+  }
 }
 export const dashboardService = new Dashboard()

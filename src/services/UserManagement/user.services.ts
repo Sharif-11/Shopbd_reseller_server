@@ -1484,6 +1484,48 @@ class UserManagementServices {
       totalUsersLast7Days: last7DaysUsers,
     }
   }
+  async getUserStatisticsForSeller(userId: string) {
+    // Get the user first to verify existence and get referral code
+    const user = await prisma.user.findUnique({
+      where: { userId },
+      select: {
+        phoneNo: true,
+        referralCode: true,
+        role: true,
+      },
+    })
+
+    if (!user) {
+      throw new Error('User not found')
+    }
+
+    // Get all users who used this user's referral code (level 1 referrals)
+    const level1Referrals = await prisma.user.findMany({
+      where: { referredByPhone: user.phoneNo },
+      select: { phoneNo: true },
+    })
+
+    // Get phone numbers of level 1 referrals for the next query
+    const level1Phones = level1Referrals.map(u => u.phoneNo)
+
+    // Get level 2 referrals (users referred by level 1 referrals)
+    const level2Referrals = await prisma.user.findMany({
+      where: { referredByPhone: { in: level1Phones } },
+      select: { phoneNo: true },
+    })
+
+    // Count customers who used this user's referral code
+    const referredCustomers = await prisma.customer.count({
+      where: { sellerId: userId },
+    })
+
+    return {
+      totalLevel1Referrals: level1Referrals.length,
+      totalLevel2Referrals: level2Referrals.length,
+      totalReferredCustomers: referredCustomers,
+      totalReferrals: level1Referrals.length + level2Referrals.length,
+    }
+  }
 }
 
 export default new UserManagementServices()

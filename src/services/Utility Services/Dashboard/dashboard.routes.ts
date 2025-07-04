@@ -18,6 +18,11 @@ class DashboardRouter {
       isAuthenticated,
       dashboardController.getAdminDashboardData,
     )
+    this.router.get(
+      '/seller',
+      isAuthenticated,
+      dashboardController.getResellerDashboardData,
+    )
   }
 
   public getRouter(): Router {

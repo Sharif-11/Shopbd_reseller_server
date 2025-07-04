@@ -1377,39 +1377,71 @@ class OrderService {
     }
   }
   public async getOrderStatisticsForSeller(userId: string) {
-    const user = await userServices.getUserById(userId)
+    const user = await userServices.getUserById(userId);
     if (!user) {
-      throw new ApiError(404, 'User not found')
+      throw new ApiError(404, 'User not found');
     }
+
+    // Calculate date ranges
+    const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Get all orders for the seller
     const orders = await prisma.order.findMany({
       where: { sellerId: userId },
       include: {
         OrderProduct: true,
       },
-    })
-    let totalSales = 0
-    let totalCommission = 0
-    let completedOrdersCount = 0
-    let totalProductsSold = 0
+    });
 
-    for (const order of orders) {
-      if (order.orderStatus === 'COMPLETED') {
-        totalSales += order.totalProductSellingPrice?.toNumber() || 0
-        totalCommission += order.actualCommission?.toNumber() || 0
-        completedOrdersCount++
+    // Filter orders for different time periods
+    const last7DaysOrders = orders.filter(order => 
+      new Date(order.createdAt) >= sevenDaysAgo
+    );
+    const last30DaysOrders = orders.filter(order => 
+      new Date(order.createdAt) >= thirtyDaysAgo
+    );
+
+    // Function to calculate statistics for a given order set
+    const calculateStats = (orderSet: typeof orders) => {
+      let totalSales = 0;
+      let totalCommission = 0;
+      let completedOrdersCount = 0;
+      let totalProductsSold = 0;
+
+      for (const order of orderSet) {
+        if (order.orderStatus === 'COMPLETED') {
+          totalSales += order.totalProductSellingPrice?.toNumber() || 0;
+          totalCommission += order.actualCommission?.toNumber() || 0;
+          completedOrdersCount++;
+        }
+        for (const product of order.OrderProduct) {
+          totalProductsSold += product.productQuantity || 0;
+        }
       }
-      for (const product of order.OrderProduct) {
-        totalProductsSold += product.productQuantity || 0
-      }
-    }
+
+      return {
+        totalOrders: orderSet.length,
+        totalSales,
+        totalCommission,
+        totalProductsSold,
+        totalOrdersCompleted: completedOrdersCount,
+      };
+    };
+
+    // Calculate statistics for all time, last 30 days, and last 7 days
+    const allTimeStats = calculateStats(orders);
+    const last30DaysStats = calculateStats(last30DaysOrders);
+    const last7DaysStats = calculateStats(last7DaysOrders);
 
     return {
-      totalOrders: orders.length,
-      totalSales,
-      totalCommission,
-      totalProductsSold,
-      totalOrdersCompleted: completedOrdersCount,
-    }
-  }
+      allTime: allTimeStats,
+      last30Days: last30DaysStats,
+      last7Days: last7DaysStats,
+    };
+}
 }
 export const orderService = new OrderService()
