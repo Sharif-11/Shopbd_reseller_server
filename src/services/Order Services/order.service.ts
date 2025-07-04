@@ -1184,23 +1184,29 @@ class OrderService {
           order.totalProductSellingPrice.toNumber(),
         )
         if (referrers.length > 0) {
-          await prisma.$transaction(async tx => {
-            const commissionPromises = referrers.map(referrer => {
-              return transactionServices.createTransaction({
-                tx,
-                userId: referrer.userId,
-                amount: referrer.commissionAmount,
-                reason: `রেফারেল কমিশন`,
-                transactionType: 'Credit',
-                reference: {
-                  seller: result.sellerName,
-                  level: referrer.level,
-                  orderId: result.orderId,
-                },
+          await prisma.$transaction(
+            async tx => {
+              const commissionPromises = referrers.map(referrer => {
+                return transactionServices.createTransaction({
+                  tx,
+                  userId: referrer.userId,
+                  amount: referrer.commissionAmount,
+                  reason: `রেফারেল কমিশন`,
+                  transactionType: 'Credit',
+                  reference: {
+                    seller: result.sellerName,
+                    level: referrer.level,
+                    orderId: result.orderId,
+                  },
+                })
               })
-            })
-            return await Promise.all(commissionPromises)
-          })
+              return await Promise.all(commissionPromises)
+            },
+            {
+              isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+              timeout: referrers.length * 2000 + 5000,
+            },
+          )
         }
       } catch (error) {
         console.log('Failed to send commissions:', error)
