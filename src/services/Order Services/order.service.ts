@@ -817,7 +817,7 @@ class OrderService {
     if (!order) {
       throw new ApiError(404, 'Order not found')
     }
-    await this.checkExistingTrackingUrl(trackingUrl?.trim())
+    // await this.checkExistingTrackingUrl(trackingUrl?.trim())
     if (order.orderStatus !== 'CONFIRMED') {
       throw new ApiError(400, 'Only confirmed orders can be delivered')
     }
@@ -1310,6 +1310,106 @@ class OrderService {
         orderStatus: 'FAILED',
       },
     })
+  }
+  public async getOrderStatisticsForAdmin({ adminId }: { adminId: string }) {
+    // Check admin permission
+    await userServices.verifyUserPermission(
+      adminId,
+      PermissionType.DASHBOARD_ANALYTICS,
+      ActionType.READ,
+    )
+
+    // Calculate date boundaries once
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    // Fetch all necessary data in parallel
+    const [allOrders, allOrderProducts] = await Promise.all([
+      prisma.order.findMany({
+        include: {
+          OrderProduct: true,
+        },
+      }),
+      prisma.orderProduct.findMany({
+        include: {
+          order: true,
+        },
+      }),
+    ])
+
+    // Initialize counters
+    let totalSales = 0
+    let totalCommission = 0
+    let completedOrdersCount = 0
+    let last30DaysCompleted = 0
+    let last7DaysCompleted = 0
+    let totalProductsSold = 0
+
+    // Process orders
+    for (const order of allOrders) {
+      if (order.orderStatus === 'COMPLETED') {
+        totalSales += order.totalProductSellingPrice?.toNumber() || 0
+        totalCommission += order.actualCommission?.toNumber() || 0
+        completedOrdersCount++
+
+        // Check recent completed orders
+        if (order.createdAt >= thirtyDaysAgo) last30DaysCompleted++
+        if (order.createdAt >= sevenDaysAgo) last7DaysCompleted++
+      }
+    }
+
+    // Process order products
+    for (const orderProduct of allOrderProducts) {
+      if (orderProduct.order.orderStatus === 'COMPLETED') {
+        totalProductsSold += orderProduct.productQuantity || 0
+      }
+    }
+
+    return {
+      totalOrders: allOrders.length,
+      totalSales,
+      totalCommission,
+      totalProductsSold,
+      totalOrdersCompleted: completedOrdersCount,
+      totalOrdersCompletedLast30Days: last30DaysCompleted,
+      totalOrdersCompletedLast7Days: last7DaysCompleted,
+    }
+  }
+  public async getOrderStatisticsForSeller(userId: string) {
+    const user = await userServices.getUserById(userId)
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    const orders = await prisma.order.findMany({
+      where: { sellerId: userId },
+      include: {
+        OrderProduct: true,
+      },
+    })
+    let totalSales = 0
+    let totalCommission = 0
+    let completedOrdersCount = 0
+    let totalProductsSold = 0
+
+    for (const order of orders) {
+      if (order.orderStatus === 'COMPLETED') {
+        totalSales += order.totalProductSellingPrice?.toNumber() || 0
+        totalCommission += order.actualCommission?.toNumber() || 0
+        completedOrdersCount++
+      }
+      for (const product of order.OrderProduct) {
+        totalProductsSold += product.productQuantity || 0
+      }
+    }
+
+    return {
+      totalOrders: orders.length,
+      totalSales,
+      totalCommission,
+      totalProductsSold,
+      totalOrdersCompleted: completedOrdersCount,
+    }
   }
 }
 export const orderService = new OrderService()

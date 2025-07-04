@@ -1425,6 +1425,65 @@ class UserManagementServices {
       currentPage: page,
     }
   }
+  async getUserStatisticsForAdmin(adminId: string) {
+    await this.verifyUserPermission(
+      adminId,
+      PermissionType.DASHBOARD_ANALYTICS,
+      ActionType.READ,
+    )
+
+    // Calculate date boundaries once
+    const now = new Date()
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+
+    // Fetch all data in parallel
+    const [allUsers, allCustomers] = await Promise.all([
+      prisma.user.findMany(),
+      prisma.customer.findMany(),
+    ])
+
+    // Process user data
+    let totalSellers = 0
+    let totalAdmins = 0
+    let totalSuperAdmins = 0
+    let totalVerifiedSellers = 0
+    let totalUnverifiedSellers = 0
+    let last30DaysUsers = 0
+    let last7DaysUsers = 0
+
+    for (const user of allUsers) {
+      // Count by role
+      if (user.role === 'Seller') totalSellers++
+      if (user.role === 'Admin') totalAdmins++
+      if (user.role === 'SuperAdmin') totalSuperAdmins++
+
+      // Count seller verification status
+      if (user.role === 'Seller') {
+        if (user.isVerified) {
+          totalVerifiedSellers++
+        } else {
+          totalUnverifiedSellers++
+        }
+      }
+
+      // Count recent users
+      if (user.createdAt >= thirtyDaysAgo) last30DaysUsers++
+      if (user.createdAt >= sevenDaysAgo) last7DaysUsers++
+    }
+
+    return {
+      totalUsers: allUsers.length,
+      totalSellers,
+      totalCustomers: allCustomers.length,
+      totalAdmins,
+      totalSuperAdmins,
+      totalVerifiedSellers,
+      totalUnverifiedSellers,
+      totalUsersLast30Days: last30DaysUsers,
+      totalUsersLast7Days: last7DaysUsers,
+    }
+  }
 }
 
 export default new UserManagementServices()

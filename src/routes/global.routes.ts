@@ -14,6 +14,7 @@ import blockRoutes from '../services/UserManagement/Block Management/block.route
 import roleRoutes from '../services/UserManagement/Role Management/role.routes'
 import announcementRoutes from '../services/Utility Services/Announcement/announcement.routes'
 import configRoutes from '../services/Utility Services/Configuration/config.routes'
+import dashboardRoutes from '../services/Utility Services/Dashboard/dashboard.routes'
 import smsRoutes from '../services/Utility Services/Sms Service/sms.routes'
 import transactionRoutes from '../services/Utility Services/Transaction Services/transaction.routes'
 import walletRoutes from '../services/WalletManagement/wallet.routes'
@@ -70,6 +71,10 @@ class GlobalRoutes {
       {
         path: '/configs',
         route: configRoutes,
+      },
+      {
+        path: '/dashboard',
+        route: dashboardRoutes,
       },
       // { path: '/admin', route: adminRouter },
       // { path: '/sellers', route: sellerRouter },
