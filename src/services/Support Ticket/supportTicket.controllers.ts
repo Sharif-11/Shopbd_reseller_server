@@ -1,4 +1,4 @@
-import { TicketStatus } from '@prisma/client'
+import { TicketCategory, TicketPriority, TicketStatus } from '@prisma/client'
 import { NextFunction, Request, Response } from 'express'
 import { supportTicketService } from './supportTicket.services'
 
@@ -45,7 +45,8 @@ class SupportTicketController {
     try {
       const userId = req.user?.userId
       const { ticketId, message, attachmentUrls = [] } = req.body
-      const senderType = req.user?.role === 'SELLER' ? 'SELLER' : 'SYSTEM'
+      console.log(req?.user)
+      const senderType = req.user?.role === 'Seller' ? 'SELLER' : 'SYSTEM'
 
       const newMessage = await supportTicketService.replyToTicket(userId!, {
         ticketId,
@@ -132,13 +133,15 @@ class SupportTicketController {
   async getAllTickets(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.userId
-      const { status, page, limit, search } = req.query
+      const { status, page, limit, search, priority, category } = req.query
 
       const tickets = await supportTicketService.getAllTickets(userId!, {
         status: status as TicketStatus | TicketStatus[],
         page: page ? Number(page) : undefined,
         limit: limit ? Number(limit) : undefined,
         search: search as string | undefined,
+        priority: priority as TicketPriority | TicketPriority[],
+        category: category as TicketCategory | TicketCategory[],
       })
 
       res.status(200).json({

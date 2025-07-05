@@ -205,6 +205,44 @@ class SupportTicketValidator {
         .optional()
         .isString()
         .withMessage('Search term must be a string'),
+      query('priority')
+        .optional()
+        .custom(value => {
+          if (Array.isArray(value)) {
+            return value.every(v =>
+              ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(v),
+            )
+          }
+          return ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].includes(value)
+        })
+        .withMessage('Invalid ticket priority'),
+      query('category')
+        .optional()
+        .custom(value => {
+          if (Array.isArray(value)) {
+            return value.every(v =>
+              [
+                'ACCOUNT',
+                'PAYMENT',
+                'ORDER',
+                'PRODUCT',
+                'WITHDRAWAL',
+                'TECHNICAL',
+                'OTHER',
+              ].includes(v),
+            )
+          }
+          return [
+            'ACCOUNT',
+            'PAYMENT',
+            'ORDER',
+            'PRODUCT',
+            'WITHDRAWAL',
+            'TECHNICAL',
+            'OTHER',
+          ].includes(value)
+        })
+        .withMessage('Invalid ticket category'),
     ]
   }
 }

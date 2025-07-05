@@ -1,7 +1,13 @@
-import { ActionType, PermissionType, UserType } from '@prisma/client'
+import {
+  ActionType,
+  BlockActionType,
+  PermissionType,
+  UserType,
+} from '@prisma/client'
 import { NextFunction, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
 import config from '../config'
+import { blockServices } from '../services/UserManagement/Block Management/block.services'
 import userServices from '../services/UserManagement/user.services'
 import ApiError from '../utils/ApiError'
 import prisma from '../utils/prisma'
@@ -106,6 +112,42 @@ export const verifyPermission = (
     } catch (error) {
       // Pass any errors to the error handling middleware
       next(error)
+    }
+  }
+}
+export const verifyAccess = (action: BlockActionType) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const phoneNo = req.user?.phoneNo
+    const role = req.user?.role
+    console.clear()
+    console.log(req.user)
+    if (role === 'Seller') {
+      console.log({ phoneNo, action, role })
+      if (!phoneNo) {
+        return next(new ApiError(401, 'Unauthorized'))
+      }
+      const isBlocked = await blockServices.isUserBlocked(
+        phoneNo,
+        action as BlockActionType,
+      )
+      console.log({ isBlocked, action, phoneNo })
+      if (isBlocked) {
+        return next(
+          new ApiError(403, 'You are blocked from performing this action'),
+        )
+      }
+      next()
+    } else {
+      try {
+        await userServices.verifyUserPermission(
+          req.user?.userId!,
+          PermissionType.SUPPORT_TICKET_MANAGEMENT,
+          ActionType.READ,
+        )
+        next()
+      } catch (error) {
+        return next(new ApiError(401, 'Unauthorized'))
+      }
     }
   }
 }

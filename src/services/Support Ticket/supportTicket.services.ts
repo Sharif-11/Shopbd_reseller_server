@@ -1,9 +1,14 @@
-import { Prisma, SenderType, TicketStatus } from '@prisma/client'
+import {
+  Prisma,
+  SenderType,
+  TicketCategory,
+  TicketPriority,
+  TicketStatus,
+} from '@prisma/client'
 
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
 import userServices from '../UserManagement/user.services'
-import { DeleteFilesFromFTP } from './supportTicket.utils'
 
 class SupportTicketService {
   private async validateTicketOwnership(ticketId: string, userId: string) {
@@ -276,11 +281,15 @@ class SupportTicketService {
       page = 1,
       limit = 10,
       search,
+      priority,
+      category,
     }: {
       status?: TicketStatus | TicketStatus[]
       page?: number
       limit?: number
       search?: string
+      priority?: TicketPriority | TicketPriority[]
+      category?: TicketCategory | TicketCategory[]
     },
   ) {
     await this.validateAdminAccess(adminId)
@@ -290,6 +299,12 @@ class SupportTicketService {
 
     if (status) {
       where.status = Array.isArray(status) ? { in: status } : status
+    }
+    if (priority) {
+      where.priority = Array.isArray(priority) ? { in: priority } : priority
+    }
+    if (category) {
+      where.category = Array.isArray(category) ? { in: category } : category
     }
 
     if (search) {

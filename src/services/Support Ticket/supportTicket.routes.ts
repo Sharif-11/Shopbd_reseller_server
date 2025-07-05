@@ -1,5 +1,8 @@
 import { Router } from 'express'
-import { isAuthenticated } from '../../middlewares/auth.middlewares'
+import {
+  isAuthenticated,
+  verifyAccess,
+} from '../../middlewares/auth.middlewares'
 import validateRequest from '../../middlewares/validation.middleware'
 import supportTicketController from './supportTicket.controllers'
 import SupportTicketValidator from './supportTicket.validator'
@@ -17,6 +20,7 @@ class SupportTicketRouter {
     this.router.post(
       '/',
       isAuthenticated,
+      verifyAccess('SUPPORT_TICKET'),
       SupportTicketValidator.createTicket(),
       validateRequest,
       supportTicketController.createTicket,
@@ -25,6 +29,7 @@ class SupportTicketRouter {
     this.router.post(
       '/reply',
       isAuthenticated,
+      verifyAccess('SUPPORT_TICKET'),
       SupportTicketValidator.replyToTicket(),
       validateRequest,
       supportTicketController.replyToTicket,
@@ -41,6 +46,7 @@ class SupportTicketRouter {
     this.router.get(
       '/:ticketId',
       isAuthenticated,
+      verifyAccess('SUPPORT_TICKET'),
       SupportTicketValidator.getTicketDetails(),
       validateRequest,
       supportTicketController.getTicketDetails,

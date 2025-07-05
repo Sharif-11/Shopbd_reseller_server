@@ -78,6 +78,7 @@ enum BlockActionType {
   PASSWORD_RESET
   PAYMENT_REQUEST
   WALLET_ADDITION
+  SUPPORT_TICKET
   ALL
 }
 
@@ -687,7 +688,8 @@ enum TicketStatus {
    RESOLVED
    CLOSED
 }
-enum TicketPriority { LOW 
+enum TicketPriority { 
+LOW
 MEDIUM
 HIGH
 CRITICAL
