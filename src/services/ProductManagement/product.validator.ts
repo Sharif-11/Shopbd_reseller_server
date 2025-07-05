@@ -31,6 +31,10 @@ class ProductValidator {
         .withMessage('পণ্যের বিবরণ প্রয়োজন')
         .isString()
         .withMessage('পণ্যের বিবরণ অবশ্যই স্ট্রিং হতে হবে'),
+      body('videoUrl')
+        .optional()
+        .isURL()
+        .withMessage('ভিডিও URL সঠিক ফরম্যাটে হতে হবে'),
       body('basePrice')
         .notEmpty()
         .withMessage('মূল্য প্রয়োজন')
@@ -95,6 +99,11 @@ class ProductValidator {
         .withMessage('পণ্যের বিবরণ প্রয়োজন')
         .isString()
         .withMessage('পণ্যের বিবরণ অবশ্যই স্ট্রিং হতে হবে'),
+      body('videoUrl')
+        .optional()
+        .isURL()
+        .withMessage('ভিডিও URL সঠিক ফরম্যাটে হতে হবে'),
+
       body('basePrice')
         .notEmpty()
         .withMessage('মূল্য প্রয়োজন')

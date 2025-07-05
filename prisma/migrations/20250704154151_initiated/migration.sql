@@ -422,6 +422,19 @@ CREATE TABLE "announcements" (
 );
 
 -- CreateTable
+CREATE TABLE "Config" (
+    "id" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "content" JSONB NOT NULL,
+    "version" INTEGER NOT NULL DEFAULT 1,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Config_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "support_tickets" (
     "ticketId" TEXT NOT NULL,
     "subject" TEXT NOT NULL,
@@ -526,9 +539,6 @@ CREATE INDEX "productVariantIndex" ON "product_variants"("productId", "name");
 CREATE UNIQUE INDEX "product_variants_productId_name_value_key" ON "product_variants"("productId", "name", "value");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Order_trackingUrl_key" ON "Order"("trackingUrl");
-
--- CreateIndex
 CREATE UNIQUE INDEX "payments_transactionId_key" ON "payments"("transactionId");
 
 -- CreateIndex
@@ -539,6 +549,9 @@ CREATE UNIQUE INDEX "commissions_startPrice_endPrice_level_key" ON "commissions"
 
 -- CreateIndex
 CREATE UNIQUE INDEX "announcements_id_key" ON "announcements"("id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Config_type_key" ON "Config"("type");
 
 -- CreateIndex
 CREATE INDEX "ticketUserIndex" ON "support_tickets"("userId");

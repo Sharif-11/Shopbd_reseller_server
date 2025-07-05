@@ -1231,5 +1231,99 @@ class UserManagementServices {
             };
         });
     }
+    getUserStatisticsForAdmin(adminId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.verifyUserPermission(adminId, client_1.PermissionType.DASHBOARD_ANALYTICS, client_1.ActionType.READ);
+            // Calculate date boundaries once
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            // Fetch all data in parallel
+            const [allUsers, allCustomers] = yield Promise.all([
+                prisma_1.default.user.findMany(),
+                prisma_1.default.customer.findMany(),
+            ]);
+            // Process user data
+            let totalSellers = 0;
+            let totalAdmins = 0;
+            let totalSuperAdmins = 0;
+            let totalVerifiedSellers = 0;
+            let totalUnverifiedSellers = 0;
+            let last30DaysUsers = 0;
+            let last7DaysUsers = 0;
+            for (const user of allUsers) {
+                // Count by role
+                if (user.role === 'Seller')
+                    totalSellers++;
+                if (user.role === 'Admin')
+                    totalAdmins++;
+                if (user.role === 'SuperAdmin')
+                    totalSuperAdmins++;
+                // Count seller verification status
+                if (user.role === 'Seller') {
+                    if (user.isVerified) {
+                        totalVerifiedSellers++;
+                    }
+                    else {
+                        totalUnverifiedSellers++;
+                    }
+                }
+                // Count recent users
+                if (user.createdAt >= thirtyDaysAgo)
+                    last30DaysUsers++;
+                if (user.createdAt >= sevenDaysAgo)
+                    last7DaysUsers++;
+            }
+            return {
+                totalUsers: allUsers.length,
+                totalSellers,
+                totalCustomers: allCustomers.length,
+                totalAdmins,
+                totalSuperAdmins,
+                totalVerifiedSellers,
+                totalUnverifiedSellers,
+                totalUsersLast30Days: last30DaysUsers,
+                totalUsersLast7Days: last7DaysUsers,
+            };
+        });
+    }
+    getUserStatisticsForSeller(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Get the user first to verify existence and get referral code
+            const user = yield prisma_1.default.user.findUnique({
+                where: { userId },
+                select: {
+                    phoneNo: true,
+                    referralCode: true,
+                    role: true,
+                },
+            });
+            if (!user) {
+                throw new Error('User not found');
+            }
+            // Get all users who used this user's referral code (level 1 referrals)
+            const level1Referrals = yield prisma_1.default.user.findMany({
+                where: { referredByPhone: user.phoneNo },
+                select: { phoneNo: true },
+            });
+            // Get phone numbers of level 1 referrals for the next query
+            const level1Phones = level1Referrals.map(u => u.phoneNo);
+            // Get level 2 referrals (users referred by level 1 referrals)
+            const level2Referrals = yield prisma_1.default.user.findMany({
+                where: { referredByPhone: { in: level1Phones } },
+                select: { phoneNo: true },
+            });
+            // Count customers who used this user's referral code
+            const referredCustomers = yield prisma_1.default.customer.count({
+                where: { sellerId: userId },
+            });
+            return {
+                totalLevel1Referrals: level1Referrals.length,
+                totalLevel2Referrals: level2Referrals.length,
+                totalReferredCustomers: referredCustomers,
+                totalReferrals: level1Referrals.length + level2Referrals.length,
+            };
+        });
+    }
 }
 exports.default = new UserManagementServices();

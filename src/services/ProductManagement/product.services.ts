@@ -38,6 +38,7 @@ class ProductServices {
       description: string
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
+      videoUrl?: string
     },
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.CREATE)
@@ -93,6 +94,7 @@ class ProductServices {
       description: string
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
+      videoUrl?: string
     },
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
@@ -559,7 +561,6 @@ class ProductServices {
   }) {
     try {
       if (userId) {
-      
         const product = await this.getProductDetailForSeller(productId)
         // Seller or admin view
         return {
@@ -567,9 +568,8 @@ class ProductServices {
           product,
         }
       } else {
-   
         const product = await this.getProductDetailForCustomer(productId)
-   
+
         return {
           userType: 'customer',
           product,

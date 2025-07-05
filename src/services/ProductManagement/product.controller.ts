@@ -16,6 +16,7 @@ class ProductController {
         description,
         basePrice,
         suggestedMaxPrice,
+        videoUrl, // Optional field for video URL
       } = req.body
 
       const product = await productServices.createProduct(userId!, {
@@ -25,6 +26,7 @@ class ProductController {
         description,
         basePrice: Number(basePrice),
         suggestedMaxPrice: Number(suggestedMaxPrice),
+        videoUrl,
       })
 
       res.status(201).json({
@@ -68,7 +70,8 @@ class ProductController {
       const userId = req.user?.userId
       const { productId } = req.params
 
-      const { name, description, basePrice, suggestedMaxPrice } = req.body
+      const { name, description, basePrice, suggestedMaxPrice, videoUrl } =
+        req.body
 
       const product = await productServices.updateProduct(
         userId!,
@@ -79,6 +82,7 @@ class ProductController {
           ...(basePrice && { basePrice: Number(basePrice) }),
           ...(suggestedMaxPrice && {
             suggestedMaxPrice: Number(suggestedMaxPrice),
+            ...(videoUrl && { videoUrl }),
           }),
         },
       )

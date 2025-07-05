@@ -14,6 +14,8 @@ const shopCategory_routes_1 = require("../services/ProductManagement/shopCategor
 const block_routes_1 = __importDefault(require("../services/UserManagement/Block Management/block.routes"));
 const role_routes_1 = __importDefault(require("../services/UserManagement/Role Management/role.routes"));
 const announcement_routes_1 = __importDefault(require("../services/Utility Services/Announcement/announcement.routes"));
+const config_routes_1 = __importDefault(require("../services/Utility Services/Configuration/config.routes"));
+const dashboard_routes_1 = __importDefault(require("../services/Utility Services/Dashboard/dashboard.routes"));
 const sms_routes_1 = __importDefault(require("../services/Utility Services/Sms Service/sms.routes"));
 const transaction_routes_1 = __importDefault(require("../services/Utility Services/Transaction Services/transaction.routes"));
 const wallet_routes_1 = __importDefault(require("../services/WalletManagement/wallet.routes"));
@@ -62,6 +64,14 @@ class GlobalRoutes {
             {
                 path: '/announcements',
                 route: announcement_routes_1.default,
+            },
+            {
+                path: '/configs',
+                route: config_routes_1.default,
+            },
+            {
+                path: '/dashboard',
+                route: dashboard_routes_1.default,
             },
             // { path: '/admin', route: adminRouter },
             // { path: '/sellers', route: sellerRouter },

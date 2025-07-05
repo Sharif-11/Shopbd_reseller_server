@@ -10,6 +10,7 @@ import {
   shopCategoryAssignmentRouter,
   shopRouter,
 } from '../services/ProductManagement/shopCategory.routes'
+import supportTicketRoutes from '../services/Support Ticket/supportTicket.routes'
 import blockRoutes from '../services/UserManagement/Block Management/block.routes'
 import roleRoutes from '../services/UserManagement/Role Management/role.routes'
 import announcementRoutes from '../services/Utility Services/Announcement/announcement.routes'
@@ -75,6 +76,10 @@ class GlobalRoutes {
       {
         path: '/dashboard',
         route: dashboardRoutes,
+      },
+      {
+        path: '/support-tickets',
+        route: supportTicketRoutes,
       },
       // { path: '/admin', route: adminRouter },
       // { path: '/sellers', route: sellerRouter },

@@ -16,6 +16,14 @@ const axios_1 = __importDefault(require("axios"));
 const config_1 = __importDefault(require("../../../config"));
 const ApiError_1 = __importDefault(require("../../../utils/ApiError"));
 const SmsServiceError_1 = __importDefault(require("../../../utils/SmsServiceError"));
+const config_services_1 = __importDefault(require("../Configuration/config.services"));
+const DEFAULT_NOTIFICATIONS = {
+    withdrawRequestNotification: false,
+    orderArrivalNotification: true,
+    orderDeliveryNotification: true,
+    orderCompletionNotification: false,
+    withdrawCompletionNotification: true,
+};
 class SmsServices {
     /**
      * Send SMS to a single recipient
@@ -201,9 +209,9 @@ class SmsServices {
      */
     static sendOrderNotificationToAdmin(_a) {
         return __awaiter(this, arguments, void 0, function* ({ mobileNo, orderId, }) {
+            const { enabled } = yield config_services_1.default.checkFeature('notifications', 'orderArrivalNotification');
             const message = `New order received (Order ID: ${orderId})`;
-            if (config_1.default.enableSmsNotifications === false ||
-                config_1.default.env === 'development') {
+            if (config_1.default.env === 'development' || !enabled) {
                 console.log(message);
                 return {
                     response_code: 200,
@@ -221,9 +229,9 @@ class SmsServices {
      */
     static sendWithdrawalRequestToAdmin(_a) {
         return __awaiter(this, arguments, void 0, function* ({ mobileNo, sellerName, sellerPhoneNo, amount, }) {
+            const { enabled } = yield config_services_1.default.checkFeature('notifications', 'withdrawRequestNotification');
             const message = `Withdrawal Request: ${sellerName} (Phone: ${sellerPhoneNo}) requested ${amount} TK.`;
-            if (config_1.default.enableSmsNotifications === false ||
-                config_1.default.env === 'development') {
+            if (!enabled || config_1.default.env === 'development') {
                 console.log(message);
                 return {
                     response_code: 200,
@@ -250,8 +258,9 @@ class SmsServices {
      */
     static notifyOrderShipped(_a) {
         return __awaiter(this, arguments, void 0, function* ({ sellerPhoneNo, orderId, trackingUrl, }) {
+            const { enabled } = yield config_services_1.default.checkFeature('notifications', 'orderDeliveryNotification');
             const message = `Your order (#${orderId}) has been shipped. Track it here: ${trackingUrl}`;
-            if (config_1.default.env === 'development') {
+            if (config_1.default.env === 'development' || !enabled) {
                 console.clear();
                 console.log(message);
                 return {
@@ -267,16 +276,17 @@ class SmsServices {
      */
     static notifyOrderCompleted(_a) {
         return __awaiter(this, arguments, void 0, function* ({ sellerPhoneNo, orderId, orderAmount, commission, orderType = 'SELLER_ORDER', }) {
+            const { enabled } = yield config_services_1.default.checkFeature('notifications', 'orderCompletionNotification');
             let message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK. Your commission: ${commission} TK.`;
             if (orderType === 'CUSTOMER_ORDER') {
                 message = `Your order (#${orderId}) has been completed. Total amount: ${orderAmount} TK.`;
             }
-            if (config_1.default.env === 'development') {
+            if (config_1.default.env === 'development' || !enabled) {
                 console.clear();
                 console.log(`Order completed message for ${sellerPhoneNo}: ${message}`);
                 return {
                     response_code: 200,
-                    success_message: 'Order completed message sent successfully (development mode)',
+                    success_message: `Order completed message sent successfully ${!enabled ? 'disabled' : '(development mode)'}`,
                 };
             }
             return this.sendSingleSms(sellerPhoneNo, message);

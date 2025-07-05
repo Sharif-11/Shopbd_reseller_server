@@ -643,7 +643,7 @@ class OrderService {
             if (!order) {
                 throw new ApiError_1.default(404, 'Order not found');
             }
-            yield this.checkExistingTrackingUrl(trackingUrl === null || trackingUrl === void 0 ? void 0 : trackingUrl.trim());
+            // await this.checkExistingTrackingUrl(trackingUrl?.trim())
             if (order.orderStatus !== 'CONFIRMED') {
                 throw new ApiError_1.default(400, 'Only confirmed orders can be delivered');
             }
@@ -956,7 +956,10 @@ class OrderService {
                                 });
                             });
                             return yield Promise.all(commissionPromises);
-                        }));
+                        }), {
+                            isolationLevel: client_1.Prisma.TransactionIsolationLevel.Serializable,
+                            timeout: referrers.length * 2000 + 5000,
+                        });
                     }
                 }
                 catch (error) {
@@ -1046,6 +1049,132 @@ class OrderService {
                     orderStatus: 'FAILED',
                 },
             });
+        });
+    }
+    getOrderStatisticsForAdmin(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId }) {
+            var _b, _c, _d, _e;
+            // Check admin permission
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.DASHBOARD_ANALYTICS, client_1.ActionType.READ);
+            // Calculate date boundaries once
+            const now = new Date();
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            // Fetch all necessary data in parallel
+            const [allOrders, allOrderProducts] = yield Promise.all([
+                prisma_1.default.order.findMany({
+                    include: {
+                        OrderProduct: true,
+                    },
+                }),
+                prisma_1.default.orderProduct.findMany({
+                    include: {
+                        order: true,
+                    },
+                }),
+            ]);
+            // Initialize counters
+            let totalSales = 0;
+            let totalCommission = 0;
+            let completedOrdersCount = 0;
+            let last30DaysCompleted = 0;
+            let last7DaysCompleted = 0;
+            let totalProductsSold = 0;
+            let last7daysTotalSales = 0;
+            let last30daysTotalSales = 0;
+            // Process orders
+            for (const order of allOrders) {
+                if (order.orderStatus === 'COMPLETED') {
+                    totalSales += ((_b = order.totalProductSellingPrice) === null || _b === void 0 ? void 0 : _b.toNumber()) || 0;
+                    totalCommission += ((_c = order.actualCommission) === null || _c === void 0 ? void 0 : _c.toNumber()) || 0;
+                    completedOrdersCount++;
+                    // Check recent completed orders
+                    if (order.createdAt >= thirtyDaysAgo) {
+                        last30DaysCompleted++;
+                        last30daysTotalSales +=
+                            ((_d = order.totalProductSellingPrice) === null || _d === void 0 ? void 0 : _d.toNumber()) || 0;
+                    }
+                    if (order.createdAt >= sevenDaysAgo) {
+                        last7DaysCompleted++;
+                        last7daysTotalSales += ((_e = order.totalProductSellingPrice) === null || _e === void 0 ? void 0 : _e.toNumber()) || 0;
+                    }
+                }
+            }
+            // Process order products
+            for (const orderProduct of allOrderProducts) {
+                if (orderProduct.order.orderStatus === 'COMPLETED') {
+                    totalProductsSold += orderProduct.productQuantity || 0;
+                }
+            }
+            return {
+                totalOrders: allOrders.length,
+                totalSales,
+                totalCommission,
+                totalProductsSold,
+                totalOrdersCompleted: completedOrdersCount,
+                totalOrdersCompletedLast30Days: last30DaysCompleted,
+                totalOrdersCompletedLast7Days: last7DaysCompleted,
+                totalSalesLast30Days: last30daysTotalSales,
+                totalSalesLast7Days: last7daysTotalSales,
+            };
+        });
+    }
+    getOrderStatisticsForSeller(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const user = yield user_services_1.default.getUserById(userId);
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            // Calculate date ranges
+            const now = new Date();
+            const sevenDaysAgo = new Date(now);
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            const thirtyDaysAgo = new Date(now);
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            // Get all orders for the seller
+            const orders = yield prisma_1.default.order.findMany({
+                where: { sellerId: userId },
+                include: {
+                    OrderProduct: true,
+                },
+            });
+            // Filter orders for different time periods
+            const last7DaysOrders = orders.filter(order => new Date(order.createdAt) >= sevenDaysAgo);
+            const last30DaysOrders = orders.filter(order => new Date(order.createdAt) >= thirtyDaysAgo);
+            // Function to calculate statistics for a given order set
+            const calculateStats = (orderSet) => {
+                var _a, _b;
+                let totalSales = 0;
+                let totalCommission = 0;
+                let completedOrdersCount = 0;
+                let totalProductsSold = 0;
+                for (const order of orderSet) {
+                    if (order.orderStatus === 'COMPLETED') {
+                        totalSales += ((_a = order.totalProductSellingPrice) === null || _a === void 0 ? void 0 : _a.toNumber()) || 0;
+                        totalCommission += ((_b = order.actualCommission) === null || _b === void 0 ? void 0 : _b.toNumber()) || 0;
+                        completedOrdersCount++;
+                    }
+                    for (const product of order.OrderProduct) {
+                        totalProductsSold += product.productQuantity || 0;
+                    }
+                }
+                return {
+                    totalOrders: orderSet.length,
+                    totalSales,
+                    totalCommission,
+                    totalProductsSold,
+                    totalOrdersCompleted: completedOrdersCount,
+                };
+            };
+            // Calculate statistics for all time, last 30 days, and last 7 days
+            const allTimeStats = calculateStats(orders);
+            const last30DaysStats = calculateStats(last30DaysOrders);
+            const last7DaysStats = calculateStats(last7DaysOrders);
+            return {
+                allTime: allTimeStats,
+                last30Days: last30DaysStats,
+                last7Days: last7DaysStats,
+            };
         });
     }
 }

@@ -273,12 +273,7 @@ class OrderValidator {
                 .optional()
                 .isString()
                 .withMessage('ট্রানজেকশন আইডি অবশ্যই স্ট্রিং হতে হবে'),
-            (0, express_validator_1.body)('systemWalletPhoneNo')
-                .optional()
-                .isString()
-                .withMessage('সিস্টেম ওয়ালেট ফোন নম্বর অবশ্যই স্ট্রিং হতে হবে')
-                .isLength({ min: 11, max: 11 })
-                .withMessage('সিস্টেম ওয়ালেট ফোন নম্বর অবশ্যই ১১ ডিজিট হতে হবে'),
+            (0, express_validator_1.body)('systemWalletPhoneNo').optional(),
         ];
     }
     static confirmOrderBySeller() {
