@@ -15,6 +15,9 @@ class ProductRouter {
     }
     initializeRoutes() {
         // ==========================================
+        // Fraud Check Route
+        // ==========================================
+        // ==========================================
         // PRODUCT CRUD ROUTES
         // ==========================================
         this.router.post('/', auth_middlewares_1.isAuthenticated, product_validator_1.default.createProduct(), validation_middleware_1.default, product_controller_1.default.createProduct);

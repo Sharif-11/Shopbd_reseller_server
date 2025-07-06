@@ -27,6 +27,7 @@ const client_1 = require("@prisma/client");
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
 const ftp_services_1 = require("../FtpFileUpload/ftp.services");
+const axios_1 = __importDefault(require("axios"));
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 class ProductServices {
     // ==========================================
@@ -655,6 +656,27 @@ class ProductServices {
                 }
             }
             catch (error) {
+                throw error;
+            }
+        });
+    }
+    fraudChecker(phoneNumber) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo5ODAsInVzZXJuYW1lIjoiU2hhcmlmdWwgSXNsYW0iLCJleHAiOjE3NTE4MzI5NTh9.ZcD9fdaSbBCDOM042XGTnwD1F-hcdwS3CLCCtHDAeWA';
+            const url = `https://app.uddoktabd.com/api/courier?phone=${phoneNumber}`;
+            // now i need to hit the fraud checker API via axios with authentication token
+            try {
+                const response = yield axios_1.default.get(url, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                console.clear();
+                console.log('Fraud check response: ', phoneNumber, response.data);
+                return response.data;
+            }
+            catch (error) {
+                console.error('Error checking fraud:', error);
                 throw error;
             }
         });

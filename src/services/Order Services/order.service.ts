@@ -15,12 +15,12 @@ import shopCategoryServices from '../ProductManagement/shopCategory.services'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
 
+import axios from 'axios'
 import commissionServices from '../Commission Management/commission.services'
 import SmsServices from '../Utility Services/Sms Service/sms.services'
 import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
 import walletServices from '../WalletManagement/wallet.services'
 import { OrderData, OrderProductData } from './order.types'
-import axios from 'axios'
 
 class OrderService {
   private async checkExistingTrackingUrl(trackingUrl?: string) {
@@ -1456,14 +1456,12 @@ class OrderService {
     }
   }
   async fraudChecker(phoneNumber: string) {
-    const token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo5ODAsInVzZXJuYW1lIjoiU2hhcmlmdWwgSXNsYW0iLCJleHAiOjE3NTE4MzI5NTh9.ZcD9fdaSbBCDOM042XGTnwD1F-hcdwS3CLCCtHDAeWA'
     const url = `https://app.uddoktabd.com/api/courier?phone=${phoneNumber}`
     // now i need to hit the fraud checker API via axios with authentication token
     try {
       const response = await axios.get(url, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${config.fraudCheckerToken}`,
         },
       })
       console.clear()

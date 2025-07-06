@@ -11,6 +11,7 @@ const order_routes_1 = __importDefault(require("../services/Order Services/order
 const payment_routes_1 = __importDefault(require("../services/Payment Service/payment.routes"));
 const product_routes_1 = __importDefault(require("../services/ProductManagement/product.routes"));
 const shopCategory_routes_1 = require("../services/ProductManagement/shopCategory.routes");
+const supportTicket_routes_1 = __importDefault(require("../services/Support Ticket/supportTicket.routes"));
 const block_routes_1 = __importDefault(require("../services/UserManagement/Block Management/block.routes"));
 const role_routes_1 = __importDefault(require("../services/UserManagement/Role Management/role.routes"));
 const announcement_routes_1 = __importDefault(require("../services/Utility Services/Announcement/announcement.routes"));
@@ -72,6 +73,10 @@ class GlobalRoutes {
             {
                 path: '/dashboard',
                 route: dashboard_routes_1.default,
+            },
+            {
+                path: '/support-tickets',
+                route: supportTicket_routes_1.default,
             },
             // { path: '/admin', route: adminRouter },
             // { path: '/sellers', route: sellerRouter },

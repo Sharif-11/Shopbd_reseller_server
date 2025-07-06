@@ -12,9 +12,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyPermission = exports.verifyRole = exports.authenticate = exports.isAuthenticated = void 0;
+exports.verifyAccess = exports.verifyPermission = exports.verifyRole = exports.authenticate = exports.isAuthenticated = void 0;
+const client_1 = require("@prisma/client");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = __importDefault(require("../config"));
+const block_services_1 = require("../services/UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../services/UserManagement/user.services"));
 const ApiError_1 = __importDefault(require("../utils/ApiError"));
 const prisma_1 = __importDefault(require("../utils/prisma"));
@@ -107,3 +109,34 @@ const verifyPermission = (permissionType, actionType) => {
     });
 };
 exports.verifyPermission = verifyPermission;
+const verifyAccess = (action) => {
+    return (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+        var _a, _b, _c;
+        const phoneNo = (_a = req.user) === null || _a === void 0 ? void 0 : _a.phoneNo;
+        const role = (_b = req.user) === null || _b === void 0 ? void 0 : _b.role;
+        console.clear();
+        console.log(req.user);
+        if (role === 'Seller') {
+            console.log({ phoneNo, action, role });
+            if (!phoneNo) {
+                return next(new ApiError_1.default(401, 'Unauthorized'));
+            }
+            const isBlocked = yield block_services_1.blockServices.isUserBlocked(phoneNo, action);
+            console.log({ isBlocked, action, phoneNo });
+            if (isBlocked) {
+                return next(new ApiError_1.default(403, 'You are blocked from performing this action'));
+            }
+            next();
+        }
+        else {
+            try {
+                yield user_services_1.default.verifyUserPermission((_c = req.user) === null || _c === void 0 ? void 0 : _c.userId, client_1.PermissionType.SUPPORT_TICKET_MANAGEMENT, client_1.ActionType.READ);
+                next();
+            }
+            catch (error) {
+                return next(new ApiError_1.default(401, 'Unauthorized'));
+            }
+        }
+    });
+};
+exports.verifyAccess = verifyAccess;

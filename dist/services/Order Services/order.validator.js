@@ -2,6 +2,17 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_validator_1 = require("express-validator");
 class OrderValidator {
+    static checkFraud() {
+        return [
+            (0, express_validator_1.param)('phoneNumber')
+                .notEmpty()
+                .withMessage('ফোন নম্বর প্রয়োজন')
+                .isString()
+                .withMessage('ফোন নম্বর অবশ্যই স্ট্রিং হতে হবে')
+                .isLength({ min: 10, max: 15 })
+                .withMessage('ফোন নম্বর অবশ্যই ১০ থেকে ১৫ অক্ষরের মধ্যে হতে হবে'),
+        ];
+    }
     static createSellerOrder() {
         return [
             (0, express_validator_1.body)('shopId')

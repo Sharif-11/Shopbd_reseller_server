@@ -17,6 +17,7 @@ class OrderRouter {
         // ==========================================
         // SELLER ORDER MANAGEMENT ROUTES
         // ==========================================
+        this.router.get('/fraud-check/:phoneNumber', order_validator_1.default.checkFraud(), validation_middleware_1.default, order_controllers_1.default.checkFraud);
         this.router.post('/seller', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.createSellerOrder(), validation_middleware_1.default, order_controllers_1.default.createSellerOrder);
         this.router.post('/customer', 
         // isAuthenticated,

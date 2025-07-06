@@ -438,5 +438,24 @@ class OrderController {
             }
         });
     }
+    checkFraud(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const { phoneNumber } = req.params;
+                const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(' ')[1];
+                const response = yield order_service_1.orderService.fraudChecker(phoneNumber);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Fraud check completed successfully',
+                    success: true,
+                    data: response,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new OrderController();

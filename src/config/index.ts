@@ -39,6 +39,7 @@ export interface IConfig {
   maxRejectedPaymentLimit: number
   extraDeliveryCharge: number
   enableSmsNotifications?: boolean
+  fraudCheckerToken: string
   // cloudinaryKey?: string;
   // cloudinarySecret?: string;
   // cloudinaryName?: string;
@@ -81,6 +82,7 @@ const config: IConfig = {
   maxRejectedPaymentLimit: 3,
   extraDeliveryCharge: 10,
   enableSmsNotifications: process.env.SMS === 'true',
+  fraudCheckerToken: process.env.FRAUD_CHECKER_TOKEN || '',
   // cloudinaryKey: process.env.CLOUDINARY_KEY,
   // cloudinarySecret: process.env.CLOUDINARY_SECRET,
   // cloudinaryName: process.env.CLOUDINARY_NAME,

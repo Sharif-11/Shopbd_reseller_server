@@ -22,7 +22,8 @@ class ProductController {
             var _a;
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { shopId, categoryId, name, description, basePrice, suggestedMaxPrice, } = req.body;
+                const { shopId, categoryId, name, description, basePrice, suggestedMaxPrice, videoUrl, // Optional field for video URL
+                 } = req.body;
                 const product = yield product_services_1.default.createProduct(userId, {
                     shopId: Number(shopId),
                     categoryId: Number(categoryId),
@@ -30,6 +31,7 @@ class ProductController {
                     description,
                     basePrice: Number(basePrice),
                     suggestedMaxPrice: Number(suggestedMaxPrice),
+                    videoUrl,
                 });
                 res.status(201).json({
                     statusCode: 201,
@@ -68,10 +70,8 @@ class ProductController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { productId } = req.params;
-                const { name, description, basePrice, suggestedMaxPrice } = req.body;
-                const product = yield product_services_1.default.updateProduct(userId, Number(productId), Object.assign(Object.assign(Object.assign(Object.assign({}, (name && { name })), (description && { description })), (basePrice && { basePrice: Number(basePrice) })), (suggestedMaxPrice && {
-                    suggestedMaxPrice: Number(suggestedMaxPrice),
-                })));
+                const { name, description, basePrice, suggestedMaxPrice, videoUrl } = req.body;
+                const product = yield product_services_1.default.updateProduct(userId, Number(productId), Object.assign(Object.assign(Object.assign(Object.assign({}, (name && { name })), (description && { description })), (basePrice && { basePrice: Number(basePrice) })), (suggestedMaxPrice && Object.assign({ suggestedMaxPrice: Number(suggestedMaxPrice) }, (videoUrl && { videoUrl })))));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Product updated successfully',

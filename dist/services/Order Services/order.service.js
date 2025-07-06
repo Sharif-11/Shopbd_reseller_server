@@ -26,6 +26,7 @@ const commission_services_1 = __importDefault(require("../Commission Management/
 const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
+const axios_1 = __importDefault(require("axios"));
 class OrderService {
     checkExistingTrackingUrl(trackingUrl) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1175,6 +1176,27 @@ class OrderService {
                 last30Days: last30DaysStats,
                 last7Days: last7DaysStats,
             };
+        });
+    }
+    fraudChecker(phoneNumber) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo5ODAsInVzZXJuYW1lIjoiU2hhcmlmdWwgSXNsYW0iLCJleHAiOjE3NTE4MzI5NTh9.ZcD9fdaSbBCDOM042XGTnwD1F-hcdwS3CLCCtHDAeWA';
+            const url = `https://app.uddoktabd.com/api/courier?phone=${phoneNumber}`;
+            // now i need to hit the fraud checker API via axios with authentication token
+            try {
+                const response = yield axios_1.default.get(url, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                console.clear();
+                console.log('Fraud check response: ', phoneNumber, response.data);
+                return response.data;
+            }
+            catch (error) {
+                console.error('Error checking fraud:', error);
+                throw error;
+            }
         });
     }
 }
