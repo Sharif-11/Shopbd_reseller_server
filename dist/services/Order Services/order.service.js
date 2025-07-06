@@ -22,11 +22,11 @@ const product_services_1 = __importDefault(require("../ProductManagement/product
 const shopCategory_services_1 = __importDefault(require("../ProductManagement/shopCategory.services"));
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
+const axios_1 = __importDefault(require("axios"));
 const commission_services_1 = __importDefault(require("../Commission Management/commission.services"));
 const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
-const axios_1 = __importDefault(require("axios"));
 class OrderService {
     checkExistingTrackingUrl(trackingUrl) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -1180,13 +1180,12 @@ class OrderService {
     }
     fraudChecker(phoneNumber) {
         return __awaiter(this, void 0, void 0, function* () {
-            const token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo5ODAsInVzZXJuYW1lIjoiU2hhcmlmdWwgSXNsYW0iLCJleHAiOjE3NTE4MzI5NTh9.ZcD9fdaSbBCDOM042XGTnwD1F-hcdwS3CLCCtHDAeWA';
             const url = `https://app.uddoktabd.com/api/courier?phone=${phoneNumber}`;
             // now i need to hit the fraud checker API via axios with authentication token
             try {
                 const response = yield axios_1.default.get(url, {
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        Authorization: `Bearer ${config_1.default.fraudCheckerToken}`,
                     },
                 });
                 console.clear();

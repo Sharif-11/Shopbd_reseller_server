@@ -32,7 +32,7 @@ class ProductValidator {
         .isString()
         .withMessage('পণ্যের বিবরণ অবশ্যই স্ট্রিং হতে হবে'),
       body('videoUrl')
-        .optional()
+        .optional({ checkFalsy: true, nullable: true })
         .isURL()
         .withMessage('ভিডিও URL সঠিক ফরম্যাটে হতে হবে'),
       body('basePrice')
@@ -100,7 +100,7 @@ class ProductValidator {
         .isString()
         .withMessage('পণ্যের বিবরণ অবশ্যই স্ট্রিং হতে হবে'),
       body('videoUrl')
-        .optional()
+        .optional({ checkFalsy: true, nullable: true })
         .isURL()
         .withMessage('ভিডিও URL সঠিক ফরম্যাটে হতে হবে'),
 
