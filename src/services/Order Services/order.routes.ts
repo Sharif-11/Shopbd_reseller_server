@@ -16,7 +16,12 @@ class OrderRouter {
     // ==========================================
     // SELLER ORDER MANAGEMENT ROUTES
     // ==========================================
-
+    this.router.get(
+      '/fraud-check/:phoneNumber',
+      OrderValidator.checkFraud(),
+      validateRequest,
+      orderControllers.checkFraud,
+    )
     this.router.post(
       '/seller',
       isAuthenticated,

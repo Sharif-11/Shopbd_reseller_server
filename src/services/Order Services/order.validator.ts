@@ -2,6 +2,17 @@ import { RequestHandler } from 'express'
 import { body, param, query } from 'express-validator'
 
 class OrderValidator {
+  static checkFraud(): RequestHandler[] {
+    return [
+      param('phoneNumber')
+        .notEmpty()
+        .withMessage('ফোন নম্বর প্রয়োজন')
+        .isString()
+        .withMessage('ফোন নম্বর অবশ্যই স্ট্রিং হতে হবে')
+        .isLength({ min: 10, max: 15 })
+        .withMessage('ফোন নম্বর অবশ্যই ১০ থেকে ১৫ অক্ষরের মধ্যে হতে হবে'),
+    ]
+  }
   static createSellerOrder(): RequestHandler[] {
     return [
       body('shopId')

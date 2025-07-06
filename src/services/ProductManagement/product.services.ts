@@ -9,6 +9,7 @@ import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
 import { ftpUploader } from '../FtpFileUpload/ftp.services'
 
+import axios from 'axios'
 import { OrderProductData } from '../Order Services/order.types'
 import userManagementService from '../UserManagement/user.services'
 
@@ -824,6 +825,25 @@ class ProductServices {
         }
       }
     } catch (error) {
+      throw error
+    }
+  }
+  async fraudChecker(phoneNumber: string) {
+    const token =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo5ODAsInVzZXJuYW1lIjoiU2hhcmlmdWwgSXNsYW0iLCJleHAiOjE3NTE4MzI5NTh9.ZcD9fdaSbBCDOM042XGTnwD1F-hcdwS3CLCCtHDAeWA'
+    const url = `https://app.uddoktabd.com/api/courier?phone=${phoneNumber}`
+    // now i need to hit the fraud checker API via axios with authentication token
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      console.clear()
+      console.log('Fraud check response: ', phoneNumber, response.data)
+      return response.data
+    } catch (error) {
+      console.error('Error checking fraud:', error)
       throw error
     }
   }

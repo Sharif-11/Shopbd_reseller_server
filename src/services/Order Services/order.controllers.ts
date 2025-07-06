@@ -431,6 +431,23 @@ class OrderController {
       next(error)
     }
   }
+  async checkFraud(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { phoneNumber } = req.params
+      const token = req.headers.authorization?.split(' ')[1]
+
+      const response = await orderService.fraudChecker(phoneNumber)
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Fraud check completed successfully',
+        success: true,
+        data: response,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new OrderController()
