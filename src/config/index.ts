@@ -84,7 +84,7 @@ const config: IConfig = {
   extraDeliveryCharge: 10,
   enableSmsNotifications: process.env.SMS === 'true',
   fraudCheckerToken: process.env.FRAUD_CHECKER_TOKEN || '',
-  maxAge: 30 * 60 * 1000, // 30 minutes
+  maxAge: 12 * 60 * 1000, // 24 hours
   // cloudinarySecret: process.env.CLOUDINARY_SECRET,
   // cloudinaryName: process.env.CLOUDINARY_NAME,
 }

@@ -17,9 +17,8 @@ export const isAuthenticated = async (
   res: Response,
   next: NextFunction,
 ) => {
-  // const token = req.header('Authorization')?.replace('Bearer ', '')
-  // console.log({meta:req?.body?.meta})
   const token = req?.cookies?.token
+
   if (!token) {
     return next(new ApiError(401, 'Unauthorized'))
   }
@@ -47,8 +46,6 @@ export const authenticate = async (
   res: Response,
   next: NextFunction,
 ) => {
-  // const token = req.header('Authorization')?.replace('Bearer ', '')
-  // console.log({meta:req?.body?.meta})
   const token = req?.cookies?.token
   if (!token) {
     next()
@@ -121,10 +118,8 @@ export const verifyAccess = (action: BlockActionType) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const phoneNo = req.user?.phoneNo
     const role = req.user?.role
-    console.clear()
-    console.log(req.user)
+
     if (role === 'Seller') {
-      console.log({ phoneNo, action, role })
       if (!phoneNo) {
         return next(new ApiError(401, 'Unauthorized'))
       }
@@ -132,7 +127,7 @@ export const verifyAccess = (action: BlockActionType) => {
         phoneNo,
         action as BlockActionType,
       )
-      console.log({ isBlocked, action, phoneNo })
+
       if (isBlocked) {
         return next(
           new ApiError(403, 'You are blocked from performing this action'),

@@ -45,7 +45,6 @@ class SupportTicketController {
     try {
       const userId = req.user?.userId
       const { ticketId, message, attachmentUrls = [] } = req.body
-      console.log(req?.user)
       const senderType = req.user?.role === 'Seller' ? 'SELLER' : 'SYSTEM'
 
       const newMessage = await supportTicketService.replyToTicket(userId!, {

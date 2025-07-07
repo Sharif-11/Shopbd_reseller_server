@@ -30,7 +30,6 @@ class FTPController {
       const fileInfo = await this.processUpload(req.file)
       this.sendSuccessResponse(res, fileInfo)
     } catch (error) {
-      // console.log('Error processing file upload:', error)
       this.handleUploadError(res, error)
     }
   }

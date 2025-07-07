@@ -21,7 +21,7 @@ class FTPRouter {
         cb(null, true)
       },
     })
-    // console.log('FTP Router initialized with multer for file uploads')
+
     this.initializeRoutes()
   }
 

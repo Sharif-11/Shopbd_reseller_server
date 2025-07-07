@@ -276,6 +276,9 @@ class SmsServices {
       'notifications',
       'orderArrivalNotification',
     )
+    console.log(
+      `Order notification to admin: ${mobileNo}, Order ID: ${orderId}`,
+    )
     const message = `New order received (Order ID: ${orderId})`
     if (config.env === 'development' || !enabled) {
       console.log(message)

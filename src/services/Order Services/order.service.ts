@@ -448,6 +448,7 @@ class OrderService {
         try {
           const phoneNumbers = await this.getOrderSmsRecipients()
           console.clear()
+          console.log(phoneNumbers)
 
           await SmsServices.sendOrderNotificationToAdmin({
             mobileNo: phoneNumbers,
@@ -1464,8 +1465,7 @@ class OrderService {
           Authorization: `Bearer ${config.fraudCheckerToken}`,
         },
       })
-      console.clear()
-      console.log('Fraud check response: ', phoneNumber, response.data)
+
       return response.data
     } catch (error) {
       console.error('Error checking fraud:', error)
