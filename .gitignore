@@ -6,4 +6,7 @@ node_modules
 #ignore zipped files
 *.zip
 
+# Ignore log files
+*.log
+
 /src/generated/prisma

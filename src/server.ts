@@ -1,4 +1,6 @@
+import fs from 'fs'
 import { Server } from 'http'
+import util from 'util'
 
 import app from './app'
 import config from './config/index'
@@ -6,6 +8,13 @@ import prisma from './utils/prisma'
 
 async function bootstrap() {
   let server: Server
+  const logFile = fs.createWriteStream('application.log', { flags: 'a' })
+
+  // Override console.log
+  console.log = function () {
+    logFile.write(util.format.apply(null, Array.from(arguments)) + '\n')
+    process.stdout.write(util.format.apply(null, Array.from(arguments)) + '\n')
+  }
 
   try {
     try {
@@ -24,10 +33,13 @@ async function bootstrap() {
     server.timeout = 60000 // 60 seconds
 
     // Handle unhandled rejections
-    process.on('unhandledRejection', (reason: Error | any, promise: Promise<any>) => {
-      console.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`)
-      // Consider logging to an external service here
-    })
+    process.on(
+      'unhandledRejection',
+      (reason: Error | any, promise: Promise<any>) => {
+        console.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`)
+        // Consider logging to an external service here
+      },
+    )
 
     // Handle uncaught exceptions
     process.on('uncaughtException', (error: Error) => {

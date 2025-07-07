@@ -17,8 +17,9 @@ export const isAuthenticated = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '')
+  // const token = req.header('Authorization')?.replace('Bearer ', '')
   // console.log({meta:req?.body?.meta})
+  const token = req?.cookies?.token
   if (!token) {
     return next(new ApiError(401, 'Unauthorized'))
   }
@@ -46,8 +47,9 @@ export const authenticate = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '')
+  // const token = req.header('Authorization')?.replace('Bearer ', '')
   // console.log({meta:req?.body?.meta})
+  const token = req?.cookies?.token
   if (!token) {
     next()
   } else {

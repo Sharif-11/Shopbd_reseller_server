@@ -216,7 +216,7 @@ class UserManagementController {
             ? '.shopbdresellerjobs.shop'
             : 'localhost', // The leading dot is crucial
         path: '/', // Available on all paths
-        maxAge: 3600000, // 1 hour expiration
+        maxAge: config.maxAge, // 1 hour expiration
       })
 
       res.status(200).json({
@@ -250,7 +250,7 @@ class UserManagementController {
             ? '.shopbdresellerjobs.shop'
             : 'localhost', // The leading dot is crucial
         path: '/', // Available on all paths
-        maxAge: 3600000, // 1 hour expiration
+        maxAge: config.maxAge, // 20 seconds expiration
       })
       res.status(200).json({
         statusCode: 200,
