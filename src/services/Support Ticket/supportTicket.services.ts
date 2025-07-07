@@ -8,6 +8,7 @@ import {
 
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
+import { ftpUploader } from '../FtpFileUpload/ftp.services'
 import userServices from '../UserManagement/user.services'
 
 class SupportTicketService {
@@ -192,6 +193,29 @@ class SupportTicketService {
 
     return await prisma.$transaction(async tx => {
       // Close the ticket (keeping metadata)
+      // At first we need to delete the ticket messages and the attachments from ftp server
+      // retreive all attachments urls
+      const messages = await tx.ticketMessage.findMany({
+        where: { ticketId },
+      })
+      try {
+        const attachmentUrls = messages.flatMap(msg => msg.attachments || [])
+        // loop through the urls and delete them from ftp server
+        await ftpUploader.deleteFilesWithUrls(attachmentUrls)
+      } catch (error) {
+        console.log('Error deleting attachments from FTP:', error)
+      }
+      // delete all messages except the last one
+      // we will keep the last message as a record of the closure
+      const lastMessage = messages[messages.length - 1]
+      if (lastMessage) {
+        await tx.ticketMessage.deleteMany({
+          where: {
+            ticketId,
+            messageId: { not: lastMessage.messageId },
+          },
+        })
+      }
       const closedTicket = await tx.supportTicket.update({
         where: { ticketId },
         data: {

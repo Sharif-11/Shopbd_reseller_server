@@ -57,6 +57,24 @@ class FTPUploader {
       this.close()
     }
   }
+  public async deleteFilesWithUrls(remoteUrls: string[]): Promise<void> {
+    try {
+      await this.connect()
+      const deletePromises = remoteUrls.map(url =>
+        this.client.remove(this.extractFileNameFromUrl(url)),
+      )
+      for (const promise of deletePromises) {
+        try {
+          await promise
+        } catch (error) {
+          console.error('Failed to delete file:', error)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete files:', error)
+      throw error
+    }
+  }
 
   /**
    * Connects to FTP server
