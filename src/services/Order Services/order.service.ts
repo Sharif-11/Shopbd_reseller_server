@@ -1188,7 +1188,10 @@ class OrderService {
           tx,
           userId: updatedOrder.sellerId!,
           transactionType: 'Credit',
-          amount: actualCommission,
+          amount:
+            order.orderType === 'SELLER_ORDER'
+              ? actualCommission
+              : config.sellerCommissionRate * actualCommission,
           reason: 'অর্ডার সম্পন্নের কমিশন',
           reference:
             order.orderType === 'CUSTOMER_ORDER'
@@ -1208,7 +1211,7 @@ class OrderService {
       try {
         const referrers = await commissionServices.calculateUserCommissions(
           order.sellerPhoneNo!,
-          order.totalProductSellingPrice.toNumber(),
+          order.totalProductBasePrice.toNumber(),
         )
         if (referrers.length > 0) {
           await prisma.$transaction(

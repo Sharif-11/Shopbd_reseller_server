@@ -41,6 +41,7 @@ export interface IConfig {
   enableSmsNotifications?: boolean
   fraudCheckerToken: string
   maxAge: number
+  sellerCommissionRate: number
   // cloudinaryKey?: string;
   // cloudinarySecret?: string;
   // cloudinaryName?: string;
@@ -85,6 +86,7 @@ const config: IConfig = {
   enableSmsNotifications: process.env.SMS === 'true',
   fraudCheckerToken: process.env.FRAUD_CHECKER_TOKEN || '',
   maxAge: 12 * 60 * 1000, // 24 hours
+  sellerCommissionRate: 0.7,
   // cloudinarySecret: process.env.CLOUDINARY_SECRET,
   // cloudinaryName: process.env.CLOUDINARY_NAME,
 }
