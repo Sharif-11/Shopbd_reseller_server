@@ -333,6 +333,7 @@ class OrderService {
                     try {
                         const phoneNumbers = yield this.getOrderSmsRecipients();
                         console.clear();
+                        console.log(phoneNumbers);
                         yield sms_services_1.default.sendOrderNotificationToAdmin({
                             mobileNo: phoneNumbers,
                             orderId: order.orderId,
@@ -1188,8 +1189,6 @@ class OrderService {
                         Authorization: `Bearer ${config_1.default.fraudCheckerToken}`,
                     },
                 });
-                console.clear();
-                console.log('Fraud check response: ', phoneNumber, response.data);
                 return response.data;
             }
             catch (error) {

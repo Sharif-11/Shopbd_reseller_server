@@ -47,7 +47,6 @@ class SupportTicketController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { ticketId, message, attachmentUrls = [] } = req.body;
-                console.log(req === null || req === void 0 ? void 0 : req.user);
                 const senderType = ((_b = req.user) === null || _b === void 0 ? void 0 : _b.role) === 'Seller' ? 'SELLER' : 'SYSTEM';
                 const newMessage = yield supportTicket_services_1.supportTicketService.replyToTicket(userId, {
                     ticketId,

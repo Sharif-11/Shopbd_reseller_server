@@ -272,7 +272,17 @@ class UserManagementController {
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
       // Clear the cookie
-      res.clearCookie('token')
+      res.clearCookie('token', {
+        httpOnly: process.env.NODE_ENV === 'production', // Prevent JavaScript access
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        sameSite: config.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
+        domain:
+          config.env === 'production'
+            ? '.shopbdresellerjobs.shop'
+            : 'localhost', // The leading dot is crucial
+        path: '/', // Available on all paths
+        maxAge: config.maxAge, // 1 hour expiration
+      })
 
       res.status(200).json({
         statusCode: 200,

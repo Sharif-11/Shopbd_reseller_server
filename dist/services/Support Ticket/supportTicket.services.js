@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.supportTicketService = void 0;
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
+const ftp_services_1 = require("../FtpFileUpload/ftp.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 class SupportTicketService {
     validateTicketOwnership(ticketId, userId) {
@@ -152,6 +153,30 @@ class SupportTicketService {
             const ticket = yield this.validateTicketNotClosed(ticketId);
             return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 // Close the ticket (keeping metadata)
+                // At first we need to delete the ticket messages and the attachments from ftp server
+                // retreive all attachments urls
+                const messages = yield tx.ticketMessage.findMany({
+                    where: { ticketId },
+                });
+                try {
+                    const attachmentUrls = messages.flatMap(msg => msg.attachments || []);
+                    // loop through the urls and delete them from ftp server
+                    yield ftp_services_1.ftpUploader.deleteFilesWithUrls(attachmentUrls);
+                }
+                catch (error) {
+                    console.log('Error deleting attachments from FTP:', error);
+                }
+                // delete all messages except the last one
+                // we will keep the last message as a record of the closure
+                const lastMessage = messages[messages.length - 1];
+                if (lastMessage) {
+                    yield tx.ticketMessage.deleteMany({
+                        where: {
+                            ticketId,
+                            messageId: { not: lastMessage.messageId },
+                        },
+                    });
+                }
                 const closedTicket = yield tx.supportTicket.update({
                     where: { ticketId },
                     data: {

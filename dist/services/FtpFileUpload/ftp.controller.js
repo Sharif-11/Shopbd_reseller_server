@@ -38,7 +38,6 @@ class FTPController {
                 this.sendSuccessResponse(res, fileInfo);
             }
             catch (error) {
-                // console.log('Error processing file upload:', error)
                 this.handleUploadError(res, error);
             }
         });

@@ -233,7 +233,7 @@ class SmsServices {
     mobileNo: string,
     otp: string,
   ): Promise<SmsResponse | BulkSmsResponse> {
-    const message = `আপনার ওটিপি কোডটি হলো: ${otp}। শপ বিডি রিসেলার জবস থেকে ধন্যবাদ।`
+    const message = `আপনার ওটিপি কোডটি হলো: ${otp}, শপ বিডি রিসেলার জবস থেকে ধন্যবাদ।`
     if (config.env === 'development') {
       console.log(`OTP for ${mobileNo}: ${otp}`)
       return {
@@ -356,7 +356,7 @@ class SmsServices {
       'notifications',
       'orderDeliveryNotification',
     )
-    const message = `Your order (#${orderId}) has been shipped. Track it here: ${trackingUrl}`
+    const message = `Order (Id: #${orderId}) has been shipped. Track it here: ${trackingUrl}`
     if (config.env === 'development' || !enabled) {
       console.clear()
       console.log(message)

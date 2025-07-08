@@ -108,6 +108,20 @@ class OrderService {
       customerZilla,
       productQuantity: verifiedOrderData.totalProductQuantity,
     })
+    // check if there is an unpaid order for the seller
+    const existingOrder = await prisma.order.findFirst({
+      where: {
+        sellerId,
+        orderStatus: 'UNPAID',
+        orderType: 'SELLER_ORDER',
+      },
+    })
+    if (existingOrder) {
+      throw new ApiError(
+        400,
+        'আপনার একটি পেমেন্ট করা হয়নি এমন অর্ডার রয়েছে। নতুন অর্ডার করার আগে অনুগ্রহ করে সেটি পেমেন্ট করুন অথবা কনফার্ম করুন।',
+      )
+    }
     const order = await prisma.order.create({
       data: {
         shopId,
@@ -198,6 +212,20 @@ class OrderService {
       customerZilla,
       productQuantity: verifiedOrderData.totalProductQuantity,
     })
+    // check if there is an unpaid order for the customer
+    const existingOrder = await prisma.order.findFirst({
+      where: {
+        customerPhoneNo,
+        orderStatus: 'UNPAID',
+        orderType: 'CUSTOMER_ORDER',
+      },
+    })
+    if (existingOrder) {
+      throw new ApiError(
+        400,
+        'আপনার একটি পেমেন্ট করা হয়নি এমন অর্ডার রয়েছে। নতুন অর্ডার করার আগে অনুগ্রহ করে সেটি পেমেন্ট করুন।',
+      )
+    }
 
     // now create order connecting with payment
     const order = await prisma.order.create({
@@ -536,11 +564,8 @@ class OrderService {
     amount: number
     transactionId: string
   }) {
-    const customer = await userServices.getCustomerByPhoneNo({
-      customerPhoneNo: customerWalletPhoneNo,
-    })
     const order = await prisma.order.findUnique({
-      where: { orderId, sellerId: customer?.sellerId },
+      where: { orderId },
       include: { OrderProduct: true },
     })
     if (!order) {

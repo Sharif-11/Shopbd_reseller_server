@@ -224,7 +224,7 @@ class UserManagementController {
                         ? '.shopbdresellerjobs.shop'
                         : 'localhost', // The leading dot is crucial
                     path: '/', // Available on all paths
-                    maxAge: 3600000, // 1 hour expiration
+                    maxAge: config_1.default.maxAge, // 1 hour expiration
                 });
                 res.status(200).json({
                     statusCode: 200,
@@ -258,7 +258,7 @@ class UserManagementController {
                         ? '.shopbdresellerjobs.shop'
                         : 'localhost', // The leading dot is crucial
                     path: '/', // Available on all paths
-                    maxAge: 3600000, // 1 hour expiration
+                    maxAge: config_1.default.maxAge, // 20 seconds expiration
                 });
                 res.status(200).json({
                     statusCode: 200,
@@ -282,7 +282,16 @@ class UserManagementController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 // Clear the cookie
-                res.clearCookie('token');
+                res.clearCookie('token', {
+                    httpOnly: process.env.NODE_ENV === 'production', // Prevent JavaScript access
+                    secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+                    sameSite: config_1.default.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
+                    domain: config_1.default.env === 'production'
+                        ? '.shopbdresellerjobs.shop'
+                        : 'localhost', // The leading dot is crucial
+                    path: '/', // Available on all paths
+                    maxAge: config_1.default.maxAge, // 1 hour expiration
+                });
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Logout successful',

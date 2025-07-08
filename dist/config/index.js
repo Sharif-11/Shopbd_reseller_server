@@ -47,7 +47,7 @@ const config = {
     extraDeliveryCharge: 10,
     enableSmsNotifications: process.env.SMS === 'true',
     fraudCheckerToken: process.env.FRAUD_CHECKER_TOKEN || '',
-    // cloudinaryKey: process.env.CLOUDINARY_KEY,
+    maxAge: 12 * 60 * 1000, // 24 hours
     // cloudinarySecret: process.env.CLOUDINARY_SECRET,
     // cloudinaryName: process.env.CLOUDINARY_NAME,
 };

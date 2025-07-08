@@ -177,7 +177,7 @@ class SmsServices {
      */
     static sendOtp(mobileNo, otp) {
         return __awaiter(this, void 0, void 0, function* () {
-            const message = `আপনার ওটিপি কোডটি হলো: ${otp}। শপ বিডি রিসেলার জবস থেকে ধন্যবাদ।`;
+            const message = `আপনার ওটিপি কোডটি হলো: ${otp}, শপ বিডি রিসেলার জবস থেকে ধন্যবাদ।`;
             if (config_1.default.env === 'development') {
                 console.log(`OTP for ${mobileNo}: ${otp}`);
                 return {
@@ -210,6 +210,7 @@ class SmsServices {
     static sendOrderNotificationToAdmin(_a) {
         return __awaiter(this, arguments, void 0, function* ({ mobileNo, orderId, }) {
             const { enabled } = yield config_services_1.default.checkFeature('notifications', 'orderArrivalNotification');
+            console.log(`Order notification to admin: ${mobileNo}, Order ID: ${orderId}`);
             const message = `New order received (Order ID: ${orderId})`;
             if (config_1.default.env === 'development' || !enabled) {
                 console.log(message);
@@ -259,7 +260,7 @@ class SmsServices {
     static notifyOrderShipped(_a) {
         return __awaiter(this, arguments, void 0, function* ({ sellerPhoneNo, orderId, trackingUrl, }) {
             const { enabled } = yield config_services_1.default.checkFeature('notifications', 'orderDeliveryNotification');
-            const message = `Your order (#${orderId}) has been shipped. Track it here: ${trackingUrl}`;
+            const message = `Order (Id: #${orderId}) has been shipped. Track it here: ${trackingUrl}`;
             if (config_1.default.env === 'development' || !enabled) {
                 console.clear();
                 console.log(message);

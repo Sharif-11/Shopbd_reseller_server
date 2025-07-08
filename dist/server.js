@@ -12,12 +12,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const fs_1 = __importDefault(require("fs"));
+const util_1 = __importDefault(require("util"));
 const app_1 = __importDefault(require("./app"));
 const index_1 = __importDefault(require("./config/index"));
 const prisma_1 = __importDefault(require("./utils/prisma"));
 function bootstrap() {
     return __awaiter(this, void 0, void 0, function* () {
         let server;
+        const logFile = fs_1.default.createWriteStream('application.log', { flags: 'a' });
+        // Override console.log
+        console.log = function () {
+            logFile.write(util_1.default.format.apply(null, Array.from(arguments)) + '\n');
+            process.stdout.write(util_1.default.format.apply(null, Array.from(arguments)) + '\n');
+        };
         try {
             try {
                 yield prisma_1.default.$connect();

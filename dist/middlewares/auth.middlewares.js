@@ -22,8 +22,7 @@ const ApiError_1 = __importDefault(require("../utils/ApiError"));
 const prisma_1 = __importDefault(require("../utils/prisma"));
 const isAuthenticated = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const token = (_a = req.header('Authorization')) === null || _a === void 0 ? void 0 : _a.replace('Bearer ', '');
-    // console.log({meta:req?.body?.meta})
+    const token = (_a = req === null || req === void 0 ? void 0 : req.cookies) === null || _a === void 0 ? void 0 : _a.token;
     if (!token) {
         return next(new ApiError_1.default(401, 'Unauthorized'));
     }
@@ -47,8 +46,7 @@ const isAuthenticated = (req, res, next) => __awaiter(void 0, void 0, void 0, fu
 exports.isAuthenticated = isAuthenticated;
 const authenticate = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const token = (_a = req.header('Authorization')) === null || _a === void 0 ? void 0 : _a.replace('Bearer ', '');
-    // console.log({meta:req?.body?.meta})
+    const token = (_a = req === null || req === void 0 ? void 0 : req.cookies) === null || _a === void 0 ? void 0 : _a.token;
     if (!token) {
         next();
     }
@@ -114,15 +112,11 @@ const verifyAccess = (action) => {
         var _a, _b, _c;
         const phoneNo = (_a = req.user) === null || _a === void 0 ? void 0 : _a.phoneNo;
         const role = (_b = req.user) === null || _b === void 0 ? void 0 : _b.role;
-        console.clear();
-        console.log(req.user);
         if (role === 'Seller') {
-            console.log({ phoneNo, action, role });
             if (!phoneNo) {
                 return next(new ApiError_1.default(401, 'Unauthorized'));
             }
             const isBlocked = yield block_services_1.blockServices.isUserBlocked(phoneNo, action);
-            console.log({ isBlocked, action, phoneNo });
             if (isBlocked) {
                 return next(new ApiError_1.default(403, 'You are blocked from performing this action'));
             }

@@ -326,6 +326,16 @@ class UserManagementServices {
     if (existingSeller) {
       throw new ApiError(400, 'Phone number is already registered as a seller')
     }
+    // check existing customer with the same phone number
+    const existingCustomer = await prisma.customer.findUnique({
+      where: { customerPhoneNo: input.phoneNo },
+    })
+    if (existingCustomer) {
+      throw new ApiError(
+        400,
+        'Phone number is already registered as a customer',
+      )
+    }
 
     // Check email unique constraint
     if (input.email) {
@@ -444,6 +454,9 @@ class UserManagementServices {
     })
     if (existingSeller) {
       throw new ApiError(400, 'Phone number is already registered as a seller')
+    }
+    if (!sellerCode) {
+      throw new ApiError(400, 'Seller code is required')
     }
     // check seller exists with the given sellerCode
     const seller = await prisma.user.findUnique({
