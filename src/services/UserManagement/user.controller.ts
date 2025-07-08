@@ -212,9 +212,7 @@ class UserManagementController {
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
         sameSite: config.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
         domain:
-          config.env === 'production'
-            ? '.shopbdresellerjobs.shop'
-            : 'localhost', // The leading dot is crucial
+          config.env === 'production' ? 'shopbdresellerjobs.shop' : 'localhost', // The leading dot is crucial
         path: '/', // Available on all paths
         maxAge: config.maxAge, // 1 hour expiration
       })
@@ -247,7 +245,7 @@ class UserManagementController {
         sameSite: config.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
         domain:
           config.env === 'production'
-            ? '.shopbdresellerjobs.shop'
+            ? 'admin.shopbdresellerjobs.shop'
             : 'localhost', // The leading dot is crucial
         path: '/', // Available on all paths
         maxAge: config.maxAge, // 20 seconds expiration
@@ -271,15 +269,18 @@ class UserManagementController {
    */
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
+      const domain =
+        config.env === 'production'
+          ? req.hostname.includes('admin.')
+            ? 'admin.shopbdresellerjobs.shop'
+            : 'shopbdresellerjobs.shop'
+          : 'localhost'
       // Clear the cookie
       res.clearCookie('token', {
         httpOnly: process.env.NODE_ENV === 'production', // Prevent JavaScript access
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
         sameSite: config.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
-        domain:
-          config.env === 'production'
-            ? '.shopbdresellerjobs.shop'
-            : 'localhost', // The leading dot is crucial
+        domain,
         path: '/', // Available on all paths
         maxAge: config.maxAge, // 1 hour expiration
       })
