@@ -42,7 +42,7 @@ class UserManagementController {
           name,
           password,
           email,
-        },
+        }
       )
 
       res.status(201).json({
@@ -158,7 +158,7 @@ class UserManagementController {
 
       const user = await userManagementServices.demoteSuperAdminToAdmin(
         currentAdminId!,
-        superAdminId,
+        superAdminId
       )
 
       res.status(200).json({
@@ -181,7 +181,7 @@ class UserManagementController {
 
       const user = await userManagementServices.promoteAdminToSuperAdmin(
         currentAdminId!,
-        adminId,
+        adminId
       )
 
       res.status(200).json({
@@ -211,8 +211,6 @@ class UserManagementController {
         httpOnly: process.env.NODE_ENV === 'production', // Prevent JavaScript access
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
         sameSite: config.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
-        domain:
-          config.env === 'production' ? 'shopbdresellerjobs.shop' : 'localhost', // The leading dot is crucial
         path: '/', // Available on all paths
         maxAge: config.maxAge, // 1 hour expiration
       })
@@ -243,10 +241,6 @@ class UserManagementController {
         httpOnly: process.env.NODE_ENV === 'production', // Prevent JavaScript access
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
         sameSite: config.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
-        domain:
-          config.env === 'production'
-            ? 'admin.shopbdresellerjobs.shop'
-            : 'localhost', // The leading dot is crucial
         path: '/', // Available on all paths
         maxAge: config.maxAge, // 20 seconds expiration
       })
@@ -269,20 +263,12 @@ class UserManagementController {
    */
   async logout(req: Request, res: Response, next: NextFunction) {
     try {
-      const domain =
-        config.env === 'production'
-          ? req.hostname.includes('admin.')
-            ? 'admin.shopbdresellerjobs.shop'
-            : 'shopbdresellerjobs.shop'
-          : 'localhost'
       // Clear the cookie
       res.clearCookie('token', {
         httpOnly: process.env.NODE_ENV === 'production', // Prevent JavaScript access
         secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-        sameSite: config.env === 'production' ? 'none' : 'lax', // Required for cross-domain cookies
-        domain,
+        sameSite: config.env === 'production' ? 'none' : 'lax', // Required for
         path: '/', // Available on all paths
-        maxAge: config.maxAge, // 1 hour expiration
       })
 
       res.status(200).json({
@@ -439,7 +425,7 @@ class UserManagementController {
   async assignPermissionToRole(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const adminId = req.user?.userId
@@ -465,7 +451,7 @@ class UserManagementController {
   async assignMultiplePermissionsToRole(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const adminId = req.user?.userId
@@ -527,7 +513,7 @@ class UserManagementController {
   async addReferralCodeToSeller(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const { referralCode } = req.body
@@ -536,7 +522,7 @@ class UserManagementController {
       const updatedSeller =
         await userManagementServices.addReferralCodeToSeller(
           sellerId!,
-          referralCode,
+          referralCode
         )
 
       res.status(200).json({
@@ -592,7 +578,7 @@ class UserManagementController {
       const result = await userManagementServices.sendDirectMessage(
         senderId!,
         userId,
-        content,
+        content
       )
 
       res.status(200).json({

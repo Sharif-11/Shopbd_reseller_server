@@ -1,0 +1,99 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up phase"
+    - duration: 120
+      arrivalRate: 10
+      rampTo: 30
+      name: "Ramp up load"
+    - duration: 180
+      arrivalRate: 30
+      name: "Sustained load"
+  processor: "./otp-test-processor.js"
+  variables:
+    phonePrefix: "017"
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: "OTP Flow Simulation"
+    weight: 100
+    flow:
+      # First user requests OTP
+      - post:
+          url: "/send-otp"
+          json:
+            phoneNo: "{{ phonePrefix }}{{ $randomNumber(10000000, 99999999) }}"
+          capture:
+            json: "$.data.otp"
+            as: "otp"
+          capture:
+            json: "$.data.phoneNo"
+            as: "phoneNo"
+      
+      # Wait random time between 1-5 seconds (simulating user delay)
+      - think: 
+          - min: 1
+          - max: 5
+      
+      # 50% chance another request comes for same phone (simulating user impatience)
+      - function: "maybeResendOtp"
+      
+      # Verify the OTP (80% success rate simulation)
+      - function: "verifyOtpWithChance"
+      
+      # 30% chance another user requests OTP during this flow
+      - function: "parallelUserRequest"
+
+functions: |
+  async function maybeResendOtp(userContext, events, done) {
+    if (Math.random() < 0.5) {
+      await userContext.runner.runScenario('OTP Resend', userContext, events);
+    }
+    return done();
+  }
+
+  async function verifyOtpWithChance(userContext, events, done) {
+    if (Math.random() < 0.8) {
+      await userContext.runner.runScenario('OTP Verification', userContext, events);
+    }
+    return done();
+  }
+
+  async function parallelUserRequest(userContext, events, done) {
+    if (Math.random() < 0.3) {
+      await userContext.runner.runScenario('Parallel OTP Request', userContext, events);
+    }
+    return done();
+  }
+
+  # Additional scenarios for the functions
+  - name: "OTP Resend"
+    flow:
+      - post:
+          url: "/send-otp"
+          json:
+            phoneNo: "{{ phoneNo }}"
+      - think: 1
+
+  - name: "OTP Verification"
+    flow:
+      - post:
+          url: "/verify-otp"
+          json:
+            phoneNo: "{{ phoneNo }}"
+            otp: "{{ otp }}"
+      - think: 1
+
+  - name: "Parallel OTP Request"
+    flow:
+      - post:
+          url: "/send-otp"
+          json:
+            phoneNo: "{{ phonePrefix }}{{ $randomNumber(10000000, 99999999) }}"
+      - think: 
+          - min: 2
+          - max: 7
