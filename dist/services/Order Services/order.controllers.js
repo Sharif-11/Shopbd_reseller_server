@@ -349,13 +349,11 @@ class OrderController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { orderId } = req.params;
-                const { reason, transactionId, systemWalletPhoneNo } = req.body;
+                const { reason } = req.body;
                 const order = yield order_service_1.orderService.cancelOrderByAdmin({
                     orderId: Number(orderId),
                     reason,
                     adminId: userId,
-                    transactionId,
-                    systemWalletPhoneNo,
                 });
                 res.status(200).json({
                     statusCode: 200,

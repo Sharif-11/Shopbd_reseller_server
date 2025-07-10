@@ -280,11 +280,6 @@ class OrderValidator {
                 .optional()
                 .isString()
                 .withMessage('বাতিলের কারণ অবশ্যই স্ট্রিং হতে হবে'),
-            (0, express_validator_1.body)('transactionId')
-                .optional()
-                .isString()
-                .withMessage('ট্রানজেকশন আইডি অবশ্যই স্ট্রিং হতে হবে'),
-            (0, express_validator_1.body)('systemWalletPhoneNo').optional(),
         ];
     }
     static confirmOrderBySeller() {

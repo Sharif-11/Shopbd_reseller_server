@@ -792,7 +792,7 @@ class OrderService {
         });
     }
     cancelOrderByAdmin(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ adminId, orderId, reason, transactionId, systemWalletPhoneNo, }) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, orderId, reason, }) {
             var _b, _c;
             // check admin permission
             yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
@@ -842,27 +842,21 @@ class OrderService {
                 });
             }
             else {
+                const customer = yield user_services_1.default.getCustomerByPhoneNo({
+                    customerPhoneNo: order.customerPhoneNo,
+                });
+                if (!customer) {
+                    throw new ApiError_1.default(404, 'Customer not found');
+                }
                 // handle customer order cancellation
                 if (((_c = order === null || order === void 0 ? void 0 : order.Payment) === null || _c === void 0 ? void 0 : _c.paymentStatus) === 'COMPLETED') {
-                    if (!transactionId) {
-                        throw new ApiError_1.default(400, 'Transaction ID is required for refund');
-                    }
-                    if (!systemWalletPhoneNo) {
-                        throw new ApiError_1.default(400, 'System wallet phone number is required for refund');
-                    }
                     const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                        var _a, _b;
-                        yield payment_service_1.default.createPayment({
+                        yield transaction_services_1.transactionServices.createTransactionForCustomer({
                             tx,
-                            paymentType: 'CUSTOMER_REFUND',
-                            sender: 'SYSTEM',
+                            customerId: customer.customerId,
                             amount: order.deliveryCharge.toNumber(),
-                            transactionId: transactionId || '',
-                            userWalletName: (_a = order.Payment) === null || _a === void 0 ? void 0 : _a.userWalletName,
-                            userWalletPhoneNo: (_b = order.Payment) === null || _b === void 0 ? void 0 : _b.userWalletPhoneNo,
-                            systemWalletPhoneNo: systemWalletPhoneNo,
-                            userName: order.customerName,
-                            userPhoneNo: order.customerPhoneNo,
+                            reason: 'অর্ডার বাতিলের জন্য রিফান্ড',
+                            transactionType: 'Credit',
                         });
                         yield tx.order.update({
                             where: { orderId },
@@ -1108,18 +1102,17 @@ class OrderService {
             // Process orders
             for (const order of allOrders) {
                 if (order.orderStatus === 'COMPLETED') {
-                    totalSales += ((_b = order.totalProductSellingPrice) === null || _b === void 0 ? void 0 : _b.toNumber()) || 0;
+                    totalSales += ((_b = order.amountPaidByCustomer) === null || _b === void 0 ? void 0 : _b.toNumber()) || 0;
                     totalCommission += ((_c = order.actualCommission) === null || _c === void 0 ? void 0 : _c.toNumber()) || 0;
                     completedOrdersCount++;
                     // Check recent completed orders
                     if (order.createdAt >= thirtyDaysAgo) {
                         last30DaysCompleted++;
-                        last30daysTotalSales +=
-                            ((_d = order.totalProductSellingPrice) === null || _d === void 0 ? void 0 : _d.toNumber()) || 0;
+                        last30daysTotalSales += ((_d = order.amountPaidByCustomer) === null || _d === void 0 ? void 0 : _d.toNumber()) || 0;
                     }
                     if (order.createdAt >= sevenDaysAgo) {
                         last7DaysCompleted++;
-                        last7daysTotalSales += ((_e = order.totalProductSellingPrice) === null || _e === void 0 ? void 0 : _e.toNumber()) || 0;
+                        last7daysTotalSales += ((_e = order.amountPaidByCustomer) === null || _e === void 0 ? void 0 : _e.toNumber()) || 0;
                     }
                 }
             }

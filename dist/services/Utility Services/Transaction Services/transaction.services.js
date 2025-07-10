@@ -37,6 +37,26 @@ class TransactionService {
             yield tx.$executeRaw `UPDATE "users" SET "balance" = "balance" + ${amount} WHERE "userId" = ${userId}`;
         });
     }
+    deductBalanceFromCustomer(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ customerId, amount, tx, }) {
+            if (amount <= 0) {
+                throw new Error('Amount must be greater than zero');
+            }
+            // Logic to deduct balance from customer's account with row lock
+            yield tx.$executeRaw `SELECT * FROM "customers" WHERE "customerId" = ${customerId} FOR UPDATE`;
+            yield tx.$executeRaw `UPDATE "customers" SET "balance" = "balance" - ${amount} WHERE "customerId" = ${customerId}`;
+        });
+    }
+    addBalanceToCustomer(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ customerId, amount, tx, }) {
+            if (amount <= 0) {
+                throw new Error('Amount must be greater than zero');
+            }
+            // Logic to add balance to customer's account with row lock
+            yield tx.$executeRaw `SELECT * FROM "customers" WHERE "customerId" = ${customerId} FOR UPDATE`;
+            yield tx.$executeRaw `UPDATE "customers" SET "balance" = "balance" + ${amount} WHERE "customerId" = ${customerId}`;
+        });
+    }
     createTransaction(_a) {
         return __awaiter(this, arguments, void 0, function* ({ tx, userId, userPhoneNo, amount, reason, reference, transactionType, }) {
             // Here we need to ensure that either userId or userPhoneNo is provided
@@ -82,6 +102,50 @@ class TransactionService {
                     amount: transactionType === 'Credit' ? amount : -amount,
                     reason,
                     reference,
+                },
+            });
+            return transaction;
+        });
+    }
+    createTransactionForCustomer(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ tx, customerId, amount, reason, transactionType, }) {
+            // Ensure that the customer exists
+            const customer = yield tx.customer.findUnique({
+                where: { customerId },
+                select: {
+                    customerId: true,
+                    customerPhoneNo: true,
+                    balance: true,
+                    customerName: true,
+                },
+            });
+            if (!customer) {
+                throw new Error('Customer not found');
+            }
+            console.log(customer);
+            if (transactionType === 'Debit') {
+                yield this.deductBalanceFromCustomer({
+                    customerId: customer.customerId,
+                    amount: Math.abs(amount),
+                    tx,
+                });
+            }
+            if (transactionType === 'Credit') {
+                yield this.addBalanceToCustomer({
+                    customerId: customer.customerId,
+                    amount,
+                    tx,
+                });
+            }
+            // Create the transaction record
+            const transaction = yield tx.transaction.create({
+                data: {
+                    userId: customer.customerId,
+                    userPhoneNo: customer.customerPhoneNo,
+                    userName: 'Customer',
+                    amount: transactionType === 'Credit' ? amount : -amount,
+                    reason,
+                    reference: {},
                 },
             });
             return transaction;

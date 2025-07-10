@@ -555,6 +555,28 @@ class UserManagementController {
       next(error)
     }
   }
+  async getAllCustomers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const currentAdminId = req.user?.userId // Assuming user ID is in request after auth middleware
+      const { page = 1, limit = 10, phoneNo } = req.query
+
+      const customers = await userManagementServices.getAllCustomers({
+        adminId: currentAdminId!,
+        page: Number(page),
+        limit: Number(limit),
+        phoneNo: phoneNo as string,
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Customers retrieved successfully',
+        success: true,
+        data: customers,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
   async checkSuperAdminExists(req: Request, res: Response, next: NextFunction) {
     try {
       const exists = await userManagementServices.checkSuperAdminExists()

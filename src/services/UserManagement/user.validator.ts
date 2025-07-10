@@ -94,7 +94,7 @@ class UserManagementValidator {
         .trim()
         .matches(/^[a-zA-Z0-9-_]+$/)
         .withMessage(
-          'রেফারাল কোডটি শুধুমাত্র অক্ষর, সংখ্যা, (-) এবং (_) থাকতে পারে।',
+          'রেফারাল কোডটি শুধুমাত্র অক্ষর, সংখ্যা, (-) এবং (_) থাকতে পারে।'
         )
         .isLength({ max: 16, min: 3 })
         .withMessage('রেফারাল কোডটি ৩ থেকে ১৬ অক্ষরের মধ্যে হতে হবে।'),
@@ -282,8 +282,8 @@ class UserManagementValidator {
         .withMessage('পারমিশন অবশ্যই অ্যারে হতে হবে')
         .custom((permissions: PermissionType[]) =>
           permissions.every((permission: PermissionType) =>
-            Object.values(PermissionType).includes(permission),
-          ),
+            Object.values(PermissionType).includes(permission)
+          )
         )
         .withMessage('পারমিশন সঠিক নয়'),
       body('actions')
@@ -293,8 +293,8 @@ class UserManagementValidator {
         .withMessage('অ্যাকশনস অবশ্যই অ্যারে হতে হবে')
         .custom((actions: ActionType[]) =>
           actions.every((action: ActionType) =>
-            Object.values(ActionType).includes(action),
-          ),
+            Object.values(ActionType).includes(action)
+          )
         )
         .withMessage(' অ্যাকশন সঠিক নয়'),
     ]
@@ -341,8 +341,8 @@ class UserManagementValidator {
         .withMessage('ক্রিয়ার প্রকারগুলি অবশ্যই অ্যারে হতে হবে')
         .custom((actions: BlockActionType[]) =>
           actions.every((action: BlockActionType) =>
-            Object.values(BlockActionType).includes(action),
-          ),
+            Object.values(BlockActionType).includes(action)
+          )
         )
         .withMessage('অবৈধ ক্রিয়া প্রকার'),
       body('expiresAt')
@@ -379,7 +379,7 @@ class UserManagementValidator {
         .trim()
         .matches(/^[a-zA-Z0-9-_]+$/)
         .withMessage(
-          'রেফারাল কোডটি শুধুমাত্র অক্ষর, সংখ্যা, (-) এবং (_) থাকতে পারে।',
+          'রেফারাল কোডটি শুধুমাত্র অক্ষর, সংখ্যা, (-) এবং (_) থাকতে পারে।'
         )
         .isLength({ max: 16, min: 3 })
         .withMessage('রেফারাল কোডটি ৩ থেকে ১৬ অক্ষরের মধ্যে হতে হবে।'),
@@ -437,6 +437,32 @@ class UserManagementValidator {
         .withMessage('Search term must be a string')
         .trim()
         .escape(),
+    ]
+  }
+  static getAllCustomers(): RequestHandler[] {
+    return [
+      query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('Page must be a positive integer')
+        .toInt(),
+      query('limit')
+        .optional()
+        .isInt({ min: 1, max: 100 })
+        .withMessage('Limit must be an integer between 1 and 100')
+        .toInt(),
+      query('phoneNo')
+        .optional()
+        .isString()
+        .withMessage('Phone number must be a string')
+        .trim()
+        .escape(),
+      // query('searchTerm')
+      //   .optional()
+      //   .isString()
+      //   .withMessage('Search term must be a string')
+      //   .trim()
+      //   .escape(),
     ]
   }
 }
