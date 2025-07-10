@@ -1475,6 +1475,65 @@ class OrderService {
       last7Days: last7DaysStats,
     }
   }
+  public async getTrendingTopSellingProducts(daysBack: number) {
+    const now = new Date()
+    const pastDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000)
+
+    const trendingProducts = await prisma.orderProduct.groupBy({
+      by: ['productId', 'productName'],
+      _sum: {
+        productQuantity: true,
+      },
+      where: {
+        order: {
+          createdAt: {
+            gte: pastDate,
+          },
+          orderStatus: 'COMPLETED',
+        },
+      },
+      orderBy: {
+        _sum: {
+          productQuantity: 'desc',
+        },
+      },
+      take: 10,
+    })
+    // fetch product details for each trending product
+    if (trendingProducts.length === 0) {
+      return []
+    }
+    const productIds = trendingProducts.map(product => product.productId)
+    const products = await prisma.product.findMany({
+      where: {
+        productId: { in: productIds },
+      },
+      select: {
+        productId: true,
+        name: true,
+        basePrice: true,
+        shop: { select: { shopName: true, shopLocation: true } },
+        // only select the first image for simplicity
+        ProductImage: {
+          where: { hidden: false },
+          select: { imageUrl: true },
+          orderBy: { isPrimary: 'desc' },
+          take: 1, // Just get primary image for listing
+        },
+      },
+    })
+
+    // Combine product details with sales data
+    return trendingProducts.map(product => {
+      const productDetails = products.find(
+        p => p.productId === product.productId
+      )
+      return {
+        ...productDetails,
+        totalSold: product._sum.productQuantity || 0,
+      }
+    })
+  }
   async fraudChecker(phoneNumber: string) {
     const url = `https://app.uddoktabd.com/api/courier?phone=${phoneNumber}`
     // now i need to hit the fraud checker API via axios with authentication token

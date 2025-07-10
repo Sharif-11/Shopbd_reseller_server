@@ -555,6 +555,30 @@ class UserManagementController {
             }
         });
     }
+    getAllCustomers(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const currentAdminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId; // Assuming user ID is in request after auth middleware
+                const { page = 1, limit = 10, phoneNo } = req.query;
+                const customers = yield user_services_1.default.getAllCustomers({
+                    adminId: currentAdminId,
+                    page: Number(page),
+                    limit: Number(limit),
+                    phoneNo: phoneNo,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Customers retrieved successfully',
+                    success: true,
+                    data: customers,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     checkSuperAdminExists(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

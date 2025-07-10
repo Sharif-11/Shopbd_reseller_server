@@ -1241,6 +1241,30 @@ class UserManagementServices {
             };
         });
     }
+    getAllCustomers(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, page = 1, limit = 10, phoneNo, }) {
+            // check permissions
+            yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.READ);
+            const skip = (page - 1) * limit;
+            const where = Object.assign({}, (phoneNo
+                ? { customerPhoneNo: { contains: phoneNo, mode: 'insensitive' } }
+                : {}));
+            const [customers, totalCount] = yield prisma_1.default.$transaction([
+                prisma_1.default.customer.findMany({
+                    where,
+                    skip,
+                    take: limit,
+                }),
+                prisma_1.default.customer.count({ where }),
+            ]);
+            return {
+                customers,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page,
+            };
+        });
+    }
     getUserStatisticsForAdmin(adminId) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyUserPermission(adminId, client_1.PermissionType.DASHBOARD_ANALYTICS, client_1.ActionType.READ);

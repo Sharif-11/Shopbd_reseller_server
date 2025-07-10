@@ -55,6 +55,7 @@ class AuthRouter {
         // assign role to user
         this.router.post('/assign-role', auth_middlewares_1.isAuthenticated, user_validator_1.default.assignRoleToUser(), validation_middleware_1.default, user_controller_1.default.assignRoleToUser);
         this.router.get('/get-all-users', auth_middlewares_1.isAuthenticated, user_validator_1.default.getAllUsers(), validation_middleware_1.default, user_controller_1.default.getAllUsers);
+        this.router.get('/get-all-customers', auth_middlewares_1.isAuthenticated, user_validator_1.default.getAllCustomers(), validation_middleware_1.default, user_controller_1.default.getAllCustomers);
         // route for logout and verify already logged in user
         this.router.post('/logout', auth_middlewares_1.isAuthenticated, user_controller_1.default.logout);
         this.router.get('/verify-login', auth_middlewares_1.isAuthenticated, user_controller_1.default.checkLoggedInUser);

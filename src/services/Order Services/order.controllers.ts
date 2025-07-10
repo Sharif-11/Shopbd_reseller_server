@@ -429,6 +429,23 @@ class OrderController {
       next(error)
     }
   }
+  async getTrendingTopSellingProducts(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const products = await orderService.getTrendingTopSellingProducts(7)
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Trending top-selling products retrieved successfully',
+        success: true,
+        data: products,
+      })
+    } catch (error) {
+      throw error
+    }
+  }
   async checkFraud(req: Request, res: Response, next: NextFunction) {
     try {
       const { phoneNumber } = req.params
