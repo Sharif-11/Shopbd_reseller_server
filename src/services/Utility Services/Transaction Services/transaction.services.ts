@@ -37,6 +37,40 @@ class TransactionService {
 
     await tx.$executeRaw`UPDATE "users" SET "balance" = "balance" + ${amount} WHERE "userId" = ${userId}`
   }
+  private async deductBalanceFromCustomer({
+    customerId,
+    amount,
+    tx,
+  }: {
+    customerId: string
+    amount: number
+    tx: Prisma.TransactionClient
+  }) {
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than zero')
+    }
+    // Logic to deduct balance from customer's account with row lock
+    await tx.$executeRaw`SELECT * FROM "customers" WHERE "customerId" = ${customerId} FOR UPDATE`
+
+    await tx.$executeRaw`UPDATE "customers" SET "balance" = "balance" - ${amount} WHERE "customerId" = ${customerId}`
+  }
+  private async addBalanceToCustomer({
+    customerId,
+    amount,
+    tx,
+  }: {
+    customerId: string
+    amount: number
+    tx: Prisma.TransactionClient
+  }) {
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than zero')
+    }
+    // Logic to add balance to customer's account with row lock
+    await tx.$executeRaw`SELECT * FROM "customers" WHERE "customerId" = ${customerId} FOR UPDATE`
+
+    await tx.$executeRaw`UPDATE "customers" SET "balance" = "balance" + ${amount} WHERE "customerId" = ${customerId}`
+  }
   public async createTransaction({
     tx,
     userId,
@@ -96,6 +130,60 @@ class TransactionService {
         amount: transactionType === 'Credit' ? amount : -amount,
         reason,
         reference,
+      },
+    })
+    return transaction
+  }
+  public async createTransactionForCustomer({
+    tx,
+    customerId,
+    amount,
+    reason,
+    transactionType,
+  }: {
+    tx: Prisma.TransactionClient
+    customerId: string
+    amount: number
+    reason: string
+    transactionType: 'Credit' | 'Debit'
+  }) {
+    // Ensure that the customer exists
+    const customer = await tx.customer.findUnique({
+      where: { customerId },
+      select: {
+        customerId: true,
+        customerPhoneNo: true,
+        balance: true,
+        customerName: true,
+      },
+    })
+    if (!customer) {
+      throw new Error('Customer not found')
+    }
+    console.log(customer)
+    if (transactionType === 'Debit') {
+      await this.deductBalanceFromCustomer({
+        customerId: customer.customerId,
+        amount: Math.abs(amount),
+        tx,
+      })
+    }
+    if (transactionType === 'Credit') {
+      await this.addBalanceToCustomer({
+        customerId: customer.customerId,
+        amount,
+        tx,
+      })
+    }
+    // Create the transaction record
+    const transaction = await tx.transaction.create({
+      data: {
+        userId: customer.customerId,
+        userPhoneNo: customer.customerPhoneNo,
+        userName: 'Customer',
+        amount: transactionType === 'Credit' ? amount : -amount,
+        reason,
+        reference: {},
       },
     })
     return transaction
@@ -170,7 +258,7 @@ class TransactionService {
     await userServices.verifyUserPermission(
       userId,
       PermissionType.ALL,
-      ActionType.READ,
+      ActionType.READ
     )
     const offset = (page || 1) - 1
     const take = limit || 10

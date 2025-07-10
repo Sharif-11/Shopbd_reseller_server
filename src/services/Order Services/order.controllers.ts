@@ -157,7 +157,7 @@ class OrderController {
   async orderPaymentByCustomer(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const {
@@ -352,13 +352,11 @@ class OrderController {
     try {
       const userId = req.user?.userId
       const { orderId } = req.params
-      const { reason, transactionId, systemWalletPhoneNo } = req.body
+      const { reason } = req.body
       const order = await orderService.cancelOrderByAdmin({
         orderId: Number(orderId),
         reason,
         adminId: userId!,
-        transactionId,
-        systemWalletPhoneNo,
       })
       res.status(200).json({
         statusCode: 200,
@@ -412,7 +410,7 @@ class OrderController {
   async markOrderAsFailedByAdmin(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const userId = req.user?.userId

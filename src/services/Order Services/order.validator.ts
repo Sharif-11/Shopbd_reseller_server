@@ -284,11 +284,6 @@ class OrderValidator {
         .optional()
         .isString()
         .withMessage('বাতিলের কারণ অবশ্যই স্ট্রিং হতে হবে'),
-      body('transactionId')
-        .optional()
-        .isString()
-        .withMessage('ট্রানজেকশন আইডি অবশ্যই স্ট্রিং হতে হবে'),
-      body('systemWalletPhoneNo').optional(),
     ]
   }
 

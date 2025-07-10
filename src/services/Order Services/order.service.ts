@@ -1009,8 +1009,6 @@ class OrderService {
     adminId,
     orderId,
     reason,
-    transactionId,
-    systemWalletPhoneNo,
   }: {
     adminId: string
     orderId: number
@@ -1071,29 +1069,21 @@ class OrderService {
         },
       })
     } else {
+      const customer = await userServices.getCustomerByPhoneNo({
+        customerPhoneNo: order.customerPhoneNo,
+      })
+      if (!customer) {
+        throw new ApiError(404, 'Customer not found')
+      }
       // handle customer order cancellation
       if (order?.Payment?.paymentStatus === 'COMPLETED') {
-        if (!transactionId) {
-          throw new ApiError(400, 'Transaction ID is required for refund')
-        }
-        if (!systemWalletPhoneNo) {
-          throw new ApiError(
-            400,
-            'System wallet phone number is required for refund'
-          )
-        }
         const result = await prisma.$transaction(async tx => {
-          await paymentService.createPayment({
+          await transactionServices.createTransactionForCustomer({
             tx,
-            paymentType: 'CUSTOMER_REFUND',
-            sender: 'SYSTEM',
+            customerId: customer.customerId!,
             amount: order.deliveryCharge.toNumber(),
-            transactionId: transactionId || '',
-            userWalletName: order.Payment?.userWalletName!,
-            userWalletPhoneNo: order.Payment?.userWalletPhoneNo!,
-            systemWalletPhoneNo: systemWalletPhoneNo!,
-            userName: order.customerName,
-            userPhoneNo: order.customerPhoneNo,
+            reason: 'অর্ডার বাতিলের জন্য রিফান্ড',
+            transactionType: 'Credit',
           })
           await tx.order.update({
             where: { orderId },

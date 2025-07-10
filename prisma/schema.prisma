@@ -181,6 +181,7 @@ model Customer {
   customerName    String?
   customerPhoneNo String   @unique
   role            String   @default("Customer") // Constant string value
+  balance         Decimal  @default(0.0) @db.Decimal(15, 2)
   sellerId        String
   sellerCode      String
   sellerName      String
