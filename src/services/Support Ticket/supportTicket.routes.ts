@@ -25,6 +25,14 @@ class SupportTicketRouter {
       validateRequest,
       supportTicketController.createTicket,
     )
+    this.router.delete(
+      '/',
+      isAuthenticated,
+      verifyAccess('SUPPORT_TICKET'),
+      SupportTicketValidator.deleteTickets(),
+      validateRequest,
+      supportTicketController.deleteTickets,
+    )
 
     this.router.post(
       '/reply',

@@ -68,6 +68,14 @@ class SupportTicketValidator {
         .withMessage('Product ID must be a string'),
     ]
   }
+  static deleteTickets(): RequestHandler[] {
+    return [
+      query('days')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('Days must be a positive integer'),
+    ]
+  }
 
   static replyToTicket(): RequestHandler[] {
     return [

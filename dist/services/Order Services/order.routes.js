@@ -42,6 +42,7 @@ class OrderRouter {
         this.router.post('/admin/fail/:orderId', auth_middlewares_1.isAuthenticated, order_controllers_1.default.markOrderAsFailedByAdmin);
         this.router.post('/admin/return/:orderId', auth_middlewares_1.isAuthenticated, order_controllers_1.default.returnOrderByAdmin);
         this.router.post('/admin/reject/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.rejectOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.rejectOrderByAdmin);
+        this.router.get('/top-selling-products', order_controllers_1.default.getTrendingTopSellingProducts);
     }
     getRouter() {
         return this.router;

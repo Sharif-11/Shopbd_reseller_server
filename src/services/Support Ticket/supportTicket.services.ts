@@ -364,6 +364,57 @@ class SupportTicketService {
       totalPages: Math.ceil(total / limit),
     }
   }
+  public deleteTickets = async (adminId: string, days: number = 7) => {
+    await userServices.verifyUserPermission(
+      adminId,
+      'SUPPORT_TICKET_MANAGEMENT',
+      'DELETE',
+    )
+    if (days < 1) {
+      throw new ApiError(400, 'Days must be a positive integer')
+    }
+    // I need to delete tickets that are older than the specified number of days along with their messages and attachments
+    const dateThreshold = new Date()
+    dateThreshold.setDate(dateThreshold.getDate() - days)
+    const ticketsToDelete = await prisma.supportTicket.findMany({
+      where: {
+        createdAt: {
+          lt: dateThreshold,
+        },
+      },
+      include: {
+        messages: true,
+      },
+    })
+    if (ticketsToDelete.length === 0) {
+      return { message: 'No tickets to delete' }
+    }
+    const attachmentUrls: string[] = []
+    for (const ticket of ticketsToDelete) {
+      for (const message of ticket.messages) {
+        if (message.attachments && message.attachments.length > 0) {
+          attachmentUrls.push(...message.attachments)
+        }
+      }
+    }
+    // Delete attachments from FTP server
+    try {
+      await ftpUploader.deleteFilesWithUrls(attachmentUrls)
+    } catch (error) {
+      console.error('Error deleting attachments from FTP:', error)
+    }
+    // Delete messages and tickets
+    await prisma.$transaction(async tx => {
+      for (const ticket of ticketsToDelete) {
+        await tx.ticketMessage.deleteMany({
+          where: { ticketId: ticket.ticketId },
+        })
+        await tx.supportTicket.delete({
+          where: { ticketId: ticket.ticketId },
+        })
+      }
+    })
+  }
 }
 
 export const supportTicketService = new SupportTicketService()

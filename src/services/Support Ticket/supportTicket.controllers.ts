@@ -153,6 +153,25 @@ class SupportTicketController {
       next(error)
     }
   }
+  async deleteTickets(req: Request, res: Response, next: NextFunction) {
+    try {
+      const adminId = req.user?.userId
+      const { days } = req.query
+
+      await supportTicketService.deleteTickets(
+        adminId!,
+        days ? Number(days) : 7, // Default to 7 days if not provided
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Old tickets deleted successfully',
+        success: true,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new SupportTicketController()

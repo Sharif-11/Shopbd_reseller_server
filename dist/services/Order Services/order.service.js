@@ -1193,6 +1193,60 @@ class OrderService {
             };
         });
     }
+    getTrendingTopSellingProducts(daysBack) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const now = new Date();
+            const pastDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
+            const trendingProducts = yield prisma_1.default.orderProduct.groupBy({
+                by: ['productId', 'productName'],
+                _sum: {
+                    productQuantity: true,
+                },
+                where: {
+                    order: {
+                        createdAt: {
+                            gte: pastDate,
+                        },
+                        orderStatus: 'COMPLETED',
+                    },
+                },
+                orderBy: {
+                    _sum: {
+                        productQuantity: 'desc',
+                    },
+                },
+                take: 10,
+            });
+            // fetch product details for each trending product
+            if (trendingProducts.length === 0) {
+                return [];
+            }
+            const productIds = trendingProducts.map(product => product.productId);
+            const products = yield prisma_1.default.product.findMany({
+                where: {
+                    productId: { in: productIds },
+                },
+                select: {
+                    productId: true,
+                    name: true,
+                    basePrice: true,
+                    shop: { select: { shopName: true, shopLocation: true } },
+                    // only select the first image for simplicity
+                    ProductImage: {
+                        where: { hidden: false },
+                        select: { imageUrl: true },
+                        orderBy: { isPrimary: 'desc' },
+                        take: 1, // Just get primary image for listing
+                    },
+                },
+            });
+            // Combine product details with sales data
+            return trendingProducts.map(product => {
+                const productDetails = products.find(p => p.productId === product.productId);
+                return Object.assign(Object.assign({}, productDetails), { totalSold: product._sum.productQuantity || 0 });
+            });
+        });
+    }
     fraudChecker(phoneNumber) {
         return __awaiter(this, void 0, void 0, function* () {
             const url = `https://app.uddoktabd.com/api/courier?phone=${phoneNumber}`;
