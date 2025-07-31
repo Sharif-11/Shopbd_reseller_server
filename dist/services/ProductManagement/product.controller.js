@@ -364,15 +364,13 @@ class ProductController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { search, minPrice, maxPrice, categoryId, shopId } = req.query;
-                const page = Number(req.query.page) || 1;
-                const limit = Number(req.query.limit) || 10;
                 const result = yield product_services_1.default.getAllProductsForSeller({
                     search: search === null || search === void 0 ? void 0 : search.toString(),
                     minPrice: minPrice ? Number(minPrice) : undefined,
                     maxPrice: maxPrice ? Number(maxPrice) : undefined,
                     categoryId: Number(categoryId),
                     shopId: Number(shopId),
-                }, { page, limit });
+                });
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Products retrieved successfully',

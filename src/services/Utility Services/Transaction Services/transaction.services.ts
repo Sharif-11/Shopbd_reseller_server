@@ -188,6 +188,52 @@ class TransactionService {
     })
     return transaction
   }
+  public async updateBalanceByAdminToSeller({
+    requesterId,
+    sellerId,
+    amount,
+    reason,
+    transactionType,
+  }: {
+    requesterId: string
+    sellerId: string
+    amount: number
+    reason: string
+    transactionType: 'add' | 'deduct'
+  }) {
+    await userServices.verifyUserPermission(
+      requesterId,
+      PermissionType.USER_MANAGEMENT,
+      'UPDATE',
+    )
+    const existingSeller = await userServices.getUserById(sellerId)
+    const transaction = await prisma.$transaction(async tx => {
+      if (transactionType === 'add') {
+        await this.addBalance({
+          userId: existingSeller.userId,
+          tx,
+          amount,
+        })
+      } else {
+        await this.deductBalance({
+          userId: existingSeller.userId,
+          tx,
+          amount,
+        })
+      }
+      const result = await tx.transaction.create({
+        data: {
+          userId: existingSeller.userId,
+          userPhoneNo: existingSeller.phoneNo,
+          userName: existingSeller.name,
+          amount: transactionType === 'add' ? amount : -amount,
+          reason,
+        },
+      })
+      return result
+    })
+    return transaction
+  }
   // Additional methods for transaction retrieval, etc. can be added here
   public async getAllTransactionsForUser({
     userId,
@@ -258,7 +304,7 @@ class TransactionService {
     await userServices.verifyUserPermission(
       userId,
       PermissionType.ALL,
-      ActionType.READ
+      ActionType.READ,
     )
     const offset = (page || 1) - 1
     const take = limit || 10

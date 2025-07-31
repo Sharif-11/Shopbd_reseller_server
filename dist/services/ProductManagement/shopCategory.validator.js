@@ -200,6 +200,21 @@ class ShopCategoryValidator {
                 .optional()
                 .isURL()
                 .withMessage('সঠিক ক্যাটাগরি আইকন URL প্রদান করুন'),
+            (0, express_validator_1.body)('parentId')
+                .optional({ checkFalsy: true, nullable: true })
+                .isInt()
+                .withMessage('প্যারেন্ট ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে'),
+        ];
+    }
+    static getCategoriesWithSubcategoriesAndProductCounts() {
+        return [
+            (0, express_validator_1.param)('parentId')
+                .optional({
+                checkFalsy: true,
+                nullable: true,
+            })
+                .isInt()
+                .withMessage('প্যারেন্ট ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে'),
         ];
     }
     static deleteCategory() {

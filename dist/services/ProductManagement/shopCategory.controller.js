@@ -213,17 +213,35 @@ class ShopCategoryController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { categoryId } = req.params;
-                const { name, description, categoryIcon } = req.body;
+                const { name, description, categoryIcon, parentId } = req.body;
                 const category = yield shopCategory_services_1.default.updateCategory(userId, Number(categoryId), {
                     name,
                     description,
                     categoryIcon,
+                    parentId: parentId ? Number(parentId) : null,
                 });
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Category updated successfully',
                     success: true,
                     data: category,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    getCategoriesWithSubcategoriesAndProductCounts(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { parentId = null } = req.query;
+                const categories = yield shopCategory_services_1.default.getCategoriesWithAggregatedProductCounts(parentId ? Number(parentId) : null);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Categories with subcategories and product counts retrieved successfully',
+                    success: true,
+                    data: categories,
                 });
             }
             catch (error) {

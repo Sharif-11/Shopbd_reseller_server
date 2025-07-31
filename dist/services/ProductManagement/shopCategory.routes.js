@@ -47,6 +47,7 @@ class CategoryRouter {
         // CATEGORY MANAGEMENT ROUTES
         // ==========================================
         this.router.post('/', auth_middlewares_1.isAuthenticated, shopCategory_validator_1.default.createCategory(), validation_middleware_1.default, shopCategory_controller_1.default.createCategory);
+        this.router.get('/subcategories', shopCategory_validator_1.default.getCategoriesWithSubcategoriesAndProductCounts(), validation_middleware_1.default, shopCategory_controller_1.default.getCategoriesWithSubcategoriesAndProductCounts);
         this.router.get('/:categoryId', auth_middlewares_1.isAuthenticated, shopCategory_validator_1.default.getCategory(), validation_middleware_1.default, shopCategory_controller_1.default.getCategory);
         this.router.get('/', auth_middlewares_1.isAuthenticated, shopCategory_controller_1.default.getAllCategories);
         this.router.put('/:categoryId', auth_middlewares_1.isAuthenticated, shopCategory_validator_1.default.updateCategory(), validation_middleware_1.default, shopCategory_controller_1.default.updateCategory);

@@ -426,19 +426,14 @@ class ProductController {
     try {
       const userId = req.user?.userId
       const { search, minPrice, maxPrice, categoryId, shopId } = req.query
-      const page = Number(req.query.page) || 1
-      const limit = Number(req.query.limit) || 10
 
-      const result = await productServices.getAllProductsForSeller(
-        {
-          search: search?.toString(),
-          minPrice: minPrice ? Number(minPrice) : undefined,
-          maxPrice: maxPrice ? Number(maxPrice) : undefined,
-          categoryId: Number(categoryId),
-          shopId: Number(shopId),
-        },
-        { page, limit },
-      )
+      const result = await productServices.getAllProductsForSeller({
+        search: search?.toString(),
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        categoryId: Number(categoryId),
+        shopId: Number(shopId),
+      })
 
       res.status(200).json({
         statusCode: 200,

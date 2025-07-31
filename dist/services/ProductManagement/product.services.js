@@ -95,6 +95,15 @@ class ProductServices {
     togglePublishStatus(userId, productId, publish) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.UPDATE);
+            if (publish === true) {
+                // Check if the product has at least one visible image
+                const images = yield prisma_1.default.productImage.findMany({
+                    where: { productId, hidden: false },
+                });
+                if (images.length === 0) {
+                    throw new ApiError_1.default(400, 'পাবলিশ করার জন্য পণ্যটির অন্তত একটি ছবি থাকতে হবে');
+                }
+            }
             return prisma_1.default.product.update({
                 where: { productId },
                 data: { published: publish },
@@ -270,10 +279,19 @@ class ProductServices {
     deleteImage(userId, imageId) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.DELETE);
+            const image = yield prisma_1.default.productImage.findUnique({ where: { imageId } });
+            if (!image)
+                throw new ApiError_1.default(404, 'Image not found');
+            // check if there is any OrderProduct with this image
+            const existingOrderProduct = yield prisma_1.default.orderProduct.findFirst({
+                where: {
+                    productImage: image.imageUrl,
+                },
+            });
+            if (existingOrderProduct) {
+                throw new ApiError_1.default(400, 'There is an order with this image');
+            }
             return prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
-                const image = yield tx.productImage.findUnique({ where: { imageId } });
-                if (!image)
-                    throw new ApiError_1.default(404, 'Image not found');
                 // Extract filename from imageUrl
                 const fileName = this.extractFileNameFromUrl(image.imageUrl);
                 try {
@@ -584,9 +602,10 @@ class ProductServices {
     }
     getAllProductsForSeller(filters, pagination) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
             const where = {
                 published: true,
-                shopId: filters.shopId, // Filter by seller's shop
+                shopId: filters.shopId,
                 categoryId: filters.categoryId,
             };
             // Search filter
@@ -610,8 +629,12 @@ class ProductServices {
             const [products, totalCount] = yield Promise.all([
                 prisma_1.default.product.findMany({
                     where,
-                    skip: (pagination.page - 1) * pagination.limit,
-                    take: pagination.limit,
+                    skip: pagination
+                        ? pagination.page
+                            ? (pagination.page - 1) * ((_a = pagination.limit) !== null && _a !== void 0 ? _a : 10)
+                            : 0
+                        : undefined,
+                    take: pagination === null || pagination === void 0 ? void 0 : pagination.limit,
                     include: {
                         category: { select: { name: true } },
                         ProductImage: {
@@ -626,15 +649,16 @@ class ProductServices {
                 }),
                 prisma_1.default.product.count({ where }),
             ]);
-            return {
-                data: products,
+            return Object.assign({ data: products }, (pagination && {
                 pagination: {
-                    page: pagination.page,
+                    page: (_b = pagination.page) !== null && _b !== void 0 ? _b : 1,
                     limit: pagination.limit,
                     totalCount,
-                    totalPages: Math.ceil(totalCount / pagination.limit),
+                    totalPages: pagination.limit
+                        ? Math.ceil(totalCount / pagination.limit)
+                        : 1,
                 },
-            };
+            }));
         });
     }
     getAllProducts(_a) {

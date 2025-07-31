@@ -55,6 +55,33 @@ class TransactionController {
       next(error)
     }
   }
+  async updateBalanceByAdminToSeller(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const adminId = req?.user?.userId
+      const { sellerId } = req.params
+      const { amount, reason, transactionType } = req.body
+      const transaction =
+        await transactionServices.updateBalanceByAdminToSeller({
+          requesterId: adminId!,
+          sellerId,
+          amount,
+          reason,
+          transactionType,
+        })
+      res.status(201).json({
+        statusCode: 201,
+        message: 'Balance Updated Successfully',
+        success: true,
+        data: transaction,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export const transactionControllers = new TransactionController()

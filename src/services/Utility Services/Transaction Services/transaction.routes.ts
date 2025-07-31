@@ -34,6 +34,13 @@ class TransactionRouter {
       validateRequest,
       transactionControllers.getAllTransactions,
     )
+    this.router.patch(
+      '/balance/:sellerId',
+      isAuthenticated,
+      TransactionValidator.updateBalanceByAdminToSeller(),
+      validateRequest,
+      transactionControllers.updateBalanceByAdminToSeller,
+    )
   }
 
   public getRouter(): Router {

@@ -166,10 +166,69 @@ class ShopCategoryServices {
     updateCategory(userId, categoryId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.UPDATE);
-            // Prevent circular references
+            // Check if category exists
+            const category = yield prisma_1.default.category.findUnique({
+                where: { categoryId },
+                select: { parentId: true },
+            });
+            if (!category)
+                throw new ApiError_1.default(404, 'Category not found');
+            // Prevent circular references if parentId is being changed
+            if (data.parentId) {
+                // Can't be parent of itself
+                if (data.parentId === categoryId) {
+                    throw new ApiError_1.default(400, 'Category cannot be a parent of itself');
+                }
+                // If parentId is provided, ensure it exists
+                const parentExists = yield prisma_1.default.category.count({
+                    where: { categoryId: data.parentId },
+                });
+                if (!parentExists) {
+                    throw new ApiError_1.default(404, 'Parent category not found');
+                }
+                // Check if new parent is a descendant (would create circular reference)
+                if (data.parentId &&
+                    (yield this.isDescendant(categoryId, data.parentId))) {
+                    throw new ApiError_1.default(400, 'Cannot set parent as it would create a circular reference');
+                }
+            }
             return prisma_1.default.category.update({
                 where: { categoryId },
-                data,
+                data: {
+                    name: data.name,
+                    description: data.description,
+                    categoryIcon: data.categoryIcon,
+                    parentId: data.parentId,
+                },
+            });
+        });
+    }
+    getCategoriesWithAggregatedProductCounts() {
+        return __awaiter(this, arguments, void 0, function* (parentId = null) {
+            const categories = yield prisma_1.default.category.findMany({
+                where: {
+                    parentId: parentId,
+                },
+                include: {
+                    subCategories: {
+                        include: {
+                            _count: {
+                                select: { Product: true },
+                            },
+                        },
+                    },
+                    _count: {
+                        select: { Product: true },
+                    },
+                },
+                orderBy: {
+                    name: 'asc',
+                },
+            });
+            return categories.map(category => {
+                // Calculate total products (current category + all subcategories)
+                const totalProducts = category.subCategories.reduce((sum, sub) => sum + sub._count.Product, category._count.Product);
+                return Object.assign(Object.assign({}, category), { products: totalProducts, subCategories: category.subCategories.map(subCategory => (Object.assign(Object.assign({}, subCategory), { products: subCategory._count.Product, _count: undefined }))), _count: undefined });
             });
         });
     }

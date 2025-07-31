@@ -151,6 +151,39 @@ class TransactionService {
             return transaction;
         });
     }
+    updateBalanceByAdminToSeller(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ requesterId, sellerId, amount, reason, transactionType, }) {
+            yield user_services_1.default.verifyUserPermission(requesterId, client_1.PermissionType.USER_MANAGEMENT, 'UPDATE');
+            const existingSeller = yield user_services_1.default.getUserById(sellerId);
+            const transaction = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                if (transactionType === 'add') {
+                    yield this.addBalance({
+                        userId: existingSeller.userId,
+                        tx,
+                        amount,
+                    });
+                }
+                else {
+                    yield this.deductBalance({
+                        userId: existingSeller.userId,
+                        tx,
+                        amount,
+                    });
+                }
+                const result = yield tx.transaction.create({
+                    data: {
+                        userId: existingSeller.userId,
+                        userPhoneNo: existingSeller.phoneNo,
+                        userName: existingSeller.name,
+                        amount: transactionType === 'add' ? amount : -amount,
+                        reason,
+                    },
+                });
+                return result;
+            }));
+            return transaction;
+        });
+    }
     // Additional methods for transaction retrieval, etc. can be added here
     getAllTransactionsForUser(_a) {
         return __awaiter(this, arguments, void 0, function* ({ userId, page, limit, search, }) {

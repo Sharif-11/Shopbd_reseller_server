@@ -112,7 +112,18 @@ class ProductServices {
     publish: boolean,
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
-
+    if (publish === true) {
+      // Check if the product has at least one visible image
+      const images = await prisma.productImage.findMany({
+        where: { productId, hidden: false },
+      })
+      if (images.length === 0) {
+        throw new ApiError(
+          400,
+          'পাবলিশ করার জন্য পণ্যটির অন্তত একটি ছবি থাকতে হবে',
+        )
+      }
+    }
     return prisma.product.update({
       where: { productId },
       data: { published: publish },
@@ -333,11 +344,19 @@ class ProductServices {
    */
   async deleteImage(userId: string, imageId: number) {
     await this.verifyProductPermission(userId, ActionType.DELETE)
+    const image = await prisma.productImage.findUnique({ where: { imageId } })
+    if (!image) throw new ApiError(404, 'Image not found')
+    // check if there is any OrderProduct with this image
+    const existingOrderProduct = await prisma.orderProduct.findFirst({
+      where: {
+        productImage: image.imageUrl,
+      },
+    })
+    if (existingOrderProduct) {
+      throw new ApiError(400, 'There is an order with this image')
+    }
 
     return prisma.$transaction(async tx => {
-      const image = await tx.productImage.findUnique({ where: { imageId } })
-      if (!image) throw new ApiError(404, 'Image not found')
-
       // Extract filename from imageUrl
       const fileName = this.extractFileNameFromUrl(image.imageUrl)
 
@@ -735,11 +754,11 @@ class ProductServices {
       categoryId: number
       shopId: number
     },
-    pagination: { page: number; limit: number },
+    pagination?: { page?: number; limit?: number },
   ) {
     const where: Prisma.ProductWhereInput = {
       published: true,
-      shopId: filters.shopId, // Filter by seller's shop
+      shopId: filters.shopId,
       categoryId: filters.categoryId,
     }
 
@@ -768,8 +787,12 @@ class ProductServices {
     const [products, totalCount] = await Promise.all([
       prisma.product.findMany({
         where,
-        skip: (pagination.page - 1) * pagination.limit,
-        take: pagination.limit,
+        skip: pagination
+          ? pagination.page
+            ? (pagination.page - 1) * (pagination.limit ?? 10)
+            : 0
+          : undefined,
+        take: pagination?.limit,
         include: {
           category: { select: { name: true } },
           ProductImage: {
@@ -787,12 +810,16 @@ class ProductServices {
 
     return {
       data: products,
-      pagination: {
-        page: pagination.page,
-        limit: pagination.limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / pagination.limit),
-      },
+      ...(pagination && {
+        pagination: {
+          page: pagination.page ?? 1,
+          limit: pagination.limit,
+          totalCount,
+          totalPages: pagination.limit
+            ? Math.ceil(totalCount / pagination.limit)
+            : 1,
+        },
+      }),
     }
   }
   async getAllProducts({

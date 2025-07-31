@@ -66,5 +66,31 @@ class TransactionController {
             }
         });
     }
+    updateBalanceByAdminToSeller(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const adminId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { sellerId } = req.params;
+                const { amount, reason, transactionType } = req.body;
+                const transaction = yield transaction_services_1.transactionServices.updateBalanceByAdminToSeller({
+                    requesterId: adminId,
+                    sellerId,
+                    amount,
+                    reason,
+                    transactionType,
+                });
+                res.status(201).json({
+                    statusCode: 201,
+                    message: 'Balance Updated Successfully',
+                    success: true,
+                    data: transaction,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.transactionControllers = new TransactionController();
