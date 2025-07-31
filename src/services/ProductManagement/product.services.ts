@@ -668,15 +668,12 @@ class ProductServices {
     }
   }
 
-  async getAllProductsForCustomer(
-    filters: {
-      search?: string
-      minPrice?: number
-      maxPrice?: number
-      categoryId: number
-    },
-    pagination: { page: number; limit: number },
-  ) {
+  async getAllProductsForCustomer(filters: {
+    search?: string
+    minPrice?: number
+    maxPrice?: number
+    categoryId?: number
+  }) {
     const where: Prisma.ProductWhereInput = {
       published: true,
       shop: {
@@ -706,31 +703,28 @@ class ProductServices {
       }
     }
 
-    if (filters.categoryId) where.categoryId = filters.categoryId
+    if (filters.categoryId) {
+      where.categoryId = filters.categoryId
+    }
 
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        skip: (pagination.page - 1) * pagination.limit,
-        take: pagination.limit,
-        select: {
-          productId: true,
-          name: true,
-          description: true,
-          suggestedMaxPrice: true, // Only show suggested price to customers
-          shop: { select: { shopName: true, shopLocation: true } },
-          category: { select: { name: true } },
-          ProductImage: {
-            where: { hidden: false },
-            select: { imageUrl: true },
-            orderBy: { isPrimary: 'desc' },
-            take: 1, // Just get primary image for listing
-          },
+    const products = await prisma.product.findMany({
+      where,
+      select: {
+        productId: true,
+        name: true,
+        description: true,
+        suggestedMaxPrice: true, // Only show suggested price to customers
+        shop: { select: { shopName: true, shopLocation: true } },
+        category: { select: { name: true } },
+        ProductImage: {
+          where: { hidden: false },
+          select: { imageUrl: true },
+          orderBy: { isPrimary: 'desc' },
+          take: 1, // Just get primary image for listing
         },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.product.count({ where }),
-    ])
+      },
+      orderBy: { createdAt: 'desc' },
+    })
 
     return {
       data: products.map(p => ({
@@ -738,24 +732,21 @@ class ProductServices {
         price: p.suggestedMaxPrice, // Rename for customer view
       })),
       pagination: {
-        page: pagination.page,
-        limit: pagination.limit,
-        total,
-        totalPages: Math.ceil(total / pagination.limit),
+        page: 1, // Customer view doesn't need pagination for now
+        limit: products.length,
+        total: products.length,
+        totalPages: 1,
       },
     }
   }
 
-  async getAllProductsForSeller(
-    filters: {
-      search?: string
-      minPrice?: number
-      maxPrice?: number
-      categoryId: number
-      shopId: number
-    },
-    pagination?: { page?: number; limit?: number },
-  ) {
+  async getAllProductsForSeller(filters: {
+    search?: string
+    minPrice?: number
+    maxPrice?: number
+    categoryId: number
+    shopId: number
+  }) {
     const where: Prisma.ProductWhereInput = {
       published: true,
       shopId: filters.shopId,
@@ -784,42 +775,29 @@ class ProductServices {
       }
     }
 
-    const [products, totalCount] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        skip: pagination
-          ? pagination.page
-            ? (pagination.page - 1) * (pagination.limit ?? 10)
-            : 0
-          : undefined,
-        take: pagination?.limit,
-        include: {
-          category: { select: { name: true } },
-          ProductImage: {
-            where: { hidden: false },
-            select: { imageUrl: true, imageId: true },
-          },
-          shop: {
-            select: { shopName: true, shopLocation: true, shopId: true },
-          },
+    const products = await prisma.product.findMany({
+      where,
+      include: {
+        category: { select: { name: true } },
+        ProductImage: {
+          where: { hidden: false },
+          select: { imageUrl: true, imageId: true },
         },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.product.count({ where }),
-    ])
+        shop: {
+          select: { shopName: true, shopLocation: true, shopId: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
 
     return {
       data: products,
-      ...(pagination && {
-        pagination: {
-          page: pagination.page ?? 1,
-          limit: pagination.limit,
-          totalCount,
-          totalPages: pagination.limit
-            ? Math.ceil(totalCount / pagination.limit)
-            : 1,
-        },
-      }),
+      pagination: {
+        page: 1, // Seller view doesn't need pagination for now
+        limit: products.length,
+        total: products.length,
+        totalPages: 1,
+      },
     }
   }
   async getAllProducts({
@@ -839,13 +817,13 @@ class ProductServices {
   }) {
     try {
       if (userId) {
-        const result = await this.getAllProductsForSeller(filters, pagination)
+        const result = await this.getAllProductsForSeller(filters)
         return {
           result,
           userType: 'seller',
         }
       } else {
-        const result = await this.getAllProductsForCustomer(filters, pagination)
+        const result = await this.getAllProductsForCustomer(filters)
         return {
           result,
           userType: 'customer',
