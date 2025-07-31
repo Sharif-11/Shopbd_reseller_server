@@ -18,6 +18,56 @@ const prisma_1 = __importDefault(require("../../utils/prisma"));
 const ftp_services_1 = require("../FtpFileUpload/ftp.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 class SupportTicketService {
+    constructor() {
+        this.deleteTickets = (adminId_1, ...args_1) => __awaiter(this, [adminId_1, ...args_1], void 0, function* (adminId, days = 7) {
+            yield user_services_1.default.verifyUserPermission(adminId, 'SUPPORT_TICKET_MANAGEMENT', 'DELETE');
+            if (days < 1) {
+                throw new ApiError_1.default(400, 'Days must be a positive integer');
+            }
+            // I need to delete tickets that are older than the specified number of days along with their messages and attachments
+            const dateThreshold = new Date();
+            dateThreshold.setDate(dateThreshold.getDate() - days);
+            const ticketsToDelete = yield prisma_1.default.supportTicket.findMany({
+                where: {
+                    createdAt: {
+                        lt: dateThreshold,
+                    },
+                },
+                include: {
+                    messages: true,
+                },
+            });
+            if (ticketsToDelete.length === 0) {
+                return { message: 'No tickets to delete' };
+            }
+            const attachmentUrls = [];
+            for (const ticket of ticketsToDelete) {
+                for (const message of ticket.messages) {
+                    if (message.attachments && message.attachments.length > 0) {
+                        attachmentUrls.push(...message.attachments);
+                    }
+                }
+            }
+            // Delete attachments from FTP server
+            try {
+                yield ftp_services_1.ftpUploader.deleteFilesWithUrls(attachmentUrls);
+            }
+            catch (error) {
+                console.error('Error deleting attachments from FTP:', error);
+            }
+            // Delete messages and tickets
+            yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                for (const ticket of ticketsToDelete) {
+                    yield tx.ticketMessage.deleteMany({
+                        where: { ticketId: ticket.ticketId },
+                    });
+                    yield tx.supportTicket.delete({
+                        where: { ticketId: ticket.ticketId },
+                    });
+                }
+            }));
+        });
+    }
     validateTicketOwnership(ticketId, userId) {
         return __awaiter(this, void 0, void 0, function* () {
             const ticket = yield prisma_1.default.supportTicket.findUnique({

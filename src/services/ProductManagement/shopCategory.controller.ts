@@ -236,7 +236,7 @@ class ShopCategoryController {
     try {
       const userId = req.user?.userId
       const { categoryId } = req.params
-      const { name, description, categoryIcon } = req.body
+      const { name, description, categoryIcon, parentId } = req.body
 
       const category = await shopCategoryServices.updateCategory(
         userId!,
@@ -245,6 +245,7 @@ class ShopCategoryController {
           name,
           description,
           categoryIcon,
+          parentId: parentId ? Number(parentId) : null,
         },
       )
 
@@ -253,6 +254,29 @@ class ShopCategoryController {
         message: 'Category updated successfully',
         success: true,
         data: category,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async getCategoriesWithSubcategoriesAndProductCounts(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const { parentId = null } = req.query
+      const categories =
+        await shopCategoryServices.getCategoriesWithAggregatedProductCounts(
+          parentId ? Number(parentId) : null,
+        )
+
+      res.status(200).json({
+        statusCode: 200,
+        message:
+          'Categories with subcategories and product counts retrieved successfully',
+        success: true,
+        data: categories,
       })
     } catch (error) {
       next(error)

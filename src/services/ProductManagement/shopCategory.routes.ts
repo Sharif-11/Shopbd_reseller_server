@@ -21,19 +21,19 @@ class ShopRouter {
       isAuthenticated,
       ShopCategoryValidator.createShop(),
       validateRequest,
-      shopCategoryControllers.createShop
+      shopCategoryControllers.createShop,
     )
     this.router.get(
       '/admin',
       isAuthenticated,
-      shopCategoryControllers.getAllShopsForAdmin
+      shopCategoryControllers.getAllShopsForAdmin,
     )
 
     this.router.get(
       '/:shopId',
       ShopCategoryValidator.getShop(),
       validateRequest,
-      shopCategoryControllers.getShop
+      shopCategoryControllers.getShop,
     )
 
     this.router.get('/', shopCategoryControllers.getAllShops)
@@ -43,20 +43,21 @@ class ShopRouter {
       isAuthenticated,
       ShopCategoryValidator.updateShop(),
       validateRequest,
-      shopCategoryControllers.updateShop
+      shopCategoryControllers.updateShop,
     )
     this.router.get(
       '/:shopId/categories',
       ShopCategoryValidator.getShopCategories(),
       validateRequest,
-      shopCategoryControllers.getShopCategories
+      shopCategoryControllers.getShopCategories,
     )
+
     this.router.patch(
       '/:shopId/status',
       isAuthenticated,
       ShopCategoryValidator.openOrCloseShop(),
       validateRequest,
-      shopCategoryControllers.openOrCloseShop
+      shopCategoryControllers.openOrCloseShop,
     )
 
     // ==========================================
@@ -91,7 +92,13 @@ class CategoryRouter {
       isAuthenticated,
       ShopCategoryValidator.createCategory(),
       validateRequest,
-      shopCategoryControllers.createCategory
+      shopCategoryControllers.createCategory,
+    )
+    this.router.get(
+      '/subcategories',
+      ShopCategoryValidator.getCategoriesWithSubcategoriesAndProductCounts(),
+      validateRequest,
+      shopCategoryControllers.getCategoriesWithSubcategoriesAndProductCounts,
     )
 
     this.router.get(
@@ -99,13 +106,13 @@ class CategoryRouter {
       isAuthenticated,
       ShopCategoryValidator.getCategory(),
       validateRequest,
-      shopCategoryControllers.getCategory
+      shopCategoryControllers.getCategory,
     )
 
     this.router.get(
       '/',
       isAuthenticated,
-      shopCategoryControllers.getAllCategories
+      shopCategoryControllers.getAllCategories,
     )
 
     this.router.put(
@@ -113,7 +120,7 @@ class CategoryRouter {
       isAuthenticated,
       ShopCategoryValidator.updateCategory(),
       validateRequest,
-      shopCategoryControllers.updateCategory
+      shopCategoryControllers.updateCategory,
     )
 
     this.router.delete(
@@ -121,13 +128,13 @@ class CategoryRouter {
       isAuthenticated,
       ShopCategoryValidator.deleteCategory(),
       validateRequest,
-      shopCategoryControllers.deleteCategory
+      shopCategoryControllers.deleteCategory,
     )
     this.router.get(
       '/:categoryId/shops',
       ShopCategoryValidator.getShopsByCategory(),
       validateRequest,
-      shopCategoryControllers.getShopsByCategory
+      shopCategoryControllers.getShopsByCategory,
     )
   }
 
@@ -152,7 +159,7 @@ class ShopCategoryAssignmentRouter {
       isAuthenticated,
       ShopCategoryValidator.assignCategoryToShop(),
       validateRequest,
-      shopCategoryControllers.assignCategoryToShop
+      shopCategoryControllers.assignCategoryToShop,
     )
 
     this.router.delete(
@@ -160,7 +167,7 @@ class ShopCategoryAssignmentRouter {
       isAuthenticated,
       ShopCategoryValidator.removeCategoryFromShop(),
       validateRequest,
-      shopCategoryControllers.removeCategoryFromShop
+      shopCategoryControllers.removeCategoryFromShop,
     )
   }
   public getRouter(): Router {

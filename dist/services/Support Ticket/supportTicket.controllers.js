@@ -156,5 +156,23 @@ class SupportTicketController {
             }
         });
     }
+    deleteTickets(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { days } = req.query;
+                yield supportTicket_services_1.supportTicketService.deleteTickets(adminId, days ? Number(days) : 7);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Old tickets deleted successfully',
+                    success: true,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new SupportTicketController();

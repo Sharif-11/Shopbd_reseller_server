@@ -16,6 +16,7 @@ class SupportTicketRouter {
     initializeRoutes() {
         // Seller routes
         this.router.post('/', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyAccess)('SUPPORT_TICKET'), supportTicket_validator_1.default.createTicket(), validation_middleware_1.default, supportTicket_controllers_1.default.createTicket);
+        this.router.delete('/', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyAccess)('SUPPORT_TICKET'), supportTicket_validator_1.default.deleteTickets(), validation_middleware_1.default, supportTicket_controllers_1.default.deleteTickets);
         this.router.post('/reply', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyAccess)('SUPPORT_TICKET'), supportTicket_validator_1.default.replyToTicket(), validation_middleware_1.default, supportTicket_controllers_1.default.replyToTicket);
         this.router.get('/user', auth_middlewares_1.isAuthenticated, supportTicket_validator_1.default.getUserTickets(), validation_middleware_1.default, supportTicket_controllers_1.default.getUserTickets);
         this.router.get('/:ticketId', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyAccess)('SUPPORT_TICKET'), supportTicket_validator_1.default.getTicketDetails(), validation_middleware_1.default, supportTicket_controllers_1.default.getTicketDetails);

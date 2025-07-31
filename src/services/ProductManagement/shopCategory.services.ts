@@ -247,6 +247,7 @@ class ShopCategoryServices {
       name?: string
       description?: string | null
       categoryIcon?: string | null
+      parentId?: number | null
     },
   ): Promise<Category> {
     await userManagementService.verifyUserPermission(
@@ -255,11 +256,90 @@ class ShopCategoryServices {
       ActionType.UPDATE,
     )
 
-    // Prevent circular references
+    // Check if category exists
+    const category = await prisma.category.findUnique({
+      where: { categoryId },
+      select: { parentId: true },
+    })
+    if (!category) throw new ApiError(404, 'Category not found')
+
+    // Prevent circular references if parentId is being changed
+    if (data.parentId) {
+      // Can't be parent of itself
+      if (data.parentId === categoryId) {
+        throw new ApiError(400, 'Category cannot be a parent of itself')
+      }
+      // If parentId is provided, ensure it exists
+      const parentExists = await prisma.category.count({
+        where: { categoryId: data.parentId },
+      })
+      if (!parentExists) {
+        throw new ApiError(404, 'Parent category not found')
+      }
+
+      // Check if new parent is a descendant (would create circular reference)
+      if (
+        data.parentId &&
+        (await this.isDescendant(categoryId, data.parentId))
+      ) {
+        throw new ApiError(
+          400,
+          'Cannot set parent as it would create a circular reference',
+        )
+      }
+    }
 
     return prisma.category.update({
       where: { categoryId },
-      data,
+      data: {
+        name: data.name,
+        description: data.description,
+        categoryIcon: data.categoryIcon,
+        parentId: data.parentId,
+      },
+    })
+  }
+  async getCategoriesWithAggregatedProductCounts(
+    parentId: number | null = null,
+  ) {
+    const categories = await prisma.category.findMany({
+      where: {
+        parentId: parentId,
+      },
+      include: {
+        subCategories: {
+          include: {
+            _count: {
+              select: { Product: true },
+            },
+          },
+        },
+        _count: {
+          select: { Product: true },
+        },
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    })
+
+    return categories.map(category => {
+      // Calculate total products (current category + all subcategories)
+      const totalProducts = category.subCategories.reduce(
+        (sum, sub) => sum + sub._count.Product,
+        category._count.Product, // Start with direct products count
+      )
+
+      return {
+        ...category,
+        products: totalProducts, // Single total count
+        subCategories: category.subCategories.map(subCategory => ({
+          ...subCategory,
+          products: subCategory._count.Product,
+          _count: undefined, // Remove original count
+        })),
+        _count: undefined, // Remove original count
+      }
     })
   }
 

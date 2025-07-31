@@ -63,6 +63,14 @@ class SupportTicketValidator {
                 .withMessage('Product ID must be a string'),
         ];
     }
+    static deleteTickets() {
+        return [
+            (0, express_validator_1.query)('days')
+                .optional()
+                .isInt({ min: 1 })
+                .withMessage('Days must be a positive integer'),
+        ];
+    }
     static replyToTicket() {
         return [
             (0, express_validator_1.body)('ticketId')
