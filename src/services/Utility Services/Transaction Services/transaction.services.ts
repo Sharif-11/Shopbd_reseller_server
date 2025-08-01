@@ -201,6 +201,7 @@ class TransactionService {
     reason: string
     transactionType: 'add' | 'deduct'
   }) {
+    await userServices.verifyUserRole(requesterId, 'SuperAdmin')
     await userServices.verifyUserPermission(
       requesterId,
       PermissionType.USER_MANAGEMENT,

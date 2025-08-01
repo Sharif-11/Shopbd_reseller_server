@@ -1,0 +1,100 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_route_1 = __importDefault(require("../services/Auth/auth.route"));
+const commission_route_1 = __importDefault(require("../services/Commission Management/commission.route"));
+const ftp_routes_1 = __importDefault(require("../services/FtpFileUpload/ftp.routes"));
+const order_routes_1 = __importDefault(require("../services/Order Services/order.routes"));
+const payment_routes_1 = __importDefault(require("../services/Payment Service/payment.routes"));
+const product_routes_1 = __importDefault(require("../services/ProductManagement/product.routes"));
+const shopCategory_routes_1 = require("../services/ProductManagement/shopCategory.routes");
+const supportTicket_routes_1 = __importDefault(require("../services/Support Ticket/supportTicket.routes"));
+const block_routes_1 = __importDefault(require("../services/UserManagement/Block Management/block.routes"));
+const role_routes_1 = __importDefault(require("../services/UserManagement/Role Management/role.routes"));
+const announcement_routes_1 = __importDefault(require("../services/Utility Services/Announcement/announcement.routes"));
+const config_routes_1 = __importDefault(require("../services/Utility Services/Configuration/config.routes"));
+const dashboard_routes_1 = __importDefault(require("../services/Utility Services/Dashboard/dashboard.routes"));
+const sms_routes_1 = __importDefault(require("../services/Utility Services/Sms Service/sms.routes"));
+const transaction_routes_1 = __importDefault(require("../services/Utility Services/Transaction Services/transaction.routes"));
+const wallet_routes_1 = __importDefault(require("../services/WalletManagement/wallet.routes"));
+const withdraw_routes_1 = __importDefault(require("../services/Withdraw Service/withdraw.routes"));
+class GlobalRoutes {
+    constructor() {
+        this.router = (0, express_1.Router)();
+        this.routes = [
+            // { path: '/', route: usersRouter },
+            { path: '/auth', route: auth_route_1.default },
+            { path: '/wallets', route: wallet_routes_1.default },
+            { path: '/shops', route: shopCategory_routes_1.shopRouter },
+            { path: '/block', route: block_routes_1.default },
+            { path: '/roles', route: role_routes_1.default },
+            { path: '/sms', route: sms_routes_1.default },
+            { path: '/categories', route: shopCategory_routes_1.categoryRouter },
+            { path: '/shop-categories', route: shopCategory_routes_1.shopCategoryAssignmentRouter },
+            {
+                path: '/products',
+                route: product_routes_1.default,
+            },
+            {
+                path: '/ftp',
+                route: ftp_routes_1.default,
+            },
+            {
+                path: '/orders',
+                route: order_routes_1.default,
+            },
+            {
+                path: '/withdraws',
+                route: withdraw_routes_1.default,
+            },
+            {
+                path: '/payments',
+                route: payment_routes_1.default,
+            },
+            {
+                path: '/transactions',
+                route: transaction_routes_1.default,
+            },
+            {
+                path: '/commissions',
+                route: commission_route_1.default,
+            },
+            {
+                path: '/announcements',
+                route: announcement_routes_1.default,
+            },
+            {
+                path: '/configs',
+                route: config_routes_1.default,
+            },
+            {
+                path: '/dashboard',
+                route: dashboard_routes_1.default,
+            },
+            {
+                path: '/support-tickets',
+                route: supportTicket_routes_1.default,
+            },
+            // { path: '/admin', route: adminRouter },
+            // { path: '/sellers', route: sellerRouter },
+            // { path: '/tracking', route: trackingRoutes },
+            // { path: '/announcements', route: announcementRoutes },
+        ];
+        this.initializeRoutes();
+    }
+    initializeRoutes() {
+        this.routes.forEach(route => {
+            this.router.use(route.path, route.route);
+        });
+    }
+    getRouter() {
+        return this.router;
+    }
+}
+exports.default = new GlobalRoutes().getRouter();
+// Usage:
+// const globalRoutes = new GlobalRoutes();
+// app.use(globalRoutes.getRouter());

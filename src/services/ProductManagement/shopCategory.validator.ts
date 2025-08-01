@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client'
 import { RequestHandler } from 'express'
-import { body, param } from 'express-validator'
+import { body, param, query } from 'express-validator'
 
 class ShopCategoryValidator {
   // ==========================================
@@ -218,7 +218,7 @@ class ShopCategoryValidator {
   }
   static getCategoriesWithSubcategoriesAndProductCounts(): RequestHandler[] {
     return [
-      param('parentId')
+      query('parentId')
         .optional({
           checkFalsy: true,
           nullable: true,
