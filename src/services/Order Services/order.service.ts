@@ -55,7 +55,7 @@ class OrderService {
   }
   private async getOrderSmsRecipients() {
     const orderSmsRecipients = await userServices.getSmsRecipientsForPermission(
-      PermissionType.ORDER_MANAGEMENT
+      PermissionType.ORDER_MANAGEMENT,
     )
     return orderSmsRecipients
   }
@@ -70,7 +70,7 @@ class OrderService {
       deliveryAddress,
       comments,
       products,
-    }: OrderData
+    }: OrderData,
   ) {
     const user = await userServices.getUserById(userId)
     if (!user) {
@@ -87,7 +87,7 @@ class OrderService {
     // check user blocked
     const isBlocked = await blockServices.isUserBlocked(
       sellerPhoneNo,
-      BlockActionType.ORDER_REQUEST
+      BlockActionType.ORDER_REQUEST,
     )
     if (isBlocked) {
       throw new Error('You are blocked from placing orders')
@@ -99,9 +99,8 @@ class OrderService {
     }
     const { shopName, shopLocation } = shop
     // verify products
-    const verifiedOrderData = await productServices.verifyOrderProducts(
-      products
-    )
+    const verifiedOrderData =
+      await productServices.verifyOrderProducts(products)
     console.clear()
 
     const deliveryCharge = await this.calculateDeliveryCharge({
@@ -120,7 +119,7 @@ class OrderService {
     if (existingOrder) {
       throw new ApiError(
         400,
-        'আপনার একটি পেমেন্ট করা হয়নি এমন অর্ডার রয়েছে। নতুন অর্ডার করার আগে অনুগ্রহ করে সেটি পেমেন্ট করুন অথবা কনফার্ম করুন।'
+        'আপনার একটি পেমেন্ট করা হয়নি এমন অর্ডার রয়েছে। নতুন অর্ডার করার আগে অনুগ্রহ করে সেটি পেমেন্ট করুন অথবা কনফার্ম করুন।',
       )
     }
     const order = await prisma.order.create({
@@ -193,11 +192,11 @@ class OrderService {
     })
     const isBlocked = await blockServices.isUserBlocked(
       customerPhoneNo,
-      BlockActionType.ORDER_REQUEST
+      BlockActionType.ORDER_REQUEST,
     )
     if (isBlocked) {
       throw new Error(
-        'You are blocked from placing orders. Please contact support.'
+        'You are blocked from placing orders. Please contact support.',
       )
     }
     const shop = await shopCategoryServices.checkShopStatus(shopId)
@@ -205,9 +204,8 @@ class OrderService {
       throw new ApiError(400, 'Shop is not active')
     }
     const { shopName, shopLocation } = shop
-    const verifiedOrderData = await productServices.verifyOrderProducts(
-      products
-    )
+    const verifiedOrderData =
+      await productServices.verifyOrderProducts(products)
 
     const deliveryCharge = await this.calculateDeliveryCharge({
       shopId,
@@ -225,7 +223,7 @@ class OrderService {
     if (existingOrder) {
       throw new ApiError(
         400,
-        'আপনার একটি পেমেন্ট করা হয়নি এমন অর্ডার রয়েছে। নতুন অর্ডার করার আগে অনুগ্রহ করে সেটি পেমেন্ট করুন।'
+        'আপনার একটি পেমেন্ট করা হয়নি এমন অর্ডার রয়েছে। নতুন অর্ডার করার আগে অনুগ্রহ করে সেটি পেমেন্ট করুন।',
       )
     }
 
@@ -329,7 +327,7 @@ class OrderService {
             ...product,
             productVariant: JSON.parse(product.productVariant as string),
           })),
-        }))
+        })),
       )
     const totalOrders = await prisma.order.count({
       where,
@@ -395,7 +393,7 @@ class OrderService {
             ...product,
             productVariant: JSON.parse(product.productVariant as string),
           })),
-        }))
+        })),
       )
     const totalOrders = await prisma.order.count({
       where,
@@ -452,7 +450,7 @@ class OrderService {
     ) {
       throw new ApiError(
         400,
-        'Insufficient balance in your wallet to pay for the order'
+        'Insufficient balance in your wallet to pay for the order',
       )
     } else if (paymentMethod === 'BALANCE') {
       const updatedOrder = await prisma.$transaction(async tx => {
@@ -769,7 +767,7 @@ class OrderService {
     if (order.orderStatus === 'UNPAID' && !order.sellerVerified) {
       throw new ApiError(
         400,
-        'Only unpaid orders can be confirmed by verified sellers'
+        'Only unpaid orders can be confirmed by verified sellers',
       )
     }
     if (order.orderStatus !== 'UNPAID') {
@@ -781,7 +779,7 @@ class OrderService {
       data: {
         orderStatus: 'CONFIRMED',
         cashOnAmount: order.totalProductSellingPrice.add(
-          order.deliveryCharge.toNumber()
+          order.deliveryCharge.toNumber(),
         ),
       },
     })
@@ -837,7 +835,7 @@ class OrderService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
     const order = await prisma.order.findUnique({
       where: { orderId },
@@ -954,7 +952,7 @@ class OrderService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.READ
+      ActionType.READ,
     )
     const where: Prisma.OrderWhereInput = {}
     if (orderStatus) {
@@ -992,7 +990,7 @@ class OrderService {
             ...product,
             productVariant: JSON.parse(product.productVariant as string),
           })),
-        }))
+        })),
       )
     const totalOrders = await prisma.order.count({
       where,
@@ -1020,7 +1018,7 @@ class OrderService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
     const order = await prisma.order.findUnique({
       where: { orderId },
@@ -1124,7 +1122,7 @@ class OrderService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
     const order = await prisma.order.findUnique({
       where: { orderId },
@@ -1148,7 +1146,7 @@ class OrderService {
     if (amountPaidByCustomer < minimumAmountToBePaid.toNumber()) {
       throw new ApiError(
         400,
-        `ন্যূনতম পরিশোধ : ${minimumAmountToBePaid.toFixed(2)} টাকা`
+        `ন্যূনতম পরিশোধ : ${minimumAmountToBePaid.toFixed(2)} টাকা`,
       )
     }
     const actualCommission =
@@ -1203,7 +1201,7 @@ class OrderService {
       try {
         const referrers = await commissionServices.calculateUserCommissions(
           order.sellerPhoneNo!,
-          order.totalProductBasePrice.toNumber()
+          order.totalProductBasePrice.toNumber(),
         )
         if (referrers.length > 0) {
           await prisma.$transaction(
@@ -1227,7 +1225,7 @@ class OrderService {
             {
               isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
               timeout: referrers.length * 2000 + 5000,
-            }
+            },
           )
         }
       } catch (error) {
@@ -1261,7 +1259,7 @@ class OrderService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
     const order = await prisma.order.findUnique({
       where: { orderId },
@@ -1315,7 +1313,7 @@ class OrderService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.ORDER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
     const order = await prisma.order.findUnique({
       where: { orderId },
@@ -1338,7 +1336,7 @@ class OrderService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.DASHBOARD_ANALYTICS,
-      ActionType.READ
+      ActionType.READ,
     )
 
     // Calculate date boundaries once
@@ -1431,10 +1429,10 @@ class OrderService {
 
     // Filter orders for different time periods
     const last7DaysOrders = orders.filter(
-      order => new Date(order.createdAt) >= sevenDaysAgo
+      order => new Date(order.createdAt) >= sevenDaysAgo,
     )
     const last30DaysOrders = orders.filter(
-      order => new Date(order.createdAt) >= thirtyDaysAgo
+      order => new Date(order.createdAt) >= thirtyDaysAgo,
     )
 
     // Function to calculate statistics for a given order set
@@ -1475,7 +1473,7 @@ class OrderService {
       last7Days: last7DaysStats,
     }
   }
-  public async getTrendingTopSellingProducts(daysBack: number) {
+  public async getTrendingTopSellingProducts(daysBack: number = 30) {
     const now = new Date()
     const pastDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000)
 
@@ -1526,7 +1524,7 @@ class OrderService {
     // Combine product details with sales data
     return trendingProducts.map(product => {
       const productDetails = products.find(
-        p => p.productId === product.productId
+        p => p.productId === product.productId,
       )
       return {
         ...productDetails,

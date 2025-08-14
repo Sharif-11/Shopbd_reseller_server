@@ -419,8 +419,53 @@ class ProductValidator {
         .withMessage('ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে')
         .toInt(),
       query('shopId')
-        .notEmpty()
-        .withMessage('দোকান আইডি প্রয়োজন')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('দোকান আইডি অবশ্যই সংখ্যা হতে হবে')
+        .toInt(),
+      query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('পৃষ্ঠা সংখ্যা অবশ্যই ১ এর বেশি হতে হবে')
+        .default(1)
+        .toInt(),
+      query('limit')
+        .optional()
+        .isInt({ min: 1, max: 100 })
+        .withMessage('সীমা অবশ্যই ১ থেকে ১০০ এর মধ্যে হতে হবে')
+        .default(10)
+        .toInt(),
+    ]
+  }
+  static getAllProducts(): RequestHandler[] {
+    return [
+      query('search')
+        .optional()
+        .isString()
+        .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
+      query('minPrice')
+        .optional()
+        .isFloat({ min: 0 })
+        .withMessage('ন্যূনতম মূল্য অবশ্যই ০ বা তার বেশি হতে হবে')
+        .toFloat(),
+      query('maxPrice')
+        .optional()
+        .isFloat({ min: 0 })
+        .withMessage('সর্বোচ্চ মূল্য অবশ্যই ০ বা তার বেশি হতে হবে')
+        .toFloat()
+        .custom((value, { req }) => {
+          if (req.query?.minPrice && value < Number(req.query.minPrice)) {
+            throw new Error('সর্বোচ্চ মূল্য ন্যূনতম মূল্যের চেয়ে বেশি হতে হবে')
+          }
+          return true
+        }),
+      query('categoryId')
+        .optional() // Made optional to match controller
+        .isInt({ min: 1 })
+        .withMessage('ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে')
+        .toInt(),
+      query('shopId')
+        .optional()
         .isInt({ min: 1 })
         .withMessage('দোকান আইডি অবশ্যই সংখ্যা হতে হবে')
         .toInt(),

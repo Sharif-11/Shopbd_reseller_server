@@ -543,9 +543,13 @@ class ProductServices {
             const where = {
                 published: true,
                 shop: {
-                    isActive: true, // Only show products from active shops
+                    isActive: true,
                 },
             };
+            // Add shopId filter if provided
+            if (filters.shopId) {
+                where.shopId = filters.shopId;
+            }
             // Search filter
             if (filters.search) {
                 where.OR = [
@@ -553,7 +557,7 @@ class ProductServices {
                     { description: { contains: filters.search, mode: 'insensitive' } },
                 ];
             }
-            // Price range filter (using suggestedMaxPrice for customers)
+            // Price range filter
             if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
                 where.suggestedMaxPrice = {
                     gte: filters.minPrice !== undefined
@@ -573,14 +577,14 @@ class ProductServices {
                     productId: true,
                     name: true,
                     description: true,
-                    suggestedMaxPrice: true, // Only show suggested price to customers
+                    suggestedMaxPrice: true,
                     shop: { select: { shopName: true, shopLocation: true } },
                     category: { select: { name: true } },
                     ProductImage: {
                         where: { hidden: false },
                         select: { imageUrl: true },
                         orderBy: { isPrimary: 'desc' },
-                        take: 1, // Just get primary image for listing
+                        take: 1,
                     },
                 },
                 orderBy: { createdAt: 'desc' },
@@ -588,7 +592,7 @@ class ProductServices {
             return {
                 data: products.map(p => (Object.assign(Object.assign({}, p), { price: p.suggestedMaxPrice }))),
                 pagination: {
-                    page: 1, // Customer view doesn't need pagination for now
+                    page: 1,
                     limit: products.length,
                     total: products.length,
                     totalPages: 1,
@@ -600,9 +604,15 @@ class ProductServices {
         return __awaiter(this, void 0, void 0, function* () {
             const where = {
                 published: true,
-                shopId: filters.shopId,
-                categoryId: filters.categoryId,
             };
+            // Add shopId filter if provided
+            if (filters.shopId) {
+                where.shopId = filters.shopId;
+            }
+            // Add categoryId filter if provided
+            if (filters.categoryId) {
+                where.categoryId = filters.categoryId;
+            }
             // Search filter
             if (filters.search) {
                 where.OR = [
@@ -638,7 +648,7 @@ class ProductServices {
             return {
                 data: products,
                 pagination: {
-                    page: 1, // Seller view doesn't need pagination for now
+                    page: 1,
                     limit: products.length,
                     total: products.length,
                     totalPages: 1,

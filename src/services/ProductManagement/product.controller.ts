@@ -449,17 +449,22 @@ class ProductController {
       const { search, minPrice, maxPrice, categoryId, shopId } = req.query
       const page = Number(req.query.page) || 1
       const limit = Number(req.query.limit) || 10
+
+      // Prepare filters with optional parameters
+      const filters = {
+        search: search?.toString(),
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        categoryId: categoryId ? Number(categoryId) : undefined,
+        shopId: shopId ? Number(shopId) : undefined, // Made optional
+      }
+
       const { result, userType } = await productServices.getAllProducts({
         pagination: { page, limit },
         userId,
-        filters: {
-          search: search?.toString(),
-          minPrice: minPrice ? Number(minPrice) : undefined,
-          maxPrice: maxPrice ? Number(maxPrice) : undefined,
-          categoryId: Number(categoryId),
-          shopId: Number(shopId),
-        },
+        filters,
       })
+
       res.status(200).json({
         statusCode: 200,
         message: 'Products retrieved successfully',

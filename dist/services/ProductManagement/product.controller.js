@@ -392,16 +392,18 @@ class ProductController {
                 const { search, minPrice, maxPrice, categoryId, shopId } = req.query;
                 const page = Number(req.query.page) || 1;
                 const limit = Number(req.query.limit) || 10;
+                // Prepare filters with optional parameters
+                const filters = {
+                    search: search === null || search === void 0 ? void 0 : search.toString(),
+                    minPrice: minPrice ? Number(minPrice) : undefined,
+                    maxPrice: maxPrice ? Number(maxPrice) : undefined,
+                    categoryId: categoryId ? Number(categoryId) : undefined,
+                    shopId: shopId ? Number(shopId) : undefined, // Made optional
+                };
                 const { result, userType } = yield product_services_1.default.getAllProducts({
                     pagination: { page, limit },
                     userId,
-                    filters: {
-                        search: search === null || search === void 0 ? void 0 : search.toString(),
-                        minPrice: minPrice ? Number(minPrice) : undefined,
-                        maxPrice: maxPrice ? Number(maxPrice) : undefined,
-                        categoryId: Number(categoryId),
-                        shopId: Number(shopId),
-                    },
+                    filters,
                 });
                 res.status(200).json({
                     statusCode: 200,

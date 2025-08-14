@@ -673,12 +673,18 @@ class ProductServices {
     minPrice?: number
     maxPrice?: number
     categoryId?: number
+    shopId?: number // Made optional
   }) {
     const where: Prisma.ProductWhereInput = {
       published: true,
       shop: {
-        isActive: true, // Only show products from active shops
+        isActive: true,
       },
+    }
+
+    // Add shopId filter if provided
+    if (filters.shopId) {
+      where.shopId = filters.shopId
     }
 
     // Search filter
@@ -689,7 +695,7 @@ class ProductServices {
       ]
     }
 
-    // Price range filter (using suggestedMaxPrice for customers)
+    // Price range filter
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
       where.suggestedMaxPrice = {
         gte:
@@ -713,14 +719,14 @@ class ProductServices {
         productId: true,
         name: true,
         description: true,
-        suggestedMaxPrice: true, // Only show suggested price to customers
+        suggestedMaxPrice: true,
         shop: { select: { shopName: true, shopLocation: true } },
         category: { select: { name: true } },
         ProductImage: {
           where: { hidden: false },
           select: { imageUrl: true },
           orderBy: { isPrimary: 'desc' },
-          take: 1, // Just get primary image for listing
+          take: 1,
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -729,10 +735,10 @@ class ProductServices {
     return {
       data: products.map(p => ({
         ...p,
-        price: p.suggestedMaxPrice, // Rename for customer view
+        price: p.suggestedMaxPrice,
       })),
       pagination: {
-        page: 1, // Customer view doesn't need pagination for now
+        page: 1,
         limit: products.length,
         total: products.length,
         totalPages: 1,
@@ -744,13 +750,21 @@ class ProductServices {
     search?: string
     minPrice?: number
     maxPrice?: number
-    categoryId: number
-    shopId: number
+    categoryId?: number
+    shopId?: number // Made optional
   }) {
     const where: Prisma.ProductWhereInput = {
       published: true,
-      shopId: filters.shopId,
-      categoryId: filters.categoryId,
+    }
+
+    // Add shopId filter if provided
+    if (filters.shopId) {
+      where.shopId = filters.shopId
+    }
+
+    // Add categoryId filter if provided
+    if (filters.categoryId) {
+      where.categoryId = filters.categoryId
     }
 
     // Search filter
@@ -793,13 +807,14 @@ class ProductServices {
     return {
       data: products,
       pagination: {
-        page: 1, // Seller view doesn't need pagination for now
+        page: 1,
         limit: products.length,
         total: products.length,
         totalPages: 1,
       },
     }
   }
+
   async getAllProducts({
     userId,
     filters,
@@ -810,8 +825,8 @@ class ProductServices {
       search?: string
       minPrice?: number
       maxPrice?: number
-      categoryId: number
-      shopId: number
+      categoryId?: number // Made optional to match the other functions
+      shopId?: number // Made optional
     }
     pagination: { page: number; limit: number }
   }) {

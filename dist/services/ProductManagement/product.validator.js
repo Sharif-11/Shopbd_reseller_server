@@ -399,8 +399,54 @@ class ProductValidator {
                 .withMessage('ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে')
                 .toInt(),
             (0, express_validator_1.query)('shopId')
-                .notEmpty()
-                .withMessage('দোকান আইডি প্রয়োজন')
+                .optional()
+                .isInt({ min: 1 })
+                .withMessage('দোকান আইডি অবশ্যই সংখ্যা হতে হবে')
+                .toInt(),
+            (0, express_validator_1.query)('page')
+                .optional()
+                .isInt({ min: 1 })
+                .withMessage('পৃষ্ঠা সংখ্যা অবশ্যই ১ এর বেশি হতে হবে')
+                .default(1)
+                .toInt(),
+            (0, express_validator_1.query)('limit')
+                .optional()
+                .isInt({ min: 1, max: 100 })
+                .withMessage('সীমা অবশ্যই ১ থেকে ১০০ এর মধ্যে হতে হবে')
+                .default(10)
+                .toInt(),
+        ];
+    }
+    static getAllProducts() {
+        return [
+            (0, express_validator_1.query)('search')
+                .optional()
+                .isString()
+                .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
+            (0, express_validator_1.query)('minPrice')
+                .optional()
+                .isFloat({ min: 0 })
+                .withMessage('ন্যূনতম মূল্য অবশ্যই ০ বা তার বেশি হতে হবে')
+                .toFloat(),
+            (0, express_validator_1.query)('maxPrice')
+                .optional()
+                .isFloat({ min: 0 })
+                .withMessage('সর্বোচ্চ মূল্য অবশ্যই ০ বা তার বেশি হতে হবে')
+                .toFloat()
+                .custom((value, { req }) => {
+                var _a;
+                if (((_a = req.query) === null || _a === void 0 ? void 0 : _a.minPrice) && value < Number(req.query.minPrice)) {
+                    throw new Error('সর্বোচ্চ মূল্য ন্যূনতম মূল্যের চেয়ে বেশি হতে হবে');
+                }
+                return true;
+            }),
+            (0, express_validator_1.query)('categoryId')
+                .optional() // Made optional to match controller
+                .isInt({ min: 1 })
+                .withMessage('ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে')
+                .toInt(),
+            (0, express_validator_1.query)('shopId')
+                .optional()
                 .isInt({ min: 1 })
                 .withMessage('দোকান আইডি অবশ্যই সংখ্যা হতে হবে')
                 .toInt(),

@@ -153,6 +153,7 @@ class TransactionService {
     }
     updateBalanceByAdminToSeller(_a) {
         return __awaiter(this, arguments, void 0, function* ({ requesterId, sellerId, amount, reason, transactionType, }) {
+            yield user_services_1.default.verifyUserRole(requesterId, 'SuperAdmin');
             yield user_services_1.default.verifyUserPermission(requesterId, client_1.PermissionType.USER_MANAGEMENT, 'UPDATE');
             const existingSeller = yield user_services_1.default.getUserById(sellerId);
             const transaction = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {

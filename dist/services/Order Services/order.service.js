@@ -1193,8 +1193,8 @@ class OrderService {
             };
         });
     }
-    getTrendingTopSellingProducts(daysBack) {
-        return __awaiter(this, void 0, void 0, function* () {
+    getTrendingTopSellingProducts() {
+        return __awaiter(this, arguments, void 0, function* (daysBack = 30) {
             const now = new Date();
             const pastDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
             const trendingProducts = yield prisma_1.default.orderProduct.groupBy({

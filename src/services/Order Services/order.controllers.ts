@@ -157,7 +157,7 @@ class OrderController {
   async orderPaymentByCustomer(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const {
@@ -410,7 +410,7 @@ class OrderController {
   async markOrderAsFailedByAdmin(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const userId = req.user?.userId
@@ -432,10 +432,10 @@ class OrderController {
   async getTrendingTopSellingProducts(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
-      const products = await orderService.getTrendingTopSellingProducts(7)
+      const products = await orderService.getTrendingTopSellingProducts(30)
       res.status(200).json({
         statusCode: 200,
         message: 'Trending top-selling products retrieved successfully',

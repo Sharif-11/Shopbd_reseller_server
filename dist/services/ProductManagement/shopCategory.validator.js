@@ -208,7 +208,7 @@ class ShopCategoryValidator {
     }
     static getCategoriesWithSubcategoriesAndProductCounts() {
         return [
-            (0, express_validator_1.param)('parentId')
+            (0, express_validator_1.query)('parentId')
                 .optional({
                 checkFalsy: true,
                 nullable: true,
