@@ -44,12 +44,15 @@ const corsOptions: cors.CorsOptions = {
     const allowedOrigins = [
       'https://admin.shopbdresellerjobs.shop',
       'https://shopbdresellerjobs.shop',
+      'https://shopbdresellerjob.com',
     ]
     // Allow all subdomains of shopbdresellerjobs.shop
     if (origin?.endsWith('.shopbdresellerjobs.shop')) {
       return callback(null, true)
     }
-
+    if (origin?.endsWith('.shopbdresellerjob.com')) {
+      return callback(null, true)
+    }
     if (allowedOrigins.includes(origin)) {
       return callback(null, true)
     }

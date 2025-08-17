@@ -59,8 +59,6 @@ const globalErrorHandler = (error, req, res, next) => {
             errorResponse.message = (0, prismaErrorHandler_1.knownRequestHandler)(error);
         }
     }
-    // Log the error for server-side inspection
-    console.log('Error occurred:', error);
     // Send response
     res.status(errorResponse.statusCode).json(errorResponse);
 };

@@ -63,9 +63,6 @@ const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
     }
   }
 
-  // Log the error for server-side inspection
-  console.log('Error occurred:', error)
-
   // Send response
   res.status(errorResponse.statusCode).json(errorResponse)
 }

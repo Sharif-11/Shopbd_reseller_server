@@ -23,6 +23,7 @@ import walletServices from '../WalletManagement/wallet.services'
 import { OrderData, OrderProductData } from './order.types'
 
 class OrderService {
+  private fraudCheckCache = new Map<string, any>()
   private async checkExistingTrackingUrl(trackingUrl?: string) {
     const existingOrder = await prisma.order.findFirst({
       where: { trackingUrl },
@@ -1533,19 +1534,44 @@ class OrderService {
     })
   }
   async fraudChecker(phoneNumber: string) {
-    const url = `https://app.uddoktabd.com/api/courier?phone=${phoneNumber}`
+    if (this.fraudCheckCache.has(phoneNumber)) {
+      return this.fraudCheckCache.get(phoneNumber)
+    }
+    const url = `https://fraudchecker.link/api/v1/qc/`
     // now i need to hit the fraud checker API via axios with authentication token
     try {
-      const response = await axios.get(url, {
-        headers: {
-          Authorization: `Bearer ${config.fraudCheckerToken}`,
-        },
-      })
+      const params = new URLSearchParams()
+      params.append('phone', phoneNumber)
 
+      const response = await axios.post(
+        'https://fraudchecker.link/api/v1/qc/',
+        params,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.FRAUD_CHECKER_TOKEN}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+      )
+
+      console.log('Fraud check response:', response.status)
+      this.fraudCheckCache.set(phoneNumber, response.data)
       return response.data
     } catch (error) {
-      console.error('Error checking fraud:', error)
-      throw error
+      // console.error('Error checking fraud:', error)
+      if (error && typeof error === 'object' && 'response' in error) {
+        console.log('Error checking fraud:', (error as any).response?.data)
+        console.log(
+          'Error checking fraud status:',
+          (error as any).response?.status,
+        )
+      } else {
+        console.log('Error checking fraud:', error)
+      }
+      throw new ApiError(
+        (error as any).response?.status,
+        (error as any).response?.data.message,
+      )
     }
   }
 }

@@ -568,7 +568,10 @@ class ProductServices {
                         : undefined,
                 };
             }
-            if (filters.categoryId) {
+            if (filters.categoryId && Array.isArray(filters.categoryId)) {
+                where.categoryId = { in: filters.categoryId };
+            }
+            else if (filters.categoryId) {
                 where.categoryId = filters.categoryId;
             }
             const products = yield prisma_1.default.product.findMany({
@@ -610,7 +613,10 @@ class ProductServices {
                 where.shopId = filters.shopId;
             }
             // Add categoryId filter if provided
-            if (filters.categoryId) {
+            if (filters.categoryId && Array.isArray(filters.categoryId)) {
+                where.categoryId = { in: filters.categoryId };
+            }
+            else if (filters.categoryId) {
                 where.categoryId = filters.categoryId;
             }
             // Search filter

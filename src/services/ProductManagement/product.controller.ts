@@ -447,6 +447,7 @@ class ProductController {
     try {
       const userId = req?.user?.userId
       const { search, minPrice, maxPrice, categoryId, shopId } = req.query
+
       const page = Number(req.query.page) || 1
       const limit = Number(req.query.limit) || 10
 
@@ -455,7 +456,11 @@ class ProductController {
         search: search?.toString(),
         minPrice: minPrice ? Number(minPrice) : undefined,
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
-        categoryId: categoryId ? Number(categoryId) : undefined,
+        categoryId: categoryId
+          ? Array.isArray(categoryId)
+            ? categoryId.map(Number)
+            : Number(categoryId)
+          : undefined,
         shopId: shopId ? Number(shopId) : undefined, // Made optional
       }
 

@@ -397,7 +397,11 @@ class ProductController {
                     search: search === null || search === void 0 ? void 0 : search.toString(),
                     minPrice: minPrice ? Number(minPrice) : undefined,
                     maxPrice: maxPrice ? Number(maxPrice) : undefined,
-                    categoryId: categoryId ? Number(categoryId) : undefined,
+                    categoryId: categoryId
+                        ? Array.isArray(categoryId)
+                            ? categoryId.map(Number)
+                            : Number(categoryId)
+                        : undefined,
                     shopId: shopId ? Number(shopId) : undefined, // Made optional
                 };
                 const { result, userType } = yield product_services_1.default.getAllProducts({

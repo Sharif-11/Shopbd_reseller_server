@@ -28,6 +28,9 @@ const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 class OrderService {
+    constructor() {
+        this.fraudCheckCache = new Map();
+    }
     checkExistingTrackingUrl(trackingUrl) {
         return __awaiter(this, void 0, void 0, function* () {
             const existingOrder = yield prisma_1.default.order.findFirst({
@@ -1249,19 +1252,36 @@ class OrderService {
     }
     fraudChecker(phoneNumber) {
         return __awaiter(this, void 0, void 0, function* () {
-            const url = `https://app.uddoktabd.com/api/courier?phone=${phoneNumber}`;
+            var _a, _b, _c, _d;
+            if (this.fraudCheckCache.has(phoneNumber)) {
+                console.log('Returning cached fraud check result');
+                return this.fraudCheckCache.get(phoneNumber);
+            }
+            const url = `https://fraudchecker.link/api/v1/qc/`;
             // now i need to hit the fraud checker API via axios with authentication token
             try {
-                const response = yield axios_1.default.get(url, {
+                const params = new URLSearchParams();
+                params.append('phone', phoneNumber);
+                const response = yield axios_1.default.post('https://fraudchecker.link/api/v1/qc/', params, {
                     headers: {
-                        Authorization: `Bearer ${config_1.default.fraudCheckerToken}`,
+                        Authorization: `Bearer ${process.env.FRAUD_CHECKER_TOKEN}`,
+                        'Content-Type': 'application/x-www-form-urlencoded',
                     },
                 });
+                console.log('Fraud check response:', response.status);
+                this.fraudCheckCache.set(phoneNumber, response.data);
                 return response.data;
             }
             catch (error) {
-                console.error('Error checking fraud:', error);
-                throw error;
+                // console.error('Error checking fraud:', error)
+                if (error && typeof error === 'object' && 'response' in error) {
+                    console.log('Error checking fraud:', (_a = error.response) === null || _a === void 0 ? void 0 : _a.data);
+                    console.log('Error checking fraud status:', (_b = error.response) === null || _b === void 0 ? void 0 : _b.status);
+                }
+                else {
+                    console.log('Error checking fraud:', error);
+                }
+                throw new ApiError_1.default((_c = error.response) === null || _c === void 0 ? void 0 : _c.status, (_d = error.response) === null || _d === void 0 ? void 0 : _d.data.message);
             }
         });
     }

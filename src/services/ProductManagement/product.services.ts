@@ -672,7 +672,7 @@ class ProductServices {
     search?: string
     minPrice?: number
     maxPrice?: number
-    categoryId?: number
+    categoryId?: number | number[]
     shopId?: number // Made optional
   }) {
     const where: Prisma.ProductWhereInput = {
@@ -709,7 +709,9 @@ class ProductServices {
       }
     }
 
-    if (filters.categoryId) {
+    if (filters.categoryId && Array.isArray(filters.categoryId)) {
+      where.categoryId = { in: filters.categoryId }
+    } else if (filters.categoryId) {
       where.categoryId = filters.categoryId
     }
 
@@ -750,7 +752,7 @@ class ProductServices {
     search?: string
     minPrice?: number
     maxPrice?: number
-    categoryId?: number
+    categoryId?: number | number[]
     shopId?: number // Made optional
   }) {
     const where: Prisma.ProductWhereInput = {
@@ -763,7 +765,9 @@ class ProductServices {
     }
 
     // Add categoryId filter if provided
-    if (filters.categoryId) {
+    if (filters.categoryId && Array.isArray(filters.categoryId)) {
+      where.categoryId = { in: filters.categoryId }
+    } else if (filters.categoryId) {
       where.categoryId = filters.categoryId
     }
 
@@ -825,7 +829,7 @@ class ProductServices {
       search?: string
       minPrice?: number
       maxPrice?: number
-      categoryId?: number // Made optional to match the other functions
+      categoryId?: number | number[] // Made optional to match the other functions
       shopId?: number // Made optional
     }
     pagination: { page: number; limit: number }
