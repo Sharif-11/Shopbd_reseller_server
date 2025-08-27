@@ -12,6 +12,7 @@ import { ftpUploader } from '../FtpFileUpload/ftp.services'
 import axios from 'axios'
 import { OrderProductData } from '../Order Services/order.types'
 import userManagementService from '../UserManagement/user.services'
+import shopCategoryServices from './shopCategory.services'
 
 class ProductServices {
   // ==========================================
@@ -96,9 +97,13 @@ class ProductServices {
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
       videoUrl?: string
+      categoryId?: number
     },
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
+    if (data.categoryId) {
+      await shopCategoryServices.getCategory(data.categoryId)
+    }
 
     return prisma.product.update({
       where: { productId },
@@ -644,7 +649,7 @@ class ProductServices {
           shop: {
             select: { shopName: true, shopLocation: true, shopId: true },
           },
-          category: { select: { name: true } },
+          category: { select: { name: true, categoryId: true } },
           ProductImage: {
             where: { hidden: false },
             select: { imageUrl: true },
@@ -723,7 +728,7 @@ class ProductServices {
         description: true,
         suggestedMaxPrice: true,
         shop: { select: { shopName: true, shopLocation: true } },
-        category: { select: { name: true } },
+        category: { select: { name: true, categoryId: true } },
         ProductImage: {
           where: { hidden: false },
           select: { imageUrl: true },
@@ -796,7 +801,7 @@ class ProductServices {
     const products = await prisma.product.findMany({
       where,
       include: {
-        category: { select: { name: true } },
+        category: { select: { name: true, categoryId: true } },
         ProductImage: {
           where: { hidden: false },
           select: { imageUrl: true, imageId: true },
@@ -849,6 +854,58 @@ class ProductServices {
         }
       }
     } catch (error) {
+      throw error
+    }
+  }
+  async getLatestProducts(days: number = 30) {
+    console.log('Fetching latest products...', { days })
+    try {
+      // More robust date calculation using timestamps
+      const currentTimestamp = Date.now()
+      const sinceTimestamp = currentTimestamp - days * 24 * 60 * 60 * 1000
+      const sinceDate = new Date(sinceTimestamp)
+
+      const products = await prisma.product.findMany({
+        where: {
+          createdAt: {
+            gte: sinceDate,
+          },
+          published: true,
+          shop: {
+            isActive: true,
+          },
+        },
+        select: {
+          productId: true,
+          name: true,
+          description: true,
+          suggestedMaxPrice: true,
+          shop: { select: { shopName: true, shopLocation: true } },
+          category: { select: { name: true } },
+          ProductImage: {
+            where: { hidden: false },
+            select: { imageUrl: true },
+            orderBy: { isPrimary: 'desc' },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 15,
+      })
+
+      return {
+        data: products.map(p => ({
+          ...p,
+          price: p.suggestedMaxPrice,
+        })),
+        pagination: {
+          page: 1,
+          limit: products.length,
+          total: products.length,
+          totalPages: 1,
+        },
+      }
+    } catch (error) {
+      console.error('Error in getLatestProducts:', error)
       throw error
     }
   }

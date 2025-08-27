@@ -1254,7 +1254,6 @@ class OrderService {
         return __awaiter(this, void 0, void 0, function* () {
             var _a, _b, _c, _d;
             if (this.fraudCheckCache.has(phoneNumber)) {
-                console.log('Returning cached fraud check result');
                 return this.fraudCheckCache.get(phoneNumber);
             }
             const url = `https://fraudchecker.link/api/v1/qc/`;

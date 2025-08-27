@@ -176,6 +176,13 @@ class ProductRouter {
       validateRequest,
       productControllers.getAllProducts,
     )
+    this.router.get(
+      '/latest',
+      authenticate,
+      ProductValidator.getLatestProducts(),
+      validateRequest,
+      productControllers.getLatestProducts,
+    )
   }
 
   public getRouter(): Router {

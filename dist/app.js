@@ -43,6 +43,7 @@ const corsOptions = {
             'https://admin.shopbdresellerjobs.shop',
             'https://shopbdresellerjobs.shop',
             'https://shopbdresellerjob.com',
+            'https://admin.shopbdresellerjob.com',
         ];
         // Allow all subdomains of shopbdresellerjobs.shop
         if (origin === null || origin === void 0 ? void 0 : origin.endsWith('.shopbdresellerjobs.shop')) {

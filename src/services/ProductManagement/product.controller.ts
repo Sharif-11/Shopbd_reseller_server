@@ -70,8 +70,14 @@ class ProductController {
       const userId = req.user?.userId
       const { productId } = req.params
 
-      const { name, description, basePrice, suggestedMaxPrice, videoUrl } =
-        req.body
+      const {
+        name,
+        description,
+        basePrice,
+        suggestedMaxPrice,
+        videoUrl,
+        categoryId,
+      } = req.body
 
       const product = await productServices.updateProduct(
         userId!,
@@ -83,6 +89,7 @@ class ProductController {
           ...(suggestedMaxPrice && {
             suggestedMaxPrice: Number(suggestedMaxPrice),
             ...(videoUrl && { videoUrl }),
+            ...(categoryId && { categoryId: Number(categoryId) }),
           }),
         },
       )
@@ -477,6 +484,25 @@ class ProductController {
         data: result.data,
         pagination: result.pagination,
         userType,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async getLatestProducts(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { days } = req.query
+      // days may be absent
+      const result = await productServices.getLatestProducts(
+        days ? Number(days) : 30,
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Latest products retrieved successfully',
+        success: true,
+        data: result.data,
+        pagination: result.pagination,
       })
     } catch (error) {
       next(error)
