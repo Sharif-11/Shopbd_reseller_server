@@ -29,6 +29,7 @@ const prisma_1 = __importDefault(require("../../utils/prisma"));
 const ftp_services_1 = require("../FtpFileUpload/ftp.services");
 const axios_1 = __importDefault(require("axios"));
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
+const shopCategory_services_1 = __importDefault(require("./shopCategory.services"));
 class ProductServices {
     // ==========================================
     // PERMISSION CHECKS
@@ -86,6 +87,9 @@ class ProductServices {
     updateProduct(userId, productId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.UPDATE);
+            if (data.categoryId) {
+                yield shopCategory_services_1.default.getCategory(data.categoryId);
+            }
             return prisma_1.default.product.update({
                 where: { productId },
                 data,
@@ -515,7 +519,7 @@ class ProductServices {
                         shop: {
                             select: { shopName: true, shopLocation: true, shopId: true },
                         },
-                        category: { select: { name: true } },
+                        category: { select: { name: true, categoryId: true } },
                         ProductImage: {
                             where: { hidden: false },
                             select: { imageUrl: true },
@@ -582,7 +586,7 @@ class ProductServices {
                     description: true,
                     suggestedMaxPrice: true,
                     shop: { select: { shopName: true, shopLocation: true } },
-                    category: { select: { name: true } },
+                    category: { select: { name: true, categoryId: true } },
                     ProductImage: {
                         where: { hidden: false },
                         select: { imageUrl: true },
@@ -640,7 +644,7 @@ class ProductServices {
             const products = yield prisma_1.default.product.findMany({
                 where,
                 include: {
-                    category: { select: { name: true } },
+                    category: { select: { name: true, categoryId: true } },
                     ProductImage: {
                         where: { hidden: false },
                         select: { imageUrl: true, imageId: true },
@@ -681,6 +685,56 @@ class ProductServices {
                 }
             }
             catch (error) {
+                throw error;
+            }
+        });
+    }
+    getLatestProducts() {
+        return __awaiter(this, arguments, void 0, function* (days = 30) {
+            console.log('Fetching latest products...', { days });
+            try {
+                // More robust date calculation using timestamps
+                const currentTimestamp = Date.now();
+                const sinceTimestamp = currentTimestamp - days * 24 * 60 * 60 * 1000;
+                const sinceDate = new Date(sinceTimestamp);
+                const products = yield prisma_1.default.product.findMany({
+                    where: {
+                        createdAt: {
+                            gte: sinceDate,
+                        },
+                        published: true,
+                        shop: {
+                            isActive: true,
+                        },
+                    },
+                    select: {
+                        productId: true,
+                        name: true,
+                        description: true,
+                        suggestedMaxPrice: true,
+                        shop: { select: { shopName: true, shopLocation: true } },
+                        category: { select: { name: true } },
+                        ProductImage: {
+                            where: { hidden: false },
+                            select: { imageUrl: true },
+                            orderBy: { isPrimary: 'desc' },
+                        },
+                    },
+                    orderBy: { createdAt: 'desc' },
+                    take: 15,
+                });
+                return {
+                    data: products.map(p => (Object.assign(Object.assign({}, p), { price: p.suggestedMaxPrice }))),
+                    pagination: {
+                        page: 1,
+                        limit: products.length,
+                        total: products.length,
+                        totalPages: 1,
+                    },
+                };
+            }
+            catch (error) {
+                console.error('Error in getLatestProducts:', error);
                 throw error;
             }
         });

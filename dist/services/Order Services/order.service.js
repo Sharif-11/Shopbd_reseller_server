@@ -1239,7 +1239,6 @@ class OrderService {
                         where: { hidden: false },
                         select: { imageUrl: true },
                         orderBy: { isPrimary: 'desc' },
-                        take: 1, // Just get primary image for listing
                     },
                 },
             });

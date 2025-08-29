@@ -136,6 +136,10 @@ class ProductValidator {
                 .optional()
                 .isBoolean()
                 .withMessage('প্রকাশিত স্ট্যাটাস অবশ্যই বুলিয়ান হতে হবে'),
+            (0, express_validator_1.body)('categoryId')
+                .optional()
+                .isInt()
+                .withMessage('শ্রেণী আইডি অবশ্যই সংখ্যা হতে হবে'),
         ];
     }
     static togglePublishStatus() {
@@ -461,6 +465,16 @@ class ProductValidator {
                 .isInt({ min: 1, max: 100 })
                 .withMessage('সীমা অবশ্যই ১ থেকে ১০০ এর মধ্যে হতে হবে')
                 .default(10)
+                .toInt(),
+        ];
+    }
+    static getLatestProducts() {
+        return [
+            (0, express_validator_1.query)('days')
+                .optional()
+                .isInt({ min: 1 })
+                .withMessage('দিনের সংখ্যা অবশ্যই ১ এর বেশি হতে হবে')
+                .default(30)
                 .toInt(),
         ];
     }

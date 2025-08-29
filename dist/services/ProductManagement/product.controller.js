@@ -70,8 +70,8 @@ class ProductController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { productId } = req.params;
-                const { name, description, basePrice, suggestedMaxPrice, videoUrl } = req.body;
-                const product = yield product_services_1.default.updateProduct(userId, Number(productId), Object.assign(Object.assign(Object.assign(Object.assign({}, (name && { name })), (description && { description })), (basePrice && { basePrice: Number(basePrice) })), (suggestedMaxPrice && Object.assign({ suggestedMaxPrice: Number(suggestedMaxPrice) }, (videoUrl && { videoUrl })))));
+                const { name, description, basePrice, suggestedMaxPrice, videoUrl, categoryId, } = req.body;
+                const product = yield product_services_1.default.updateProduct(userId, Number(productId), Object.assign(Object.assign(Object.assign(Object.assign({}, (name && { name })), (description && { description })), (basePrice && { basePrice: Number(basePrice) })), (suggestedMaxPrice && Object.assign(Object.assign({ suggestedMaxPrice: Number(suggestedMaxPrice) }, (videoUrl && { videoUrl })), (categoryId && { categoryId: Number(categoryId) })))));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Product updated successfully',
@@ -416,6 +416,25 @@ class ProductController {
                     data: result.data,
                     pagination: result.pagination,
                     userType,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    getLatestProducts(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { days } = req.query;
+                // days may be absent
+                const result = yield product_services_1.default.getLatestProducts(days ? Number(days) : 30);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Latest products retrieved successfully',
+                    success: true,
+                    data: result.data,
+                    pagination: result.pagination,
                 });
             }
             catch (error) {

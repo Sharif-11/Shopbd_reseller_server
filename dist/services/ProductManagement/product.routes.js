@@ -50,6 +50,7 @@ class ProductRouter {
         this.router.get('/customer', product_validator_1.default.getAllProductsForCustomer(), validation_middleware_1.default, product_controller_1.default.getAllProductsForCustomer);
         this.router.get('/seller', auth_middlewares_1.isAuthenticated, product_validator_1.default.getAllProductsForSeller(), validation_middleware_1.default, product_controller_1.default.getAllProductsForSeller);
         this.router.get('/user', auth_middlewares_1.authenticate, product_validator_1.default.getAllProducts(), validation_middleware_1.default, product_controller_1.default.getAllProducts);
+        this.router.get('/latest', auth_middlewares_1.authenticate, product_validator_1.default.getLatestProducts(), validation_middleware_1.default, product_controller_1.default.getLatestProducts);
     }
     getRouter() {
         return this.router;
