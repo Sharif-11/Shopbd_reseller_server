@@ -1174,7 +1174,9 @@ class OrderService {
                         completedOrdersCount++;
                     }
                     for (const product of order.OrderProduct) {
-                        totalProductsSold += product.productQuantity || 0;
+                        if (order.orderStatus === 'COMPLETED') {
+                            totalProductsSold += product.productQuantity || 0;
+                        }
                     }
                 }
                 return {
@@ -1197,7 +1199,7 @@ class OrderService {
         });
     }
     getTrendingTopSellingProducts() {
-        return __awaiter(this, arguments, void 0, function* (daysBack = 30) {
+        return __awaiter(this, arguments, void 0, function* (daysBack = 30, page = 1, limit = 10) {
             const now = new Date();
             const pastDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
             const trendingProducts = yield prisma_1.default.orderProduct.groupBy({
@@ -1218,9 +1220,11 @@ class OrderService {
                         productQuantity: 'desc',
                     },
                 },
-                take: 10,
+                take: limit,
+                skip: (page - 1) * limit,
             });
             // fetch product details for each trending product
+            let data = [];
             if (trendingProducts.length === 0) {
                 return [];
             }
@@ -1243,10 +1247,17 @@ class OrderService {
                 },
             });
             // Combine product details with sales data
-            return trendingProducts.map(product => {
+            data = trendingProducts.map(product => {
                 const productDetails = products.find(p => p.productId === product.productId);
                 return Object.assign(Object.assign({}, productDetails), { totalSold: product._sum.productQuantity || 0 });
             });
+            return {
+                data,
+                total: data.length,
+                page,
+                limit,
+                totalPages: Math.ceil(data.length / limit),
+            };
         });
     }
     fraudChecker(phoneNumber) {

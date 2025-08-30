@@ -21,8 +21,8 @@ const user_services_1 = __importDefault(require("../services/UserManagement/user
 const ApiError_1 = __importDefault(require("../utils/ApiError"));
 const prisma_1 = __importDefault(require("../utils/prisma"));
 const isAuthenticated = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    const token = (_a = req === null || req === void 0 ? void 0 : req.cookies) === null || _a === void 0 ? void 0 : _a.token;
+    var _a, _b;
+    const token = ((_a = req === null || req === void 0 ? void 0 : req.cookies) === null || _a === void 0 ? void 0 : _a.token) || ((_b = req === null || req === void 0 ? void 0 : req.headers.authorization) === null || _b === void 0 ? void 0 : _b.split(' ')[1]);
     if (!token) {
         return next(new ApiError_1.default(401, 'Unauthorized'));
     }

@@ -1330,18 +1330,16 @@ class UserManagementServices {
                     phoneNo: true,
                     referralCode: true,
                     role: true,
+                    referrals: true,
                 },
             });
             if (!user) {
                 throw new Error('User not found');
             }
             // Get all users who used this user's referral code (level 1 referrals)
-            const level1Referrals = yield prisma_1.default.user.findMany({
-                where: { referredByPhone: user.phoneNo },
-                select: { phoneNo: true },
-            });
+            const level1Referrals = user.referrals.length;
             // Get phone numbers of level 1 referrals for the next query
-            const level1Phones = level1Referrals.map(u => u.phoneNo);
+            const level1Phones = user.referrals.map(u => u.phoneNo);
             // Get level 2 referrals (users referred by level 1 referrals)
             const level2Referrals = yield prisma_1.default.user.findMany({
                 where: { referredByPhone: { in: level1Phones } },
@@ -1352,10 +1350,10 @@ class UserManagementServices {
                 where: { sellerId: userId },
             });
             return {
-                totalLevel1Referrals: level1Referrals.length,
+                totalLevel1Referrals: level1Referrals,
                 totalLevel2Referrals: level2Referrals.length,
                 totalReferredCustomers: referredCustomers,
-                totalReferrals: level1Referrals.length + level2Referrals.length,
+                totalReferrals: level1Referrals + level2Referrals.length,
             };
         });
     }

@@ -104,6 +104,60 @@ class ProductController {
       next(error)
     }
   }
+  async deleteProduct(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { productId } = req.params
+
+      await productServices.deleteProduct(userId!, Number(productId))
+
+      res.status(204).json({
+        statusCode: 204,
+        message: 'Product deleted successfully',
+        success: true,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async archiveProduct(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { productId } = req.params
+
+      await productServices.archiveProduct(userId!, Number(productId))
+
+      res.status(204).json({
+        statusCode: 204,
+        message: 'Product archived successfully',
+        success: true,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async restoreProduct(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { productId } = req.params
+
+      await productServices.restoreProduct(userId!, Number(productId))
+
+      res.status(204).json({
+        statusCode: 204,
+        message: 'Product restored successfully',
+        success: true,
+      })
+    } catch (error) {
+      next(error)
+
+      res.status(204).json({
+        statusCode: 204,
+        message: 'Product archived successfully',
+        success: true,
+      })
+    }
+  }
 
   async togglePublishStatus(req: Request, res: Response, next: NextFunction) {
     try {
@@ -491,15 +545,45 @@ class ProductController {
   }
   async getLatestProducts(req: Request, res: Response, next: NextFunction) {
     try {
-      const { days } = req.query
+      const { days, page, limit } = req.query
       // days may be absent
       const result = await productServices.getLatestProducts(
         days ? Number(days) : 30,
+        page ? Number(page) : 1,
+        limit ? Number(limit) : 10,
       )
 
       res.status(200).json({
         statusCode: 200,
         message: 'Latest products retrieved successfully',
+        success: true,
+        data: result.data,
+        pagination: result.pagination,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async getArchivedProducts(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.userId
+      const { search, page, limit } = req?.query
+      console.log('inside archive', { search, page, limit })
+
+      const result = await productServices.getArchiveProducts(
+        userId!,
+        {
+          search: search?.toString(),
+        },
+        {
+          page: page ? Number(page) : 1,
+          limit: limit ? Number(limit) : 10,
+        },
+      )
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Archived products retrieved successfully',
         success: true,
         data: result.data,
         pagination: result.pagination,

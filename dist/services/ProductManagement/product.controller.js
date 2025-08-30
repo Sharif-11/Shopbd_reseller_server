@@ -84,6 +84,65 @@ class ProductController {
             }
         });
     }
+    deleteProduct(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { productId } = req.params;
+                yield product_services_1.default.deleteProduct(userId, Number(productId));
+                res.status(204).json({
+                    statusCode: 204,
+                    message: 'Product deleted successfully',
+                    success: true,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    archiveProduct(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { productId } = req.params;
+                yield product_services_1.default.archiveProduct(userId, Number(productId));
+                res.status(204).json({
+                    statusCode: 204,
+                    message: 'Product archived successfully',
+                    success: true,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    restoreProduct(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { productId } = req.params;
+                yield product_services_1.default.restoreProduct(userId, Number(productId));
+                res.status(204).json({
+                    statusCode: 204,
+                    message: 'Product restored successfully',
+                    success: true,
+                });
+            }
+            catch (error) {
+                next(error);
+                res.status(204).json({
+                    statusCode: 204,
+                    message: 'Product archived successfully',
+                    success: true,
+                });
+            }
+        });
+    }
     togglePublishStatus(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
@@ -426,12 +485,38 @@ class ProductController {
     getLatestProducts(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const { days } = req.query;
+                const { days, page, limit } = req.query;
                 // days may be absent
-                const result = yield product_services_1.default.getLatestProducts(days ? Number(days) : 30);
+                const result = yield product_services_1.default.getLatestProducts(days ? Number(days) : 30, page ? Number(page) : 1, limit ? Number(limit) : 10);
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Latest products retrieved successfully',
+                    success: true,
+                    data: result.data,
+                    pagination: result.pagination,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    getArchivedProducts(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { search, page, limit } = req === null || req === void 0 ? void 0 : req.query;
+                console.log('inside archive', { search, page, limit });
+                const result = yield product_services_1.default.getArchiveProducts(userId, {
+                    search: search === null || search === void 0 ? void 0 : search.toString(),
+                }, {
+                    page: page ? Number(page) : 1,
+                    limit: limit ? Number(limit) : 10,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Archived products retrieved successfully',
                     success: true,
                     data: result.data,
                     pagination: result.pagination,

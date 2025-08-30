@@ -146,6 +146,33 @@ class ProductValidator {
         .withMessage('শ্রেণী আইডি অবশ্যই সংখ্যা হতে হবে'),
     ]
   }
+  static deleteProduct(): RequestHandler[] {
+    return [
+      param('productId')
+        .notEmpty()
+        .withMessage('পণ্য আইডি প্রয়োজন')
+        .isInt()
+        .withMessage('পণ্য আইডি অবশ্যই সংখ্যা হতে হবে'),
+    ]
+  }
+  static archiveProduct(): RequestHandler[] {
+    return [
+      param('productId')
+        .notEmpty()
+        .withMessage('পণ্য আইডি প্রয়োজন')
+        .isInt()
+        .withMessage('পণ্য আইডি অবশ্যই সংখ্যা হতে হবে'),
+    ]
+  }
+  static restoreProduct(): RequestHandler[] {
+    return [
+      param('productId')
+        .notEmpty()
+        .withMessage('পণ্য আইডি প্রয়োজন')
+        .isInt()
+        .withMessage('পণ্য আইডি অবশ্যই সংখ্যা হতে হবে'),
+    ]
+  }
 
   static togglePublishStatus(): RequestHandler[] {
     return [
@@ -494,6 +521,18 @@ class ProductValidator {
         .isInt({ min: 1 })
         .withMessage('দিনের সংখ্যা অবশ্যই ১ এর বেশি হতে হবে')
         .default(30)
+        .toInt(),
+      query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('পৃষ্ঠা সংখ্যা অবশ্যই ১ এর বেশি হতে হবে')
+        .default(1)
+        .toInt(),
+      query('limit')
+        .optional()
+        .isInt({ min: 1, max: 100 })
+        .withMessage('সীমা অবশ্যই ১ থেকে ১০০ এর মধ্যে হতে হবে')
+        .default(10)
         .toInt(),
     ]
   }

@@ -40,7 +40,27 @@ class ProductRouter {
       validateRequest,
       productControllers.updateProduct,
     )
-
+    this.router.patch(
+      '/:productId/archive',
+      isAuthenticated,
+      ProductValidator.archiveProduct(),
+      validateRequest,
+      productControllers.archiveProduct,
+    )
+    this.router.patch(
+      '/:productId/restore',
+      isAuthenticated,
+      ProductValidator.restoreProduct(),
+      validateRequest,
+      productControllers.restoreProduct,
+    )
+    this.router.delete(
+      '/:productId',
+      isAuthenticated,
+      ProductValidator.deleteProduct(),
+      validateRequest,
+      productControllers.deleteProduct,
+    )
     this.router.patch(
       '/:productId/publish',
       isAuthenticated,
@@ -182,6 +202,11 @@ class ProductRouter {
       ProductValidator.getLatestProducts(),
       validateRequest,
       productControllers.getLatestProducts,
+    )
+    this.router.get(
+      '/archived',
+      isAuthenticated,
+      productControllers.getArchivedProducts,
     )
   }
 

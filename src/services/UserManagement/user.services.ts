@@ -56,7 +56,7 @@ class UserManagementServices {
   private generateAccessToken(
     userId: string,
     role: string,
-    phoneNo: string
+    phoneNo: string,
   ): string {
     const payload = { userId, role, phoneNo }
     return jwt.sign(payload, config.jwtSecret as string) // Token expires in 1 hour
@@ -120,7 +120,7 @@ class UserManagementServices {
             roleId: superAdminRole.roleId,
             permission,
             actions: Object.values(ActionType).filter(
-              action => action !== ActionType.ALL
+              action => action !== ActionType.ALL,
             ),
           },
         })
@@ -137,12 +137,12 @@ class UserManagementServices {
    */
   async createSuperAdmin(
     currentAdminId: string,
-    input: CreateSuperAdminInput
+    input: CreateSuperAdminInput,
   ): Promise<Omit<User, 'password'>> {
     // Verify current user is super admin
     const currentAdmin = await this.verifyUserRole(
       currentAdminId,
-      UserType.SuperAdmin
+      UserType.SuperAdmin,
     )
 
     const hashedPassword = await this.hashPassword(input.password)
@@ -195,7 +195,7 @@ class UserManagementServices {
             roleId: superAdminRole.roleId,
             permission,
             actions: Object.values(ActionType).filter(
-              action => action !== ActionType.ALL && action !== 'NOTIFY'
+              action => action !== ActionType.ALL && action !== 'NOTIFY',
             ), // Assign all actions except ALL
           })),
           skipDuplicates: true,
@@ -216,12 +216,12 @@ class UserManagementServices {
 
   async createAdmin(
     currentAdminId: string,
-    input: CreateAdminInput
+    input: CreateAdminInput,
   ): Promise<Omit<User, 'password'>> {
     // Verify current user is super admin
     const currentAdmin = await this.verifyUserRole(
       currentAdminId,
-      UserType.SuperAdmin
+      UserType.SuperAdmin,
     )
 
     const hashedPassword = await this.hashPassword(input.password)
@@ -288,7 +288,7 @@ class UserManagementServices {
   // Helper method for input validation
   private async validateUserInput(
     phoneNo: string,
-    email?: string
+    email?: string,
   ): Promise<void> {
     // Check if phone number is already registered
     const existingUser = await prisma.user.findUnique({
@@ -333,7 +333,7 @@ class UserManagementServices {
     if (existingCustomer) {
       throw new ApiError(
         400,
-        'Phone number is already registered as a customer'
+        'Phone number is already registered as a customer',
       )
     }
 
@@ -484,7 +484,7 @@ class UserManagementServices {
     const token = this.generateAccessToken(
       customer.customerId,
       customer.role,
-      customer.customerPhoneNo
+      customer.customerPhoneNo,
     )
     return { customer, token }
   }
@@ -754,12 +754,12 @@ class UserManagementServices {
     }
     const isBlocked = await blockServices.isUserBlocked(
       user.phoneNo,
-      BlockActionType.PASSWORD_RESET
+      BlockActionType.PASSWORD_RESET,
     )
     if (isBlocked) {
       throw new ApiError(
         403,
-        'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।'
+        'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।',
       )
     }
     if (
@@ -787,7 +787,7 @@ class UserManagementServices {
         })
         throw new ApiError(
           403,
-          'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।'
+          'আপনার অ্যাকাউন্টের পাসওয়ার্ড রিসেট করার সুবিধা বন্ধ করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।',
         )
       }
 
@@ -958,7 +958,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.ALL
+      ActionType.ALL,
     )
     // check if the user exists
     const user = await prisma.user.findUnique({
@@ -1039,7 +1039,7 @@ class UserManagementServices {
     if (existingReferral) {
       throw new ApiError(
         400,
-        'রেফারেল কোড ইতোমধ্যে ব্যবহৃত, অনুগ্রহ করে অন্য একটি বেছে নিন'
+        'রেফারেল কোড ইতোমধ্যে ব্যবহৃত, অনুগ্রহ করে অন্য একটি বেছে নিন',
       )
     }
 
@@ -1093,7 +1093,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       creatorId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.CREATE
+      ActionType.CREATE,
     )
 
     return await prisma.role.create({
@@ -1112,7 +1112,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     return await prisma.rolePermission.upsert({
@@ -1142,12 +1142,12 @@ class UserManagementServices {
       roleId: string
       permissions: PermissionType[] // Changed from permission to permissions (array)
       actions: ActionType[]
-    }
+    },
   ) {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     // Ensure actions is always an array
@@ -1174,7 +1174,7 @@ class UserManagementServices {
             actions,
           },
         })
-      })
+      }),
     )
 
     return results
@@ -1187,7 +1187,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.UPDATE
+      ActionType.UPDATE,
     )
 
     return await prisma.userRole.create({
@@ -1199,7 +1199,7 @@ class UserManagementServices {
   }
   async getSmsRecipientsForPermission(
     permission: PermissionType,
-    actionType: ActionType = ActionType.NOTIFY
+    actionType: ActionType = ActionType.NOTIFY,
   ): Promise<string[]> {
     const users = await this.getUsersWithPermission(permission, actionType)
     if (!users || users.length === 0) {
@@ -1225,7 +1225,7 @@ class UserManagementServices {
    */
   public async verifyUserRole(
     userId: string,
-    requiredRole: UserType
+    requiredRole: UserType,
   ): Promise<User> {
     const user = await prisma.user.findUnique({
       where: { userId },
@@ -1273,7 +1273,7 @@ class UserManagementServices {
   }
   public async getUsersWithPermission(
     permission: PermissionType,
-    actionType: ActionType
+    actionType: ActionType,
   ): Promise<User[]> {
     const users = await prisma.user.findMany({
       where: {
@@ -1324,7 +1324,7 @@ class UserManagementServices {
   public async verifyUserPermission(
     userId: string,
     permission: PermissionType,
-    action: ActionType
+    action: ActionType,
   ): Promise<User> {
     const user = await prisma.user.findUnique({
       where: { userId },
@@ -1389,7 +1389,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.READ
+      ActionType.READ,
     )
     const skip = (page - 1) * limit
 
@@ -1453,7 +1453,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.READ
+      ActionType.READ,
     )
     const skip = (page - 1) * limit
 
@@ -1484,7 +1484,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.DASHBOARD_ANALYTICS,
-      ActionType.READ
+      ActionType.READ,
     )
 
     // Calculate date boundaries once
@@ -1547,6 +1547,7 @@ class UserManagementServices {
         phoneNo: true,
         referralCode: true,
         role: true,
+        referrals: true,
       },
     })
 
@@ -1555,13 +1556,10 @@ class UserManagementServices {
     }
 
     // Get all users who used this user's referral code (level 1 referrals)
-    const level1Referrals = await prisma.user.findMany({
-      where: { referredByPhone: user.phoneNo },
-      select: { phoneNo: true },
-    })
+    const level1Referrals = user.referrals.length
 
     // Get phone numbers of level 1 referrals for the next query
-    const level1Phones = level1Referrals.map(u => u.phoneNo)
+    const level1Phones = user.referrals.map(u => u.phoneNo)
 
     // Get level 2 referrals (users referred by level 1 referrals)
     const level2Referrals = await prisma.user.findMany({
@@ -1575,10 +1573,10 @@ class UserManagementServices {
     })
 
     return {
-      totalLevel1Referrals: level1Referrals.length,
+      totalLevel1Referrals: level1Referrals,
       totalLevel2Referrals: level2Referrals.length,
       totalReferredCustomers: referredCustomers,
-      totalReferrals: level1Referrals.length + level2Referrals.length,
+      totalReferrals: level1Referrals + level2Referrals.length,
     }
   }
 }

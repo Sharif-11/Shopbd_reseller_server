@@ -11,7 +11,10 @@ import { ftpUploader } from '../FtpFileUpload/ftp.services'
 
 import axios from 'axios'
 import { OrderProductData } from '../Order Services/order.types'
-import userManagementService from '../UserManagement/user.services'
+import {
+  default as userManagementService,
+  default as userServices,
+} from '../UserManagement/user.services'
 import shopCategoryServices from './shopCategory.services'
 
 class ProductServices {
@@ -122,16 +125,78 @@ class ProductServices {
       const images = await prisma.productImage.findMany({
         where: { productId, hidden: false },
       })
-      if (images.length === 0) {
-        throw new ApiError(
-          400,
-          'পাবলিশ করার জন্য পণ্যটির অন্তত একটি ছবি থাকতে হবে',
-        )
-      }
+      // if (images.length === 0) {
+      //   throw new ApiError(
+      //     400,
+      //     'পাবলিশ করার জন্য পণ্যটির অন্তত একটি ছবি থাকতে হবে',
+      //   )
+      // }
     }
     return prisma.product.update({
       where: { productId },
       data: { published: publish },
+    })
+  }
+  async deleteProduct(userId: string, productId: number) {
+    await this.verifyProductPermission(userId, ActionType.DELETE)
+
+    const product = await prisma.product.findUnique({
+      where: { productId },
+      include: { ProductImage: true },
+    })
+
+    if (!product) throw new ApiError(404, 'Product not found')
+    // at first we need to check if there is any order associated with this product which is not completed or rejected
+    const associatedOrders = await prisma.order.findMany({
+      where: {
+        OrderProduct: {
+          some: {
+            productId,
+          },
+        },
+      },
+    })
+    if (associatedOrders.length > 0) {
+      throw new ApiError(
+        400,
+        'সক্রিয় অর্ডার থাকার কারণে পণ্যটি মুছে ফেলা যাবে না',
+      )
+    }
+
+    // Delete all associated images and variants
+    await prisma.$transaction(async tx => {
+      await tx.productImage.deleteMany({
+        where: { productId },
+      })
+      await tx.productVariant.deleteMany({
+        where: { productId },
+      })
+      await tx.product.delete({
+        where: { productId },
+      })
+    })
+    // now we need to delete the product image from ftp server
+    if (product.ProductImage.length > 0) {
+      await ftpUploader.deleteFilesWithUrls(
+        product.ProductImage.map(img => img.imageUrl),
+      )
+    }
+    return product
+  }
+  async archiveProduct(userId: string, productId: number) {
+    await this.verifyProductPermission(userId, ActionType.UPDATE)
+
+    return prisma.product.update({
+      where: { productId },
+      data: { archived: true },
+    })
+  }
+  async restoreProduct(userId: string, productId: number) {
+    await this.verifyProductPermission(userId, ActionType.UPDATE)
+
+    return prisma.product.update({
+      where: { productId },
+      data: { archived: false },
     })
   }
 
@@ -249,7 +314,7 @@ class ProductServices {
   }
 
   async verifyOrderProducts(productsData: OrderProductData[]) {
-    // here for each product we need to check existence of products, image visibility and whether the selling price is greater or equal to base price
+    // here for each product we need to check existence of products, image visibility and whether the selling price is greater or equal to base price and we need to check whether the product is archived
     const productIds = productsData.map(p => p.id)
     const products = await prisma.product.findMany({
       where: {
@@ -257,6 +322,7 @@ class ProductServices {
         ProductImage: {
           some: { hidden: false }, // Ensure at least one visible image exists
         },
+        archived: false,
       },
       include: {
         ProductImage: {
@@ -439,7 +505,7 @@ class ProductServices {
     await this.verifyProductPermission(userId, ActionType.READ)
 
     const product = await prisma.product.findUnique({
-      where: { productId },
+      where: { productId, archived: false },
       include: {
         shop: { select: { shopName: true } },
         category: { select: { name: true } },
@@ -477,6 +543,7 @@ class ProductServices {
       where: {
         productId,
         published: true,
+        archived: false,
       },
       include: {
         shop: {
@@ -534,6 +601,7 @@ class ProductServices {
       where: {
         productId,
         published: true, // Only show published products
+        archived: false,
       },
       include: {
         shop: {
@@ -621,6 +689,7 @@ class ProductServices {
   ) {
     await this.verifyProductPermission(adminId, ActionType.READ)
     const where: Prisma.ProductWhereInput = {
+      archived: false,
       // Default to true if not provided
     }
 
@@ -682,6 +751,7 @@ class ProductServices {
   }) {
     const where: Prisma.ProductWhereInput = {
       published: true,
+      archived: false,
       shop: {
         isActive: true,
       },
@@ -762,6 +832,7 @@ class ProductServices {
   }) {
     const where: Prisma.ProductWhereInput = {
       published: true,
+      archived: false,
     }
 
     // Add shopId filter if provided
@@ -857,7 +928,7 @@ class ProductServices {
       throw error
     }
   }
-  async getLatestProducts(days: number = 30) {
+  async getLatestProducts(days: number = 30, page = 1, limit = 10) {
     console.log('Fetching latest products...', { days })
     try {
       // More robust date calculation using timestamps
@@ -871,6 +942,7 @@ class ProductServices {
             gte: sinceDate,
           },
           published: true,
+          archived: false,
           shop: {
             isActive: true,
           },
@@ -889,7 +961,8 @@ class ProductServices {
           },
         },
         orderBy: { createdAt: 'desc' },
-        take: 15,
+        skip: (page - 1) * limit,
+        take: limit,
       })
 
       return {
@@ -909,6 +982,59 @@ class ProductServices {
       throw error
     }
   }
+  async getArchiveProducts(
+    userId?: string,
+    filters?: {
+      search?: string
+    },
+    pagination?: { page: number; limit: number },
+  ) {
+    await userServices.verifyUserPermission(
+      userId!,
+      PermissionType.PRODUCT_MANAGEMENT,
+      ActionType.READ,
+    )
+    // Fetch archived products
+    const products = await prisma.product.findMany({
+      where: {
+        archived: true,
+        // here search may be empty string we need to ignore this
+        ...(filters?.search &&
+          filters.search.trim().length > 0 && {
+            name: {
+              contains: filters.search,
+              mode: 'insensitive',
+            },
+          }),
+      },
+      include: {
+        category: { select: { name: true, categoryId: true } },
+        ProductImage: {
+          where: { hidden: false },
+          select: { imageUrl: true, imageId: true },
+        },
+        shop: {
+          select: { shopName: true, shopLocation: true, shopId: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: pagination ? (pagination.page - 1) * pagination.limit : 0,
+      take: pagination ? pagination.limit : undefined,
+    })
+
+    return {
+      data: products,
+      pagination: {
+        page: pagination ? pagination.page : 1,
+        limit: pagination ? pagination.limit : products.length,
+        total: products.length,
+        totalPages: pagination
+          ? Math.ceil(products.length / pagination.limit)
+          : 1,
+      },
+    }
+  }
+
   async fraudChecker(phoneNumber: string) {
     const token =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo5ODAsInVzZXJuYW1lIjoiU2hhcmlmdWwgSXNsYW0iLCJleHAiOjE3NTE4MzI5NTh9.ZcD9fdaSbBCDOM042XGTnwD1F-hcdwS3CLCCtHDAeWA'

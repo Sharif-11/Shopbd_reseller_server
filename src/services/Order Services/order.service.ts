@@ -1450,7 +1450,9 @@ class OrderService {
           completedOrdersCount++
         }
         for (const product of order.OrderProduct) {
-          totalProductsSold += product.productQuantity || 0
+          if (order.orderStatus === 'COMPLETED') {
+            totalProductsSold += product.productQuantity || 0
+          }
         }
       }
 
@@ -1474,7 +1476,11 @@ class OrderService {
       last7Days: last7DaysStats,
     }
   }
-  public async getTrendingTopSellingProducts(daysBack: number = 30) {
+  public async getTrendingTopSellingProducts(
+    daysBack: number = 30,
+    page: number = 1,
+    limit: number = 10,
+  ) {
     const now = new Date()
     const pastDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000)
 
@@ -1496,9 +1502,11 @@ class OrderService {
           productQuantity: 'desc',
         },
       },
-      take: 10,
+      take: limit,
+      skip: (page - 1) * limit,
     })
     // fetch product details for each trending product
+    let data = []
     if (trendingProducts.length === 0) {
       return []
     }
@@ -1522,7 +1530,7 @@ class OrderService {
     })
 
     // Combine product details with sales data
-    return trendingProducts.map(product => {
+    data = trendingProducts.map(product => {
       const productDetails = products.find(
         p => p.productId === product.productId,
       )
@@ -1531,6 +1539,13 @@ class OrderService {
         totalSold: product._sum.productQuantity || 0,
       }
     })
+    return {
+      data,
+      total: data.length,
+      page,
+      limit,
+      totalPages: Math.ceil(data.length / limit),
+    }
   }
   async fraudChecker(phoneNumber: string) {
     if (this.fraudCheckCache.has(phoneNumber)) {

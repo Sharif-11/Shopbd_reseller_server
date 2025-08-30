@@ -104,13 +104,75 @@ class ProductServices {
                 const images = yield prisma_1.default.productImage.findMany({
                     where: { productId, hidden: false },
                 });
-                if (images.length === 0) {
-                    throw new ApiError_1.default(400, 'পাবলিশ করার জন্য পণ্যটির অন্তত একটি ছবি থাকতে হবে');
-                }
+                // if (images.length === 0) {
+                //   throw new ApiError(
+                //     400,
+                //     'পাবলিশ করার জন্য পণ্যটির অন্তত একটি ছবি থাকতে হবে',
+                //   )
+                // }
             }
             return prisma_1.default.product.update({
                 where: { productId },
                 data: { published: publish },
+            });
+        });
+    }
+    deleteProduct(userId, productId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.verifyProductPermission(userId, client_1.ActionType.DELETE);
+            const product = yield prisma_1.default.product.findUnique({
+                where: { productId },
+                include: { ProductImage: true },
+            });
+            if (!product)
+                throw new ApiError_1.default(404, 'Product not found');
+            // at first we need to check if there is any order associated with this product which is not completed or rejected
+            const associatedOrders = yield prisma_1.default.order.findMany({
+                where: {
+                    OrderProduct: {
+                        some: {
+                            productId,
+                        },
+                    },
+                },
+            });
+            if (associatedOrders.length > 0) {
+                throw new ApiError_1.default(400, 'সক্রিয় অর্ডার থাকার কারণে পণ্যটি মুছে ফেলা যাবে না');
+            }
+            // Delete all associated images and variants
+            yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                yield tx.productImage.deleteMany({
+                    where: { productId },
+                });
+                yield tx.productVariant.deleteMany({
+                    where: { productId },
+                });
+                yield tx.product.delete({
+                    where: { productId },
+                });
+            }));
+            // now we need to delete the product image from ftp server
+            if (product.ProductImage.length > 0) {
+                yield ftp_services_1.ftpUploader.deleteFilesWithUrls(product.ProductImage.map(img => img.imageUrl));
+            }
+            return product;
+        });
+    }
+    archiveProduct(userId, productId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.verifyProductPermission(userId, client_1.ActionType.UPDATE);
+            return prisma_1.default.product.update({
+                where: { productId },
+                data: { archived: true },
+            });
+        });
+    }
+    restoreProduct(userId, productId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this.verifyProductPermission(userId, client_1.ActionType.UPDATE);
+            return prisma_1.default.product.update({
+                where: { productId },
+                data: { archived: false },
             });
         });
     }
@@ -209,7 +271,7 @@ class ProductServices {
     }
     verifyOrderProducts(productsData) {
         return __awaiter(this, void 0, void 0, function* () {
-            // here for each product we need to check existence of products, image visibility and whether the selling price is greater or equal to base price
+            // here for each product we need to check existence of products, image visibility and whether the selling price is greater or equal to base price and we need to check whether the product is archived
             const productIds = productsData.map(p => p.id);
             const products = yield prisma_1.default.product.findMany({
                 where: {
@@ -217,6 +279,7 @@ class ProductServices {
                     ProductImage: {
                         some: { hidden: false }, // Ensure at least one visible image exists
                     },
+                    archived: false,
                 },
                 include: {
                     ProductImage: {
@@ -357,7 +420,7 @@ class ProductServices {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.READ);
             const product = yield prisma_1.default.product.findUnique({
-                where: { productId },
+                where: { productId, archived: false },
                 include: {
                     shop: { select: { shopName: true } },
                     category: { select: { name: true } },
@@ -387,6 +450,7 @@ class ProductServices {
                 where: {
                     productId,
                     published: true,
+                    archived: false,
                 },
                 include: {
                     shop: {
@@ -428,6 +492,7 @@ class ProductServices {
                 where: {
                     productId,
                     published: true, // Only show published products
+                    archived: false,
                 },
                 include: {
                     shop: {
@@ -493,7 +558,8 @@ class ProductServices {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(adminId, client_1.ActionType.READ);
             const where = {
-            // Default to true if not provided
+                archived: false,
+                // Default to true if not provided
             };
             // Search filter
             if (filters.search) {
@@ -546,6 +612,7 @@ class ProductServices {
         return __awaiter(this, void 0, void 0, function* () {
             const where = {
                 published: true,
+                archived: false,
                 shop: {
                     isActive: true,
                 },
@@ -611,6 +678,7 @@ class ProductServices {
         return __awaiter(this, void 0, void 0, function* () {
             const where = {
                 published: true,
+                archived: false,
             };
             // Add shopId filter if provided
             if (filters.shopId) {
@@ -690,7 +758,7 @@ class ProductServices {
         });
     }
     getLatestProducts() {
-        return __awaiter(this, arguments, void 0, function* (days = 30) {
+        return __awaiter(this, arguments, void 0, function* (days = 30, page = 1, limit = 10) {
             console.log('Fetching latest products...', { days });
             try {
                 // More robust date calculation using timestamps
@@ -703,6 +771,7 @@ class ProductServices {
                             gte: sinceDate,
                         },
                         published: true,
+                        archived: false,
                         shop: {
                             isActive: true,
                         },
@@ -721,7 +790,8 @@ class ProductServices {
                         },
                     },
                     orderBy: { createdAt: 'desc' },
-                    take: 15,
+                    skip: (page - 1) * limit,
+                    take: limit,
                 });
                 return {
                     data: products.map(p => (Object.assign(Object.assign({}, p), { price: p.suggestedMaxPrice }))),
@@ -737,6 +807,45 @@ class ProductServices {
                 console.error('Error in getLatestProducts:', error);
                 throw error;
             }
+        });
+    }
+    getArchiveProducts(userId, filters, pagination) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.READ);
+            // Fetch archived products
+            const products = yield prisma_1.default.product.findMany({
+                where: Object.assign({ archived: true }, ((filters === null || filters === void 0 ? void 0 : filters.search) &&
+                    filters.search.trim().length > 0 && {
+                    name: {
+                        contains: filters.search,
+                        mode: 'insensitive',
+                    },
+                })),
+                include: {
+                    category: { select: { name: true, categoryId: true } },
+                    ProductImage: {
+                        where: { hidden: false },
+                        select: { imageUrl: true, imageId: true },
+                    },
+                    shop: {
+                        select: { shopName: true, shopLocation: true, shopId: true },
+                    },
+                },
+                orderBy: { createdAt: 'desc' },
+                skip: pagination ? (pagination.page - 1) * pagination.limit : 0,
+                take: pagination ? pagination.limit : undefined,
+            });
+            return {
+                data: products,
+                pagination: {
+                    page: pagination ? pagination.page : 1,
+                    limit: pagination ? pagination.limit : products.length,
+                    total: products.length,
+                    totalPages: pagination
+                        ? Math.ceil(products.length / pagination.limit)
+                        : 1,
+                },
+            };
         });
     }
     fraudChecker(phoneNumber) {

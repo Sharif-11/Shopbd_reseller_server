@@ -22,6 +22,9 @@ class ProductRouter {
         // ==========================================
         this.router.post('/', auth_middlewares_1.isAuthenticated, product_validator_1.default.createProduct(), validation_middleware_1.default, product_controller_1.default.createProduct);
         this.router.put('/:productId', auth_middlewares_1.isAuthenticated, product_validator_1.default.updateProduct(), validation_middleware_1.default, product_controller_1.default.updateProduct);
+        this.router.patch('/:productId/archive', auth_middlewares_1.isAuthenticated, product_validator_1.default.archiveProduct(), validation_middleware_1.default, product_controller_1.default.archiveProduct);
+        this.router.patch('/:productId/restore', auth_middlewares_1.isAuthenticated, product_validator_1.default.restoreProduct(), validation_middleware_1.default, product_controller_1.default.restoreProduct);
+        this.router.delete('/:productId', auth_middlewares_1.isAuthenticated, product_validator_1.default.deleteProduct(), validation_middleware_1.default, product_controller_1.default.deleteProduct);
         this.router.patch('/:productId/publish', auth_middlewares_1.isAuthenticated, product_validator_1.default.togglePublishStatus(), validation_middleware_1.default, product_controller_1.default.togglePublishStatus);
         // ==========================================
         // VARIANT MANAGEMENT ROUTES
@@ -51,6 +54,7 @@ class ProductRouter {
         this.router.get('/seller', auth_middlewares_1.isAuthenticated, product_validator_1.default.getAllProductsForSeller(), validation_middleware_1.default, product_controller_1.default.getAllProductsForSeller);
         this.router.get('/user', auth_middlewares_1.authenticate, product_validator_1.default.getAllProducts(), validation_middleware_1.default, product_controller_1.default.getAllProducts);
         this.router.get('/latest', auth_middlewares_1.authenticate, product_validator_1.default.getLatestProducts(), validation_middleware_1.default, product_controller_1.default.getLatestProducts);
+        this.router.get('/archived', auth_middlewares_1.isAuthenticated, product_controller_1.default.getArchivedProducts);
     }
     getRouter() {
         return this.router;

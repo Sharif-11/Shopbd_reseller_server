@@ -381,6 +381,10 @@ model Product {
   ProductImage   ProductImage[]
   ProductVariant ProductVariant[]
 
+  // soft deletion
+  archived      Boolean  @default(false)
+  archivedAt    DateTime? @updatedAt  
+
   @@map("products")
 }
 
