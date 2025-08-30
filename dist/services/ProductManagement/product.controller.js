@@ -422,13 +422,16 @@ class ProductController {
             var _a;
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { search, minPrice, maxPrice, categoryId, shopId } = req.query;
+                const { search, minPrice, maxPrice, categoryId, shopId, page, limit } = req.query;
+                console.log(req.query);
                 const result = yield product_services_1.default.getAllProductsForSeller({
                     search: search === null || search === void 0 ? void 0 : search.toString(),
                     minPrice: minPrice ? Number(minPrice) : undefined,
                     maxPrice: maxPrice ? Number(maxPrice) : undefined,
                     categoryId: Number(categoryId),
                     shopId: Number(shopId),
+                    page: !isNaN(Number(page)) ? Number(page) : undefined,
+                    limit: !isNaN(Number(limit)) ? Number(limit) : undefined,
                 });
                 res.status(200).json({
                     statusCode: 200,
@@ -448,9 +451,24 @@ class ProductController {
             var _a;
             try {
                 const userId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { search, minPrice, maxPrice, categoryId, shopId } = req.query;
-                const page = Number(req.query.page) || 1;
-                const limit = Number(req.query.limit) || 10;
+                const { search, minPrice, maxPrice, categoryId, shopId, page, limit } = req.query;
+                const formattedPage = !isNaN(Number(req.query.page))
+                    ? Number(req.query.page)
+                    : undefined;
+                const formattedLimit = !isNaN(Number(req.query.limit))
+                    ? Number(req.query.limit)
+                    : undefined;
+                console.log({
+                    search,
+                    minPrice,
+                    maxPrice,
+                    categoryId,
+                    shopId,
+                    page,
+                    limit,
+                    formattedPage,
+                    formattedLimit,
+                });
                 // Prepare filters with optional parameters
                 const filters = {
                     search: search === null || search === void 0 ? void 0 : search.toString(),
@@ -464,9 +482,12 @@ class ProductController {
                     shopId: shopId ? Number(shopId) : undefined, // Made optional
                 };
                 const { result, userType } = yield product_services_1.default.getAllProducts({
-                    pagination: { page, limit },
                     userId,
                     filters,
+                    pagination: {
+                        page: formattedPage,
+                        limit: formattedLimit,
+                    },
                 });
                 res.status(200).json({
                     statusCode: 200,

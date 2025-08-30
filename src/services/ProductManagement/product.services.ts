@@ -748,6 +748,8 @@ class ProductServices {
     maxPrice?: number
     categoryId?: number | number[]
     shopId?: number // Made optional
+    page?: number
+    limit?: number
   }) {
     const where: Prisma.ProductWhereInput = {
       published: true,
@@ -807,6 +809,13 @@ class ProductServices {
         },
       },
       orderBy: { createdAt: 'desc' },
+      skip: filters.page
+        ? (filters.page - 1) * (filters.limit || 10)
+        : undefined,
+      take: filters.limit || undefined,
+    })
+    const productCount = await prisma.product.count({
+      where,
     })
 
     return {
@@ -815,10 +824,10 @@ class ProductServices {
         price: p.suggestedMaxPrice,
       })),
       pagination: {
-        page: 1,
-        limit: products.length,
-        total: products.length,
-        totalPages: 1,
+        page: filters.page || 1,
+        limit: filters.limit || 10,
+        total: productCount,
+        totalPages: Math.ceil(productCount / (filters.limit || 10)),
       },
     }
   }
@@ -829,7 +838,10 @@ class ProductServices {
     maxPrice?: number
     categoryId?: number | number[]
     shopId?: number // Made optional
+    page?: number
+    limit?: number
   }) {
+    console.log(filters)
     const where: Prisma.ProductWhereInput = {
       published: true,
       archived: false,
@@ -882,15 +894,22 @@ class ProductServices {
         },
       },
       orderBy: { createdAt: 'desc' },
+      skip: filters.page
+        ? (filters.page - 1) * (filters.limit || 10)
+        : undefined,
+      take: filters.limit || undefined,
+    })
+    const total = await prisma.product.count({
+      where,
     })
 
     return {
       data: products,
       pagination: {
-        page: 1,
-        limit: products.length,
-        total: products.length,
-        totalPages: 1,
+        page: filters.page || 1,
+        limit: filters.limit || 10,
+        total,
+        totalPages: Math.ceil(total / (filters.limit || 10)),
       },
     }
   }
@@ -908,17 +927,23 @@ class ProductServices {
       categoryId?: number | number[] // Made optional to match the other functions
       shopId?: number // Made optional
     }
-    pagination: { page: number; limit: number }
+    pagination: { page?: number; limit?: number }
   }) {
     try {
       if (userId) {
-        const result = await this.getAllProductsForSeller(filters)
+        const result = await this.getAllProductsForSeller({
+          ...filters,
+          ...pagination,
+        })
         return {
           result,
           userType: 'seller',
         }
       } else {
-        const result = await this.getAllProductsForCustomer(filters)
+        const result = await this.getAllProductsForCustomer({
+          ...filters,
+          ...pagination,
+        })
         return {
           result,
           userType: 'customer',
@@ -964,6 +989,18 @@ class ProductServices {
         skip: (page - 1) * limit,
         take: limit,
       })
+      const productCount = await prisma.product.count({
+        where: {
+          createdAt: {
+            gte: sinceDate,
+          },
+          published: true,
+          archived: false,
+          shop: {
+            isActive: true,
+          },
+        },
+      })
 
       return {
         data: products.map(p => ({
@@ -971,10 +1008,10 @@ class ProductServices {
           price: p.suggestedMaxPrice,
         })),
         pagination: {
-          page: 1,
-          limit: products.length,
-          total: products.length,
-          totalPages: 1,
+          page,
+          limit,
+          total: productCount,
+          totalPages: Math.ceil(productCount / limit),
         },
       }
     } catch (error) {
@@ -1021,16 +1058,27 @@ class ProductServices {
       skip: pagination ? (pagination.page - 1) * pagination.limit : 0,
       take: pagination ? pagination.limit : undefined,
     })
+    const productCount = await prisma.product.count({
+      where: {
+        archived: true,
+        // here search may be empty string we need to ignore this
+        ...(filters?.search &&
+          filters.search.trim().length > 0 && {
+            name: {
+              contains: filters.search,
+              mode: 'insensitive',
+            },
+          }),
+      },
+    })
 
     return {
       data: products,
       pagination: {
         page: pagination ? pagination.page : 1,
-        limit: pagination ? pagination.limit : products.length,
-        total: products.length,
-        totalPages: pagination
-          ? Math.ceil(products.length / pagination.limit)
-          : 1,
+        limit: pagination ? pagination.limit : productCount,
+        total: productCount,
+        totalPages: pagination ? Math.ceil(productCount / pagination.limit) : 1,
       },
     }
   }

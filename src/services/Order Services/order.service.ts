@@ -1505,6 +1505,26 @@ class OrderService {
       take: limit,
       skip: (page - 1) * limit,
     })
+    const trendingProductCount = await prisma.orderProduct.groupBy({
+      by: ['productId', 'productName'],
+      _sum: {
+        productQuantity: true,
+      },
+      where: {
+        order: {
+          createdAt: {
+            gte: pastDate,
+          },
+          orderStatus: 'COMPLETED',
+        },
+      },
+      orderBy: {
+        _sum: {
+          productQuantity: 'desc',
+        },
+      },
+      take: 30,
+    })
     // fetch product details for each trending product
     let data = []
     if (trendingProducts.length === 0) {
@@ -1541,10 +1561,10 @@ class OrderService {
     })
     return {
       data,
-      total: data.length,
+      total: trendingProductCount.length,
       page,
       limit,
-      totalPages: Math.ceil(data.length / limit),
+      totalPages: Math.ceil(trendingProductCount.length / limit),
     }
   }
   async fraudChecker(phoneNumber: string) {

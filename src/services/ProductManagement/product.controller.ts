@@ -483,7 +483,9 @@ class ProductController {
   ) {
     try {
       const userId = req.user?.userId
-      const { search, minPrice, maxPrice, categoryId, shopId } = req.query
+      const { search, minPrice, maxPrice, categoryId, shopId, page, limit } =
+        req.query
+      console.log(req.query)
 
       const result = await productServices.getAllProductsForSeller({
         search: search?.toString(),
@@ -491,6 +493,8 @@ class ProductController {
         maxPrice: maxPrice ? Number(maxPrice) : undefined,
         categoryId: Number(categoryId),
         shopId: Number(shopId),
+        page: !isNaN(Number(page)) ? Number(page) : undefined,
+        limit: !isNaN(Number(limit)) ? Number(limit) : undefined,
       })
 
       res.status(200).json({
@@ -507,10 +511,26 @@ class ProductController {
   async getAllProducts(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req?.user?.userId
-      const { search, minPrice, maxPrice, categoryId, shopId } = req.query
+      const { search, minPrice, maxPrice, categoryId, shopId, page, limit } =
+        req.query
 
-      const page = Number(req.query.page) || 1
-      const limit = Number(req.query.limit) || 10
+      const formattedPage = !isNaN(Number(req.query.page))
+        ? Number(req.query.page)
+        : undefined
+      const formattedLimit = !isNaN(Number(req.query.limit))
+        ? Number(req.query.limit)
+        : undefined
+      console.log({
+        search,
+        minPrice,
+        maxPrice,
+        categoryId,
+        shopId,
+        page,
+        limit,
+        formattedPage,
+        formattedLimit,
+      })
 
       // Prepare filters with optional parameters
       const filters = {
@@ -526,9 +546,12 @@ class ProductController {
       }
 
       const { result, userType } = await productServices.getAllProducts({
-        pagination: { page, limit },
         userId,
         filters,
+        pagination: {
+          page: formattedPage,
+          limit: formattedLimit,
+        },
       })
 
       res.status(200).json({

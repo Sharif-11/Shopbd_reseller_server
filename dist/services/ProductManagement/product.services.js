@@ -662,20 +662,28 @@ class ProductServices {
                     },
                 },
                 orderBy: { createdAt: 'desc' },
+                skip: filters.page
+                    ? (filters.page - 1) * (filters.limit || 10)
+                    : undefined,
+                take: filters.limit || undefined,
+            });
+            const productCount = yield prisma_1.default.product.count({
+                where,
             });
             return {
                 data: products.map(p => (Object.assign(Object.assign({}, p), { price: p.suggestedMaxPrice }))),
                 pagination: {
-                    page: 1,
-                    limit: products.length,
-                    total: products.length,
-                    totalPages: 1,
+                    page: filters.page || 1,
+                    limit: filters.limit || 10,
+                    total: productCount,
+                    totalPages: Math.ceil(productCount / (filters.limit || 10)),
                 },
             };
         });
     }
     getAllProductsForSeller(filters) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log(filters);
             const where = {
                 published: true,
                 archived: false,
@@ -722,14 +730,21 @@ class ProductServices {
                     },
                 },
                 orderBy: { createdAt: 'desc' },
+                skip: filters.page
+                    ? (filters.page - 1) * (filters.limit || 10)
+                    : undefined,
+                take: filters.limit || undefined,
+            });
+            const total = yield prisma_1.default.product.count({
+                where,
             });
             return {
                 data: products,
                 pagination: {
-                    page: 1,
-                    limit: products.length,
-                    total: products.length,
-                    totalPages: 1,
+                    page: filters.page || 1,
+                    limit: filters.limit || 10,
+                    total,
+                    totalPages: Math.ceil(total / (filters.limit || 10)),
                 },
             };
         });
@@ -738,14 +753,14 @@ class ProductServices {
         return __awaiter(this, arguments, void 0, function* ({ userId, filters, pagination, }) {
             try {
                 if (userId) {
-                    const result = yield this.getAllProductsForSeller(filters);
+                    const result = yield this.getAllProductsForSeller(Object.assign(Object.assign({}, filters), pagination));
                     return {
                         result,
                         userType: 'seller',
                     };
                 }
                 else {
-                    const result = yield this.getAllProductsForCustomer(filters);
+                    const result = yield this.getAllProductsForCustomer(Object.assign(Object.assign({}, filters), pagination));
                     return {
                         result,
                         userType: 'customer',
@@ -793,13 +808,25 @@ class ProductServices {
                     skip: (page - 1) * limit,
                     take: limit,
                 });
+                const productCount = yield prisma_1.default.product.count({
+                    where: {
+                        createdAt: {
+                            gte: sinceDate,
+                        },
+                        published: true,
+                        archived: false,
+                        shop: {
+                            isActive: true,
+                        },
+                    },
+                });
                 return {
                     data: products.map(p => (Object.assign(Object.assign({}, p), { price: p.suggestedMaxPrice }))),
                     pagination: {
-                        page: 1,
-                        limit: products.length,
-                        total: products.length,
-                        totalPages: 1,
+                        page,
+                        limit,
+                        total: productCount,
+                        totalPages: Math.ceil(productCount / limit),
                     },
                 };
             }
@@ -835,15 +862,22 @@ class ProductServices {
                 skip: pagination ? (pagination.page - 1) * pagination.limit : 0,
                 take: pagination ? pagination.limit : undefined,
             });
+            const productCount = yield prisma_1.default.product.count({
+                where: Object.assign({ archived: true }, ((filters === null || filters === void 0 ? void 0 : filters.search) &&
+                    filters.search.trim().length > 0 && {
+                    name: {
+                        contains: filters.search,
+                        mode: 'insensitive',
+                    },
+                })),
+            });
             return {
                 data: products,
                 pagination: {
                     page: pagination ? pagination.page : 1,
-                    limit: pagination ? pagination.limit : products.length,
-                    total: products.length,
-                    totalPages: pagination
-                        ? Math.ceil(products.length / pagination.limit)
-                        : 1,
+                    limit: pagination ? pagination.limit : productCount,
+                    total: productCount,
+                    totalPages: pagination ? Math.ceil(productCount / pagination.limit) : 1,
                 },
             };
         });
