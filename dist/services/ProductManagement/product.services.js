@@ -773,8 +773,7 @@ class ProductServices {
         });
     }
     getLatestProducts() {
-        return __awaiter(this, arguments, void 0, function* (days = 30, page = 1, limit = 10) {
-            console.log('Fetching latest products...', { days });
+        return __awaiter(this, arguments, void 0, function* (days = 30, page = 1, limit = 10, isSeller = false) {
             try {
                 // More robust date calculation using timestamps
                 const currentTimestamp = Date.now();
@@ -796,6 +795,7 @@ class ProductServices {
                         name: true,
                         description: true,
                         suggestedMaxPrice: true,
+                        basePrice: true,
                         shop: { select: { shopName: true, shopLocation: true } },
                         category: { select: { name: true } },
                         ProductImage: {
@@ -821,7 +821,7 @@ class ProductServices {
                     },
                 });
                 return {
-                    data: products.map(p => (Object.assign(Object.assign({}, p), { price: p.suggestedMaxPrice }))),
+                    data: products.map(p => (Object.assign(Object.assign({}, p), { price: isSeller ? p.basePrice : p.suggestedMaxPrice }))),
                     pagination: {
                         page,
                         limit,

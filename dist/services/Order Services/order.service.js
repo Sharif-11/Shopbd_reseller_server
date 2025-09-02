@@ -1199,7 +1199,7 @@ class OrderService {
         });
     }
     getTrendingTopSellingProducts() {
-        return __awaiter(this, arguments, void 0, function* (daysBack = 30, page = 1, limit = 10) {
+        return __awaiter(this, arguments, void 0, function* (daysBack = 30, isSeller = false, page = 1, limit = 10) {
             const now = new Date();
             const pastDate = new Date(now.getTime() - daysBack * 24 * 60 * 60 * 1000);
             const trendingProducts = yield prisma_1.default.orderProduct.groupBy({
@@ -1257,6 +1257,8 @@ class OrderService {
                     productId: true,
                     name: true,
                     basePrice: true,
+                    suggestedMaxPrice: true,
+                    // custom property price
                     shop: { select: { shopName: true, shopLocation: true } },
                     // only select the first image for simplicity
                     ProductImage: {
@@ -1269,7 +1271,9 @@ class OrderService {
             // Combine product details with sales data
             data = trendingProducts.map(product => {
                 const productDetails = products.find(p => p.productId === product.productId);
-                return Object.assign(Object.assign({}, productDetails), { totalSold: product._sum.productQuantity || 0 });
+                return Object.assign(Object.assign({}, productDetails), { price: isSeller
+                        ? productDetails.basePrice
+                        : productDetails.suggestedMaxPrice, totalSold: product._sum.productQuantity || 0 });
             });
             return {
                 data,

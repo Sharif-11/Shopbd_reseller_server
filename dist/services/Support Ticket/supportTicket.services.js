@@ -26,9 +26,10 @@ class SupportTicketService {
             }
             // I need to delete tickets that are older than the specified number of days along with their messages and attachments
             const dateThreshold = new Date();
-            dateThreshold.setDate(dateThreshold.getDate() - days);
+            dateThreshold.setDate(dateThreshold.getDate() - (isNaN(days) ? 7 : days));
             const ticketsToDelete = yield prisma_1.default.supportTicket.findMany({
                 where: {
+                    status: 'CLOSED',
                     createdAt: {
                         lt: dateThreshold,
                     },

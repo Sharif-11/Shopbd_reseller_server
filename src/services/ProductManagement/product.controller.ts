@@ -569,11 +569,13 @@ class ProductController {
   async getLatestProducts(req: Request, res: Response, next: NextFunction) {
     try {
       const { days, page, limit } = req.query
+      const user = req.user
       // days may be absent
       const result = await productServices.getLatestProducts(
         days ? Number(days) : 30,
         page ? Number(page) : 1,
         limit ? Number(limit) : 10,
+        Boolean(user),
       )
 
       res.status(200).json({

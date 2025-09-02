@@ -507,8 +507,9 @@ class ProductController {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { days, page, limit } = req.query;
+                const user = req.user;
                 // days may be absent
-                const result = yield product_services_1.default.getLatestProducts(days ? Number(days) : 30, page ? Number(page) : 1, limit ? Number(limit) : 10);
+                const result = yield product_services_1.default.getLatestProducts(days ? Number(days) : 30, page ? Number(page) : 1, limit ? Number(limit) : 10, Boolean(user));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Latest products retrieved successfully',

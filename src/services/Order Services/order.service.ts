@@ -1478,6 +1478,7 @@ class OrderService {
   }
   public async getTrendingTopSellingProducts(
     daysBack: number = 30,
+    isSeller: boolean = false,
     page: number = 1,
     limit: number = 10,
   ) {
@@ -1539,6 +1540,9 @@ class OrderService {
         productId: true,
         name: true,
         basePrice: true,
+        suggestedMaxPrice: true,
+        // custom property price
+
         shop: { select: { shopName: true, shopLocation: true } },
         // only select the first image for simplicity
         ProductImage: {
@@ -1556,6 +1560,9 @@ class OrderService {
       )
       return {
         ...productDetails,
+        price: isSeller
+          ? productDetails!.basePrice
+          : productDetails!.suggestedMaxPrice,
         totalSold: product._sum.productQuantity || 0,
       }
     })

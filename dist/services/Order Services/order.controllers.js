@@ -439,7 +439,8 @@ class OrderController {
     getTrendingTopSellingProducts(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const products = yield order_service_1.orderService.getTrendingTopSellingProducts(30);
+                const user = req.user;
+                const products = yield order_service_1.orderService.getTrendingTopSellingProducts(30, Boolean(user));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Trending top-selling products retrieved successfully',

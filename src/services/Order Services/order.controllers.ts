@@ -435,7 +435,11 @@ class OrderController {
     next: NextFunction,
   ) {
     try {
-      const products = await orderService.getTrendingTopSellingProducts(30)
+      const user = req.user
+      const products = await orderService.getTrendingTopSellingProducts(
+        30,
+        Boolean(user),
+      )
       res.status(200).json({
         statusCode: 200,
         message: 'Trending top-selling products retrieved successfully',
