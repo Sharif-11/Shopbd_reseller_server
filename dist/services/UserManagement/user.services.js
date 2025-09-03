@@ -413,12 +413,14 @@ class UserManagementServices {
         });
     }
     getCustomerByPhoneNo(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ customerPhoneNo, }) {
+        return __awaiter(this, arguments, void 0, function* ({ customerPhoneNo, throwError = true, }) {
             const customer = yield prisma_1.default.customer.findUnique({
                 where: { customerPhoneNo },
             });
             if (!customer) {
-                throw new ApiError_1.default(404, 'Customer not found');
+                if (throwError) {
+                    throw new ApiError_1.default(404, 'Customer not found');
+                }
             }
             return customer;
         });

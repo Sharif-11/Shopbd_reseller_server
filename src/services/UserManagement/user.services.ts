@@ -491,14 +491,18 @@ class UserManagementServices {
 
   public async getCustomerByPhoneNo({
     customerPhoneNo,
+    throwError = true,
   }: {
     customerPhoneNo: string
+    throwError?: boolean
   }): Promise<Prisma.CustomerGetPayload<{}> | null> {
     const customer = await prisma.customer.findUnique({
       where: { customerPhoneNo },
     })
     if (!customer) {
-      throw new ApiError(404, 'Customer not found')
+      if (throwError) {
+        throw new ApiError(404, 'Customer not found')
+      }
     }
     return customer
   }

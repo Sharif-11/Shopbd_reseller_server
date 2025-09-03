@@ -579,6 +579,26 @@ class UserManagementController {
             }
         });
     }
+    getCustomerByPhoneNo(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const { phoneNo } = req.params;
+                const customer = yield user_services_1.default.getCustomerByPhoneNo({
+                    customerPhoneNo: phoneNo,
+                    throwError: false,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Customer retrieved successfully',
+                    success: true,
+                    data: customer,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     checkSuperAdminExists(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

@@ -110,6 +110,17 @@ class UserManagementValidator {
             (0, express_validator_1.body)('sellerCode').optional(),
         ];
     }
+    static getCustomerByPhoneNo() {
+        return [
+            (0, express_validator_1.param)('phoneNo')
+                .notEmpty()
+                .withMessage('গ্রাহকের ফোন নম্বর প্রয়োজন')
+                .isMobilePhone('bn-BD')
+                .withMessage('সঠিক বাংলাদেশী ফোন নম্বর প্রদান করুন')
+                .isLength({ min: 11, max: 11 })
+                .withMessage('ফোন নম্বরটি অবশ্যই ১১ ডিজিটের হতে হবে'),
+        ];
+    }
     /**
      * Validation rules for user login
      */

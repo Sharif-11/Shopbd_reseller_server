@@ -175,48 +175,107 @@ class OrderService {
             if (existingOrder) {
                 throw new ApiError_1.default(400, 'আপনার একটি পেমেন্ট করা হয়নি এমন অর্ডার রয়েছে। নতুন অর্ডার করার আগে অনুগ্রহ করে সেটি পেমেন্ট করুন।');
             }
-            // now create order connecting with payment
-            const order = yield prisma_1.default.order.create({
-                data: {
-                    shopId,
-                    customerName,
-                    customerPhoneNo,
-                    customerZilla,
-                    customerUpazilla,
-                    customerAddress: deliveryAddress,
-                    customerComments: comments,
-                    shopName,
-                    shopLocation,
-                    isDeliveryChargePaid: false,
-                    OrderProduct: {
-                        create: verifiedOrderData.products.map(product => ({
-                            productId: product.productId,
-                            productImage: product.productImage,
-                            productQuantity: product.productQuantity,
-                            productSellingPrice: product.productSellingPrice,
-                            productVariant: product.productVariant,
-                            productBasePrice: product.productBasePrice,
-                            productName: product.productName,
-                            totalProductBasePrice: product.totalProductBasePrice,
-                            totalProductSellingPrice: product.totalProductSellingPrice,
-                            totalProductQuantity: product.totalProductQuantity,
-                        })),
+            // now check if customer has enough balance to pay delivery charge
+            if ((customer === null || customer === void 0 ? void 0 : customer.balance) < deliveryCharge) {
+                const order = yield prisma_1.default.order.create({
+                    data: {
+                        shopId,
+                        customerName,
+                        customerPhoneNo,
+                        customerZilla,
+                        customerUpazilla,
+                        customerAddress: deliveryAddress,
+                        customerComments: comments,
+                        shopName,
+                        shopLocation,
+                        isDeliveryChargePaid: false,
+                        OrderProduct: {
+                            create: verifiedOrderData.products.map(product => ({
+                                productId: product.productId,
+                                productImage: product.productImage,
+                                productQuantity: product.productQuantity,
+                                productSellingPrice: product.productSellingPrice,
+                                productVariant: product.productVariant,
+                                productBasePrice: product.productBasePrice,
+                                productName: product.productName,
+                                totalProductBasePrice: product.totalProductBasePrice,
+                                totalProductSellingPrice: product.totalProductSellingPrice,
+                                totalProductQuantity: product.totalProductQuantity,
+                            })),
+                        },
+                        deliveryCharge,
+                        sellerId: (customer === null || customer === void 0 ? void 0 : customer.sellerId) || '',
+                        sellerName: (customer === null || customer === void 0 ? void 0 : customer.sellerName) || '',
+                        sellerPhoneNo: (customer === null || customer === void 0 ? void 0 : customer.sellerPhone) || '',
+                        orderStatus: 'UNPAID',
+                        orderType: 'CUSTOMER_ORDER',
+                        totalCommission: verifiedOrderData.totalCommission,
+                        actualCommission: verifiedOrderData.totalCommission,
+                        totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
+                        totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
+                        totalProductQuantity: verifiedOrderData.totalProductQuantity,
                     },
-                    deliveryCharge,
-                    sellerId: (customer === null || customer === void 0 ? void 0 : customer.sellerId) || '',
-                    sellerName: (customer === null || customer === void 0 ? void 0 : customer.sellerName) || '',
-                    sellerPhoneNo: (customer === null || customer === void 0 ? void 0 : customer.sellerPhone) || '',
-                    orderStatus: 'UNPAID',
-                    orderType: 'CUSTOMER_ORDER',
-                    totalCommission: verifiedOrderData.totalCommission,
-                    actualCommission: verifiedOrderData.totalCommission,
-                    totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
-                    totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
-                    totalProductQuantity: verifiedOrderData.totalProductQuantity,
-                },
-            });
-            // send order notification to admin
-            return order;
+                });
+                // send order notification to admin
+                return order;
+            }
+            else {
+                // we need to deduct balance from customer and create a order with status paid within a transaction
+                const order = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                    yield transaction_services_1.transactionServices.createTransactionForCustomer({
+                        tx,
+                        customerId: customer === null || customer === void 0 ? void 0 : customer.customerId,
+                        amount: deliveryCharge.toNumber(),
+                        transactionType: 'Debit',
+                        reason: 'অর্ডারের জন্য ডেলিভারি চার্জ কর্তন (গ্রাহক)',
+                    });
+                    const order = yield tx.order.create({
+                        data: {
+                            shopId,
+                            customerName,
+                            customerPhoneNo,
+                            customerZilla,
+                            customerUpazilla,
+                            customerAddress: deliveryAddress,
+                            customerComments: comments,
+                            shopName,
+                            shopLocation,
+                            isDeliveryChargePaid: true,
+                            OrderProduct: {
+                                create: verifiedOrderData.products.map(product => ({
+                                    productId: product.productId,
+                                    productImage: product.productImage,
+                                    productQuantity: product.productQuantity,
+                                    productSellingPrice: product.productSellingPrice,
+                                    productVariant: product.productVariant,
+                                    productBasePrice: product.productBasePrice,
+                                    productName: product.productName,
+                                    totalProductBasePrice: product.totalProductBasePrice,
+                                    totalProductSellingPrice: product.totalProductSellingPrice,
+                                    totalProductQuantity: product.totalProductQuantity,
+                                })),
+                            },
+                            deliveryCharge,
+                            sellerId: (customer === null || customer === void 0 ? void 0 : customer.sellerId) || '',
+                            sellerName: (customer === null || customer === void 0 ? void 0 : customer.sellerName) || '',
+                            sellerPhoneNo: (customer === null || customer === void 0 ? void 0 : customer.sellerPhone) || '',
+                            orderStatus: 'PAID',
+                            orderType: 'CUSTOMER_ORDER',
+                            totalCommission: verifiedOrderData.totalCommission.toNumber() *
+                                config_1.default.sellerCommissionRate,
+                            actualCommission: verifiedOrderData.totalCommission.toNumber() *
+                                config_1.default.sellerCommissionRate,
+                            totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
+                            totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
+                            totalProductQuantity: verifiedOrderData.totalProductQuantity,
+                        },
+                    });
+                    // send order notification to admin
+                    return order;
+                }));
+                return order;
+            }
+            // now create order connecting with payment
         });
     }
     getSellerOrders(_a) {

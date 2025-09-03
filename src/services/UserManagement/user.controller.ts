@@ -582,6 +582,7 @@ class UserManagementController {
       const { phoneNo } = req.params
       const customer = await userManagementServices.getCustomerByPhoneNo({
         customerPhoneNo: phoneNo,
+        throwError: false,
       })
 
       res.status(200).json({
