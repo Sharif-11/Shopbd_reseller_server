@@ -42,7 +42,7 @@ class UserManagementController {
           name,
           password,
           email,
-        }
+        },
       )
 
       res.status(201).json({
@@ -158,7 +158,7 @@ class UserManagementController {
 
       const user = await userManagementServices.demoteSuperAdminToAdmin(
         currentAdminId!,
-        superAdminId
+        superAdminId,
       )
 
       res.status(200).json({
@@ -181,7 +181,7 @@ class UserManagementController {
 
       const user = await userManagementServices.promoteAdminToSuperAdmin(
         currentAdminId!,
-        adminId
+        adminId,
       )
 
       res.status(200).json({
@@ -425,7 +425,7 @@ class UserManagementController {
   async assignPermissionToRole(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const adminId = req.user?.userId
@@ -451,7 +451,7 @@ class UserManagementController {
   async assignMultiplePermissionsToRole(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const adminId = req.user?.userId
@@ -513,7 +513,7 @@ class UserManagementController {
   async addReferralCodeToSeller(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { referralCode } = req.body
@@ -522,7 +522,7 @@ class UserManagementController {
       const updatedSeller =
         await userManagementServices.addReferralCodeToSeller(
           sellerId!,
-          referralCode
+          referralCode,
         )
 
       res.status(200).json({
@@ -577,6 +577,23 @@ class UserManagementController {
       next(error)
     }
   }
+  async getCustomerByPhoneNo(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { phoneNo } = req.params
+      const customer = await userManagementServices.getCustomerByPhoneNo({
+        customerPhoneNo: phoneNo,
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Customer retrieved successfully',
+        success: true,
+        data: customer,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
   async checkSuperAdminExists(req: Request, res: Response, next: NextFunction) {
     try {
       const exists = await userManagementServices.checkSuperAdminExists()
@@ -600,7 +617,7 @@ class UserManagementController {
       const result = await userManagementServices.sendDirectMessage(
         senderId!,
         userId,
-        content
+        content,
       )
 
       res.status(200).json({

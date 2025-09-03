@@ -24,33 +24,33 @@ class AuthRouter {
       '/send-otp',
       AuthValidator.sendOtp(),
       validateRequest,
-      authControllers.sendOtp
+      authControllers.sendOtp,
     )
 
     this.router.post(
       '/verify-otp',
       AuthValidator.verifyOtp(),
       validateRequest,
-      authControllers.verifyOtp
+      authControllers.verifyOtp,
     )
 
     this.router.get(
       '/check-verification',
       AuthValidator.checkVerification(),
       validateRequest,
-      authControllers.checkVerification
+      authControllers.checkVerification,
     )
     this.router.post(
       '/add-referral-code',
       isAuthenticated,
       verifyRole('Seller'),
-      userController.addReferralCodeToSeller
+      userController.addReferralCodeToSeller,
     )
     this.router.patch(
       '/unblock-contact',
       AuthValidator.unblockContact(),
       validateRequest,
-      authControllers.unblockContact
+      authControllers.unblockContact,
     )
 
     // User management routes
@@ -64,14 +64,14 @@ class AuthRouter {
       '/first-super-admin',
       UserManagementValidator.createFirstSuperAdmin(),
       validateRequest,
-      userManagementControllers.createFirstSuperAdmin
+      userManagementControllers.createFirstSuperAdmin,
     )
     this.router.post(
       '/super-admin',
       isAuthenticated,
       UserManagementValidator.createSuperAdmin(),
       validateRequest,
-      userManagementControllers.createSuperAdmin
+      userManagementControllers.createSuperAdmin,
     )
 
     // Admin routes (require authentication)
@@ -80,7 +80,7 @@ class AuthRouter {
       isAuthenticated,
       UserManagementValidator.createAdmin(),
       validateRequest,
-      userManagementControllers.createAdmin
+      userManagementControllers.createAdmin,
     )
 
     // Seller routes
@@ -88,7 +88,7 @@ class AuthRouter {
       '/seller',
       UserManagementValidator.createSeller(),
       validateRequest,
-      userManagementControllers.createSeller
+      userManagementControllers.createSeller,
     )
 
     // Customer routes
@@ -96,21 +96,21 @@ class AuthRouter {
       '/customer',
       UserManagementValidator.createCustomer(),
       validateRequest,
-      userManagementControllers.createCustomer
+      userManagementControllers.createCustomer,
     )
     this.router.patch(
       '/demote-super-admin',
       isAuthenticated,
       UserManagementValidator.demoteSuperAdmin(),
       validateRequest,
-      userManagementControllers.demoteSuperAdmin
+      userManagementControllers.demoteSuperAdmin,
     )
     this.router.patch(
       '/promote-admin',
       isAuthenticated,
       UserManagementValidator.promoteAdmin(),
       validateRequest,
-      userManagementControllers.promoteAdmin
+      userManagementControllers.promoteAdmin,
     )
 
     // Login route
@@ -118,13 +118,13 @@ class AuthRouter {
       '/login',
       UserManagementValidator.login(),
       validateRequest,
-      userManagementControllers.login
+      userManagementControllers.login,
     )
     this.router.post(
       '/admin-login',
       UserManagementValidator.login(),
       validateRequest,
-      userManagementControllers.adminLogin
+      userManagementControllers.adminLogin,
     )
 
     // Password reset
@@ -132,7 +132,7 @@ class AuthRouter {
       '/forgot-password',
       UserManagementValidator.resetPassword(),
       validateRequest,
-      userManagementControllers.resetPassword
+      userManagementControllers.resetPassword,
     )
 
     // Profile management (require authentication)
@@ -142,7 +142,7 @@ class AuthRouter {
       UserManagementValidator.getProfile(),
       validateRequest,
 
-      userManagementControllers.getProfile
+      userManagementControllers.getProfile,
     )
 
     this.router.patch(
@@ -151,7 +151,7 @@ class AuthRouter {
       UserManagementValidator.updateProfile(),
       validateRequest,
 
-      userManagementControllers.updateProfile
+      userManagementControllers.updateProfile,
     )
     this.router.post(
       '/send-message/:userId',
@@ -159,7 +159,7 @@ class AuthRouter {
       UserManagementValidator.sendDirectMessage(),
       validateRequest,
 
-      userManagementControllers.sendDirectMessage
+      userManagementControllers.sendDirectMessage,
     )
 
     this.router.patch(
@@ -168,20 +168,20 @@ class AuthRouter {
       UserManagementValidator.changePassword(),
       validateRequest,
 
-      userManagementControllers.changePassword
+      userManagementControllers.changePassword,
     )
     this.router.post(
       '/create-role',
       isAuthenticated,
       UserManagementValidator.createRole(),
       validateRequest,
-      userManagementControllers.createRole
+      userManagementControllers.createRole,
     )
     // role-permissions
     this.router.post(
       '/create-role-permission',
       isAuthenticated,
-      userManagementControllers.assignMultiplePermissionsToRole
+      userManagementControllers.assignMultiplePermissionsToRole,
     )
     // assign role to user
     this.router.post(
@@ -189,7 +189,7 @@ class AuthRouter {
       isAuthenticated,
       UserManagementValidator.assignRoleToUser(),
       validateRequest,
-      userManagementControllers.assignRoleToUser
+      userManagementControllers.assignRoleToUser,
     )
 
     this.router.get(
@@ -197,25 +197,31 @@ class AuthRouter {
       isAuthenticated,
       UserManagementValidator.getAllUsers(),
       validateRequest,
-      userManagementControllers.getAllUsers
+      userManagementControllers.getAllUsers,
     )
     this.router.get(
       '/get-all-customers',
       isAuthenticated,
       UserManagementValidator.getAllCustomers(),
       validateRequest,
-      userManagementControllers.getAllCustomers
+      userManagementControllers.getAllCustomers,
+    )
+    this.router.get(
+      '/customers/:phoneNo',
+      UserManagementValidator.getCustomerByPhoneNo(),
+      validateRequest,
+      userManagementControllers.getCustomerByPhoneNo,
     )
     // route for logout and verify already logged in user
     this.router.post(
       '/logout',
       isAuthenticated,
-      userManagementControllers.logout
+      userManagementControllers.logout,
     )
     this.router.get(
       '/verify-login',
       isAuthenticated,
-      userManagementControllers.checkLoggedInUser
+      userManagementControllers.checkLoggedInUser,
     )
   }
 

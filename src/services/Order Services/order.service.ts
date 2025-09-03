@@ -227,51 +227,114 @@ class OrderService {
         'আপনার একটি পেমেন্ট করা হয়নি এমন অর্ডার রয়েছে। নতুন অর্ডার করার আগে অনুগ্রহ করে সেটি পেমেন্ট করুন।',
       )
     }
+    // now check if customer has enough balance to pay delivery charge
+    if (customer?.balance! < deliveryCharge) {
+      const order = await prisma.order.create({
+        data: {
+          shopId,
+          customerName,
+          customerPhoneNo,
+          customerZilla,
+          customerUpazilla,
+          customerAddress: deliveryAddress,
+          customerComments: comments,
+          shopName,
+          shopLocation,
+          isDeliveryChargePaid: false,
+          OrderProduct: {
+            create: verifiedOrderData.products.map(product => ({
+              productId: product.productId,
+              productImage: product.productImage,
+              productQuantity: product.productQuantity,
+              productSellingPrice: product.productSellingPrice,
+              productVariant: product.productVariant,
+              productBasePrice: product.productBasePrice,
+              productName: product.productName,
+              totalProductBasePrice: product.totalProductBasePrice,
+              totalProductSellingPrice: product.totalProductSellingPrice,
+              totalProductQuantity: product.totalProductQuantity,
+            })),
+          },
+          deliveryCharge,
+          sellerId: customer?.sellerId || '',
+          sellerName: customer?.sellerName || '',
+          sellerPhoneNo: customer?.sellerPhone || '',
+          orderStatus: 'UNPAID',
+          orderType: 'CUSTOMER_ORDER',
+
+          totalCommission: verifiedOrderData.totalCommission,
+          actualCommission: verifiedOrderData.totalCommission,
+          totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
+          totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
+          totalProductQuantity: verifiedOrderData.totalProductQuantity,
+        },
+      })
+      // send order notification to admin
+
+      return order
+    } else {
+      // we need to deduct balance from customer and create a order with status paid within a transaction
+      const order = await prisma.$transaction(async tx => {
+        await transactionServices.createTransactionForCustomer({
+          tx,
+          customerId: customer?.customerId!,
+          amount: deliveryCharge.toNumber(),
+          transactionType: 'Debit',
+          reason: 'অর্ডারের জন্য ডেলিভারি চার্জ কর্তন (গ্রাহক)',
+        })
+        const order = await tx.order.create({
+          data: {
+            shopId,
+            customerName,
+            customerPhoneNo,
+            customerZilla,
+            customerUpazilla,
+            customerAddress: deliveryAddress,
+            customerComments: comments,
+            shopName,
+            shopLocation,
+            isDeliveryChargePaid: true,
+            OrderProduct: {
+              create: verifiedOrderData.products.map(product => ({
+                productId: product.productId,
+                productImage: product.productImage,
+                productQuantity: product.productQuantity,
+                productSellingPrice: product.productSellingPrice,
+                productVariant: product.productVariant,
+                productBasePrice: product.productBasePrice,
+                productName: product.productName,
+                totalProductBasePrice: product.totalProductBasePrice,
+                totalProductSellingPrice: product.totalProductSellingPrice,
+                totalProductQuantity: product.totalProductQuantity,
+              })),
+            },
+            deliveryCharge,
+            sellerId: customer?.sellerId || '',
+            sellerName: customer?.sellerName || '',
+            sellerPhoneNo: customer?.sellerPhone || '',
+            orderStatus: 'PAID',
+            orderType: 'CUSTOMER_ORDER',
+
+            totalCommission:
+              verifiedOrderData.totalCommission.toNumber() *
+              config.sellerCommissionRate,
+            actualCommission:
+              verifiedOrderData.totalCommission.toNumber() *
+              config.sellerCommissionRate,
+            totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
+            totalProductSellingPrice:
+              verifiedOrderData.totalProductSellingPrice,
+            totalProductQuantity: verifiedOrderData.totalProductQuantity,
+          },
+        })
+        // send order notification to admin
+
+        return order
+      })
+      return order
+    }
 
     // now create order connecting with payment
-    const order = await prisma.order.create({
-      data: {
-        shopId,
-        customerName,
-        customerPhoneNo,
-        customerZilla,
-        customerUpazilla,
-        customerAddress: deliveryAddress,
-        customerComments: comments,
-        shopName,
-        shopLocation,
-        isDeliveryChargePaid: false,
-        OrderProduct: {
-          create: verifiedOrderData.products.map(product => ({
-            productId: product.productId,
-            productImage: product.productImage,
-            productQuantity: product.productQuantity,
-            productSellingPrice: product.productSellingPrice,
-            productVariant: product.productVariant,
-            productBasePrice: product.productBasePrice,
-            productName: product.productName,
-            totalProductBasePrice: product.totalProductBasePrice,
-            totalProductSellingPrice: product.totalProductSellingPrice,
-            totalProductQuantity: product.totalProductQuantity,
-          })),
-        },
-        deliveryCharge,
-        sellerId: customer?.sellerId || '',
-        sellerName: customer?.sellerName || '',
-        sellerPhoneNo: customer?.sellerPhone || '',
-        orderStatus: 'UNPAID',
-        orderType: 'CUSTOMER_ORDER',
-
-        totalCommission: verifiedOrderData.totalCommission,
-        actualCommission: verifiedOrderData.totalCommission,
-        totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
-        totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
-        totalProductQuantity: verifiedOrderData.totalProductQuantity,
-      },
-    })
-    // send order notification to admin
-
-    return order
   }
 
   public async getSellerOrders({
