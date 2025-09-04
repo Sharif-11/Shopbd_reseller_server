@@ -150,6 +150,23 @@ class OrderValidator {
         .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
     ]
   }
+  static getAllReferredOrdersForASeller(): RequestHandler[] {
+    return [
+      query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('পৃষ্ঠা নম্বর অবশ্যই একটি ধনাত্মক সংখ্যা হতে হবে'),
+      query('limit')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('সীমা অবশ্যই একটি ধনাত্মক সংখ্যা হতে হবে'),
+      query('search')
+        .optional()
+        .isString()
+        .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
+      query('orderStatus').optional(),
+    ]
+  }
 
   static orderPaymentBySeller(): RequestHandler[] {
     return [

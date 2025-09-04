@@ -115,6 +115,31 @@ class OrderController {
             }
         });
     }
+    getAllReferredOrdersForASeller(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { page, limit, search, orderStatus } = req.query;
+                const orders = yield order_service_1.orderService.getAllReferredOrdersForASeller({
+                    userId: userId,
+                    page: page ? Number(page) : undefined,
+                    limit: limit ? Number(limit) : undefined,
+                    search: search ? String(search) : undefined,
+                    orderStatus: orderStatus,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'All referral orders retrieved successfully',
+                    success: true,
+                    data: orders,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     orderPaymentBySeller(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;

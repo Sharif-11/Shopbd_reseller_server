@@ -330,7 +330,7 @@ class OrderService {
                 customerPhoneNo: phoneNo,
             });
             const where = {
-                sellerId: customer === null || customer === void 0 ? void 0 : customer.sellerId,
+                customerPhoneNo: phoneNo,
                 orderType: 'CUSTOMER_ORDER',
             };
             if (orderStatus) {
@@ -367,6 +367,78 @@ class OrderService {
                 totalPages: Math.ceil(totalOrders / (limit || 10)),
                 pageSize: limit || 10,
             };
+        });
+    }
+    getAllReferredOrdersForASeller(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ userId, orderStatus, page = 1, limit = 10, search, }) {
+            try {
+                const user = yield user_services_1.default.getUserById(userId);
+                if (!user) {
+                    throw new ApiError_1.default(404, 'User not found');
+                }
+                const referrals = user.referrals.map(referral => referral.phoneNo);
+                const validatedPage = Math.max(1, page);
+                const validatedLimit = Math.min(Math.max(1, limit), 100);
+                let where = {
+                    OR: [
+                        { sellerPhoneNo: { in: referrals } },
+                        {
+                            sellerId: user.userId,
+                            orderType: 'CUSTOMER_ORDER',
+                        },
+                    ],
+                };
+                if (orderStatus) {
+                    where.orderStatus = Array.isArray(orderStatus)
+                        ? { in: orderStatus }
+                        : orderStatus;
+                }
+                if (search) {
+                    where = {
+                        AND: [
+                            where,
+                            {
+                                OR: [
+                                    { customerName: { contains: search, mode: 'insensitive' } },
+                                    { customerPhoneNo: { contains: search, mode: 'insensitive' } },
+                                ],
+                            },
+                        ],
+                    };
+                }
+                const skip = (validatedPage - 1) * validatedLimit;
+                const [orders, totalOrders] = yield Promise.all([
+                    prisma_1.default.order.findMany({
+                        where,
+                        orderBy: { createdAt: 'desc' },
+                        skip,
+                        take: validatedLimit,
+                        include: {
+                            OrderProduct: {
+                                include: {
+                                // Include related data if needed
+                                },
+                            },
+                            Payment: true,
+                        },
+                    }),
+                    prisma_1.default.order.count({ where }),
+                ]);
+                const processedOrders = orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant) }))) })));
+                return {
+                    orders: processedOrders,
+                    totalOrders,
+                    currentPage: validatedPage,
+                    totalPages: Math.ceil(totalOrders / validatedLimit) || 1,
+                    pageSize: validatedLimit,
+                };
+            }
+            catch (error) {
+                if (error instanceof ApiError_1.default) {
+                    throw error;
+                }
+                throw new ApiError_1.default(500, 'Failed to fetch orders');
+            }
         });
     }
     orderPaymentBySeller(_a) {

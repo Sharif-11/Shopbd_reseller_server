@@ -762,6 +762,7 @@ class UserManagementServices {
                     },
                     referredBy: true,
                     Wallet: true,
+                    referrals: true,
                 },
             });
             if (!user) {

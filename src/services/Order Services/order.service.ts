@@ -422,7 +422,7 @@ class OrderService {
     })
 
     const where: any = {
-      sellerId: customer?.sellerId,
+      customerPhoneNo: phoneNo,
       orderType: 'CUSTOMER_ORDER',
     }
     if (orderStatus) {
@@ -468,6 +468,101 @@ class OrderService {
       currentPage: page || 1,
       totalPages: Math.ceil(totalOrders / (limit || 10)),
       pageSize: limit || 10,
+    }
+  }
+  public async getAllReferredOrdersForASeller({
+    userId,
+    orderStatus,
+    page = 1,
+    limit = 10,
+    search,
+  }: {
+    userId: string
+    orderStatus?: OrderStatus | OrderStatus[]
+    page?: number
+    limit?: number
+    search?: string
+  }) {
+    try {
+      const user = await userServices.getUserById(userId)
+      if (!user) {
+        throw new ApiError(404, 'User not found')
+      }
+
+      const referrals = user.referrals.map(referral => referral.phoneNo)
+      const validatedPage = Math.max(1, page)
+      const validatedLimit = Math.min(Math.max(1, limit), 100)
+
+      let where: Prisma.OrderWhereInput = {
+        OR: [
+          { sellerPhoneNo: { in: referrals } },
+          {
+            sellerId: user.userId,
+            orderType: 'CUSTOMER_ORDER',
+          },
+        ],
+      }
+
+      if (orderStatus) {
+        where.orderStatus = Array.isArray(orderStatus)
+          ? { in: orderStatus }
+          : orderStatus
+      }
+
+      if (search) {
+        where = {
+          AND: [
+            where,
+            {
+              OR: [
+                { customerName: { contains: search, mode: 'insensitive' } },
+                { customerPhoneNo: { contains: search, mode: 'insensitive' } },
+              ],
+            },
+          ],
+        }
+      }
+
+      const skip = (validatedPage - 1) * validatedLimit
+
+      const [orders, totalOrders] = await Promise.all([
+        prisma.order.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: validatedLimit,
+          include: {
+            OrderProduct: {
+              include: {
+                // Include related data if needed
+              },
+            },
+            Payment: true,
+          },
+        }),
+        prisma.order.count({ where }),
+      ])
+
+      const processedOrders = orders.map(order => ({
+        ...order,
+        OrderProduct: order.OrderProduct.map(product => ({
+          ...product,
+          productVariant: JSON.parse(product.productVariant as string),
+        })),
+      }))
+
+      return {
+        orders: processedOrders,
+        totalOrders,
+        currentPage: validatedPage,
+        totalPages: Math.ceil(totalOrders / validatedLimit) || 1,
+        pageSize: validatedLimit,
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error
+      }
+      throw new ApiError(500, 'Failed to fetch orders')
     }
   }
   public async orderPaymentBySeller({

@@ -119,6 +119,31 @@ class OrderController {
       next(error)
     }
   }
+  async getAllReferredOrdersForASeller(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.userId
+      const { page, limit, search, orderStatus } = req.query
+      const orders = await orderService.getAllReferredOrdersForASeller({
+        userId: userId!,
+        page: page ? Number(page) : undefined,
+        limit: limit ? Number(limit) : undefined,
+        search: search ? String(search) : undefined,
+        orderStatus: orderStatus! as OrderStatus | OrderStatus[],
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'All referral orders retrieved successfully',
+        success: true,
+        data: orders,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 
   async orderPaymentBySeller(req: Request, res: Response, next: NextFunction) {
     try {

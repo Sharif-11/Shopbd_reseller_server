@@ -52,6 +52,14 @@ class OrderRouter {
       orderControllers.getSellerOrders,
     )
     this.router.get(
+      '/seller/referral',
+      isAuthenticated,
+      verifyRole('Seller'),
+      OrderValidator.getAllReferredOrdersForASeller(),
+      validateRequest,
+      orderControllers.getAllReferredOrdersForASeller,
+    )
+    this.router.get(
       '/customer',
       OrderValidator.getCustomerOrders(),
       validateRequest,
