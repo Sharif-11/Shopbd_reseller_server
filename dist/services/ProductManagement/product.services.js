@@ -752,6 +752,7 @@ class ProductServices {
     getAllProducts(_a) {
         return __awaiter(this, arguments, void 0, function* ({ userId, filters, pagination, }) {
             try {
+                console.log(userId, filters, pagination);
                 if (userId) {
                     const result = yield this.getAllProductsForSeller(Object.assign(Object.assign({}, filters), pagination));
                     return {

@@ -511,6 +511,7 @@ class ProductController {
   async getAllProducts(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req?.user?.userId
+      console.log('user', req?.user)
       const { search, minPrice, maxPrice, categoryId, shopId, page, limit } =
         req.query
 

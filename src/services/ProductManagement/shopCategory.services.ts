@@ -212,6 +212,7 @@ class ShopCategoryServices {
       description?: string
       categoryIcon?: string
       parentId?: number | null // Add parentId to creation
+      priority?: number | null // Add priority to creation
     },
   ): Promise<Category> {
     await userManagementService.verifyUserPermission(
@@ -236,6 +237,7 @@ class ShopCategoryServices {
         description: data.description,
         categoryIcon: data.categoryIcon,
         parentId: data.parentId,
+        priority: data.priority || 1,
       },
     })
   }
@@ -248,6 +250,7 @@ class ShopCategoryServices {
       description?: string | null
       categoryIcon?: string | null
       parentId?: number | null
+      priority?: number | null
     },
   ): Promise<Category> {
     await userManagementService.verifyUserPermission(
@@ -296,6 +299,7 @@ class ShopCategoryServices {
         description: data.description,
         categoryIcon: data.categoryIcon,
         parentId: data.parentId,
+        priority: data.priority || 100,
       },
     })
   }
@@ -318,9 +322,7 @@ class ShopCategoryServices {
           select: { Product: true },
         },
       },
-      orderBy: {
-        name: 'asc',
-      },
+      orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
     })
 
     return categories.map(category => {
@@ -337,8 +339,10 @@ class ShopCategoryServices {
           ...subCategory,
           products: subCategory._count.Product,
           _count: undefined, // Remove original count
+          priority: subCategory.priority,
         })),
         _count: undefined, // Remove original count
+        priority: category.priority,
       }
     })
   }
@@ -410,7 +414,7 @@ class ShopCategoryServices {
         where,
         skip,
         take: limit,
-        orderBy: { name: 'asc' },
+        orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
         include: {
           subCategories: subCategories || false,
         },

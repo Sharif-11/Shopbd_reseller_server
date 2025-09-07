@@ -161,13 +161,20 @@ class ShopCategoryValidator {
                 .isString()
                 .withMessage('ক্যাটাগরির বিবরণ অবশ্যই স্ট্রিং হতে হবে'),
             (0, express_validator_1.body)('categoryIcon')
-                .optional()
+                .optional({
+                checkFalsy: true,
+                nullable: true,
+            })
                 .isURL()
                 .withMessage('সঠিক ক্যাটাগরি আইকন URL প্রদান করুন'),
             (0, express_validator_1.body)('parentId')
                 .optional()
                 .isInt()
                 .withMessage('প্যারেন্ট ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে'),
+            (0, express_validator_1.body)('priority')
+                .optional()
+                .isInt({ min: 1 })
+                .withMessage('প্রাধান্য অবশ্যই ১ বা তার বেশি একটি সংখ্যা হতে হবে'),
         ];
     }
     static getCategory() {
@@ -197,13 +204,20 @@ class ShopCategoryValidator {
                 .isString()
                 .withMessage('ক্যাটাগরির বিবরণ অবশ্যই স্ট্রিং হতে হবে'),
             (0, express_validator_1.body)('categoryIcon')
-                .optional()
+                .optional({
+                checkFalsy: true,
+                nullable: true,
+            })
                 .isURL()
                 .withMessage('সঠিক ক্যাটাগরি আইকন URL প্রদান করুন'),
             (0, express_validator_1.body)('parentId')
                 .optional({ checkFalsy: true, nullable: true })
                 .isInt()
                 .withMessage('প্যারেন্ট ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে'),
+            (0, express_validator_1.body)('priority')
+                .optional()
+                .isInt({ min: 1 })
+                .withMessage('প্রাধান্য অবশ্যই ১ বা তার বেশি একটি সংখ্যা হতে হবে'),
         ];
     }
     static getCategoriesWithSubcategoriesAndProductCounts() {

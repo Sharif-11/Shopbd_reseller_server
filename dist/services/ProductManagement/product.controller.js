@@ -451,6 +451,7 @@ class ProductController {
             var _a;
             try {
                 const userId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                console.log('user', req === null || req === void 0 ? void 0 : req.user);
                 const { search, minPrice, maxPrice, categoryId, shopId, page, limit } = req.query;
                 const formattedPage = !isNaN(Number(req.query.page))
                     ? Number(req.query.page)

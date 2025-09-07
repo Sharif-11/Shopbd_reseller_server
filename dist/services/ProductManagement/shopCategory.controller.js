@@ -154,12 +154,13 @@ class ShopCategoryController {
             var _a;
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                const { name, description, categoryIcon, parentId } = req.body;
+                const { name, description, categoryIcon, parentId, priority } = req.body;
                 const category = yield shopCategory_services_1.default.createCategory(userId, {
                     name,
                     description,
                     categoryIcon,
                     parentId: parentId ? Number(parentId) : null,
+                    priority: priority ? Number(priority) : 1,
                 });
                 res.status(201).json({
                     statusCode: 201,
@@ -213,12 +214,13 @@ class ShopCategoryController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { categoryId } = req.params;
-                const { name, description, categoryIcon, parentId } = req.body;
+                const { name, description, categoryIcon, parentId, priority } = req.body;
                 const category = yield shopCategory_services_1.default.updateCategory(userId, Number(categoryId), {
                     name,
                     description,
                     categoryIcon,
                     parentId: parentId ? Number(parentId) : null,
+                    priority: priority ? Number(priority) : 1,
                 });
                 res.status(200).json({
                     statusCode: 200,

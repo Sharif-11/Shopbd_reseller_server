@@ -159,6 +159,7 @@ class ShopCategoryServices {
                     description: data.description,
                     categoryIcon: data.categoryIcon,
                     parentId: data.parentId,
+                    priority: data.priority || 1,
                 },
             });
         });
@@ -199,6 +200,7 @@ class ShopCategoryServices {
                     description: data.description,
                     categoryIcon: data.categoryIcon,
                     parentId: data.parentId,
+                    priority: data.priority || 100,
                 },
             });
         });
@@ -221,14 +223,12 @@ class ShopCategoryServices {
                         select: { Product: true },
                     },
                 },
-                orderBy: {
-                    name: 'asc',
-                },
+                orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
             });
             return categories.map(category => {
                 // Calculate total products (current category + all subcategories)
                 const totalProducts = category.subCategories.reduce((sum, sub) => sum + sub._count.Product, category._count.Product);
-                return Object.assign(Object.assign({}, category), { products: totalProducts, subCategories: category.subCategories.map(subCategory => (Object.assign(Object.assign({}, subCategory), { products: subCategory._count.Product, _count: undefined }))), _count: undefined });
+                return Object.assign(Object.assign({}, category), { products: totalProducts, subCategories: category.subCategories.map(subCategory => (Object.assign(Object.assign({}, subCategory), { products: subCategory._count.Product, _count: undefined, priority: subCategory.priority }))), _count: undefined, priority: category.priority });
             });
         });
     }
@@ -280,7 +280,7 @@ class ShopCategoryServices {
                     where,
                     skip,
                     take: limit,
-                    orderBy: { name: 'asc' },
+                    orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
                     include: {
                         subCategories: subCategories || false,
                     },

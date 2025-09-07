@@ -11,7 +11,6 @@ const config_1 = __importDefault(require("./config"));
 const globalErrorHandler_1 = __importDefault(require("./middlewares/globalErrorHandler"));
 const trim_middlewares_1 = __importDefault(require("./middlewares/trim.middlewares"));
 const global_routes_1 = __importDefault(require("./routes/global.routes"));
-const db_controller_1 = __importDefault(require("./services/Utility Services/db.controller"));
 const app = (0, express_1.default)();
 // Security middleware
 app.use((0, helmet_1.default)());
@@ -73,7 +72,6 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
     });
 });
-app.get('/reset-database', db_controller_1.default.resetDatabase);
 // Handle 404
 app.all('*', (req, res) => {
     res.status(404).json({

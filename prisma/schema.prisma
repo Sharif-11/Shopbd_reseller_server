@@ -341,6 +341,7 @@ model Category {
   updatedAt      DateTime       @updatedAt
   Product        Product[]
   shopCategories ShopCategory[]
+  priority      Int            @default(1)
 
   // Self-referential relationship for parent-child
   parentCategory Category?  @relation("CategoryHierarchy", fields: [parentId], references: [categoryId])

@@ -930,6 +930,7 @@ class ProductServices {
     pagination: { page?: number; limit?: number }
   }) {
     try {
+      console.log(userId, filters, pagination)
       if (userId) {
         const result = await this.getAllProductsForSeller({
           ...filters,

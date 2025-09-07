@@ -535,6 +535,24 @@ class UserManagementController {
       next(error)
     }
   }
+  async verifySellerByAdmin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const adminId = req.user?.userId
+      const { phoneNo } = req.params
+      const verifiedSeller = await userManagementServices.verifySeller({
+        adminId: adminId!,
+        userPhoneNo: phoneNo,
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Seller verified successfully',
+        success: true,
+        data: verifiedSeller,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
   async getAllUsers(req: Request, res: Response, next: NextFunction) {
     try {
       const currentAdminId = req.user?.userId // Assuming user ID is in request

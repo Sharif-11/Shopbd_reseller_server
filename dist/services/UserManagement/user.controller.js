@@ -535,6 +535,28 @@ class UserManagementController {
             }
         });
     }
+    verifySellerByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { phoneNo } = req.params;
+                const verifiedSeller = yield user_services_1.default.verifySeller({
+                    adminId: adminId,
+                    userPhoneNo: phoneNo,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Seller verified successfully',
+                    success: true,
+                    data: verifiedSeller,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     getAllUsers(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;

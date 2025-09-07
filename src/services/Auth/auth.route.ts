@@ -161,6 +161,14 @@ class AuthRouter {
 
       userManagementControllers.sendDirectMessage,
     )
+    this.router.patch(
+      '/verify-seller/:phoneNo',
+      isAuthenticated,
+      UserManagementValidator.verifySellerByAdmin(),
+      validateRequest,
+
+      userManagementControllers.verifySellerByAdmin,
+    )
 
     this.router.patch(
       '/change-password',

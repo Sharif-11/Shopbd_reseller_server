@@ -167,13 +167,14 @@ class ShopCategoryController {
   async createCategory(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.userId
-      const { name, description, categoryIcon, parentId } = req.body
+      const { name, description, categoryIcon, parentId, priority } = req.body
 
       const category = await shopCategoryServices.createCategory(userId!, {
         name,
         description,
         categoryIcon,
         parentId: parentId ? Number(parentId) : null,
+        priority: priority ? Number(priority) : 1,
       })
 
       res.status(201).json({
@@ -236,7 +237,7 @@ class ShopCategoryController {
     try {
       const userId = req.user?.userId
       const { categoryId } = req.params
-      const { name, description, categoryIcon, parentId } = req.body
+      const { name, description, categoryIcon, parentId, priority } = req.body
 
       const category = await shopCategoryServices.updateCategory(
         userId!,
@@ -246,6 +247,7 @@ class ShopCategoryController {
           description,
           categoryIcon,
           parentId: parentId ? Number(parentId) : null,
+          priority: priority ? Number(priority) : 1,
         },
       )
 

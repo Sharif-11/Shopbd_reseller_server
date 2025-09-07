@@ -963,7 +963,7 @@ class UserManagementServices {
     await this.verifyUserPermission(
       adminId,
       PermissionType.USER_MANAGEMENT,
-      ActionType.ALL,
+      ActionType.NOTIFY,
     )
     // check if the user exists
     const user = await prisma.user.findUnique({
@@ -974,7 +974,25 @@ class UserManagementServices {
       },
     })
     if (!user) {
-      throw new ApiError(404, 'User not found')
+      const customer = await prisma.customer.findUnique({
+        where: { customerId: userId },
+        select: {
+          customerPhoneNo: true,
+        },
+      })
+      if (!customer) {
+        throw new ApiError(404, 'User not found')
+      }
+      const message = `Message from Shop Bd Reseller Jobs: ${content}`
+      // send the message using SmsServices
+      const result = await SmsServices.sendSingleSms(
+        customer.customerPhoneNo,
+        message,
+      )
+      if (!result) {
+        throw new ApiError(500, 'Failed to send message')
+      }
+      return content
     }
     const message = `Message from Shop Bd Reseller Jobs: ${content}`
     // send the message using SmsServices
@@ -1055,33 +1073,56 @@ class UserManagementServices {
   }
   async verifySeller({
     tx,
+    adminId,
     userId,
     userPhoneNo,
   }: {
-    tx: Prisma.TransactionClient
+    tx?: Prisma.TransactionClient
     userId?: string
+    adminId?: string
     userPhoneNo?: string
   }) {
     if (!userId && !userPhoneNo) {
       throw new ApiError(400, 'Either userId or userPhoneNo must be provided')
     }
+    let user = null
+    if (tx) {
+      user = await (tx || prisma).user.findUnique({
+        where: {
+          userId: userId || undefined,
+          phoneNo: userPhoneNo || undefined,
+        },
+      })
 
-    const user = await tx.user.findUnique({
-      where: {
-        userId: userId || undefined,
-        phoneNo: userPhoneNo || undefined,
-      },
-    })
+      if (!user) {
+        throw new ApiError(404, 'User not found')
+      }
 
-    if (!user) {
-      throw new ApiError(404, 'User not found')
+      if (user.role !== UserType.Seller) {
+        throw new ApiError(403, 'Only sellers can be verified')
+      }
+    } else {
+      // verify admin permission
+      await this.verifyUserPermission(
+        adminId!,
+        PermissionType.USER_MANAGEMENT,
+        ActionType.APPROVE,
+      )
+      user = await prisma.user.findUnique({
+        where: {
+          userId: userId || undefined,
+          phoneNo: userPhoneNo || undefined,
+        },
+      })
+      if (!user) {
+        throw new ApiError(404, 'User not found')
+      }
+      if (user.role !== UserType.Seller) {
+        throw new ApiError(403, 'Only sellers can be verified')
+      }
     }
 
-    if (user.role !== UserType.Seller) {
-      throw new ApiError(403, 'Only sellers can be verified')
-    }
-
-    return await tx.user.update({
+    return await (tx || prisma).user.update({
       where: { userId: user.userId },
       data: { isVerified: true },
     })

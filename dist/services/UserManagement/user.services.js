@@ -850,7 +850,7 @@ class UserManagementServices {
     sendDirectMessage(adminId, userId, content) {
         return __awaiter(this, void 0, void 0, function* () {
             // check if the admin has permission to send messages
-            yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.ALL);
+            yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.NOTIFY);
             // check if the user exists
             const user = yield prisma_1.default.user.findUnique({
                 where: { userId },
@@ -860,7 +860,22 @@ class UserManagementServices {
                 },
             });
             if (!user) {
-                throw new ApiError_1.default(404, 'User not found');
+                const customer = yield prisma_1.default.customer.findUnique({
+                    where: { customerId: userId },
+                    select: {
+                        customerPhoneNo: true,
+                    },
+                });
+                if (!customer) {
+                    throw new ApiError_1.default(404, 'User not found');
+                }
+                const message = `Message from Shop Bd Reseller Jobs: ${content}`;
+                // send the message using SmsServices
+                const result = yield sms_services_1.default.sendSingleSms(customer.customerPhoneNo, message);
+                if (!result) {
+                    throw new ApiError_1.default(500, 'Failed to send message');
+                }
+                return content;
             }
             const message = `Message from Shop Bd Reseller Jobs: ${content}`;
             // send the message using SmsServices
@@ -936,23 +951,42 @@ class UserManagementServices {
         });
     }
     verifySeller(_a) {
-        return __awaiter(this, arguments, void 0, function* ({ tx, userId, userPhoneNo, }) {
+        return __awaiter(this, arguments, void 0, function* ({ tx, adminId, userId, userPhoneNo, }) {
             if (!userId && !userPhoneNo) {
                 throw new ApiError_1.default(400, 'Either userId or userPhoneNo must be provided');
             }
-            const user = yield tx.user.findUnique({
-                where: {
-                    userId: userId || undefined,
-                    phoneNo: userPhoneNo || undefined,
-                },
-            });
-            if (!user) {
-                throw new ApiError_1.default(404, 'User not found');
+            let user = null;
+            if (tx) {
+                user = yield (tx || prisma_1.default).user.findUnique({
+                    where: {
+                        userId: userId || undefined,
+                        phoneNo: userPhoneNo || undefined,
+                    },
+                });
+                if (!user) {
+                    throw new ApiError_1.default(404, 'User not found');
+                }
+                if (user.role !== client_1.UserType.Seller) {
+                    throw new ApiError_1.default(403, 'Only sellers can be verified');
+                }
             }
-            if (user.role !== client_1.UserType.Seller) {
-                throw new ApiError_1.default(403, 'Only sellers can be verified');
+            else {
+                // verify admin permission
+                yield this.verifyUserPermission(adminId, client_1.PermissionType.USER_MANAGEMENT, client_1.ActionType.APPROVE);
+                user = yield prisma_1.default.user.findUnique({
+                    where: {
+                        userId: userId || undefined,
+                        phoneNo: userPhoneNo || undefined,
+                    },
+                });
+                if (!user) {
+                    throw new ApiError_1.default(404, 'User not found');
+                }
+                if (user.role !== client_1.UserType.Seller) {
+                    throw new ApiError_1.default(403, 'Only sellers can be verified');
+                }
             }
-            return yield tx.user.update({
+            return yield (tx || prisma_1.default).user.update({
                 where: { userId: user.userId },
                 data: { isVerified: true },
             });

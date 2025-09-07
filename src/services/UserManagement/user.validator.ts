@@ -100,6 +100,17 @@ class UserManagementValidator {
         .withMessage('রেফারাল কোডটি ৩ থেকে ১৬ অক্ষরের মধ্যে হতে হবে।'),
     ]
   }
+  static verifySellerByAdmin(): RequestHandler[] {
+    return [
+      param('phoneNo')
+        .notEmpty()
+        .withMessage('ফোন নম্বর প্রয়োজন')
+        .isMobilePhone('bn-BD')
+        .withMessage('সঠিক বাংলাদেশী ফোন নম্বর প্রদান করুন')
+        .isLength({ min: 11, max: 11 })
+        .withMessage('ফোন নম্বরটি অবশ্যই ১১ ডিজিটের হতে হবে'),
+    ]
+  }
 
   /**
    * Validation rules for creating customer
