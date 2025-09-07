@@ -214,7 +214,7 @@ class ShopCategoryServices {
       parentId?: number | null // Add parentId to creation
       priority?: number | null // Add priority to creation
     },
-  ): Promise<Category> {
+  ) {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
@@ -237,7 +237,7 @@ class ShopCategoryServices {
         description: data.description,
         categoryIcon: data.categoryIcon,
         parentId: data.parentId,
-        priority: data.priority || 1,
+        priority: data.parentId ? null : (data.priority ?? null),
       },
     })
   }
@@ -299,7 +299,7 @@ class ShopCategoryServices {
         description: data.description,
         categoryIcon: data.categoryIcon,
         parentId: data.parentId,
-        priority: data.priority || 100,
+        priority: data.parentId ? null : (data.priority ?? null),
       },
     })
   }
@@ -390,8 +390,6 @@ class ShopCategoryServices {
   }
 
   async getAllCategories(
-    page = 1,
-    limit = 10,
     name?: string,
     subCategories = false, // Whether to include subcategories in the result
   ): Promise<{
@@ -401,8 +399,6 @@ class ShopCategoryServices {
     totalPages: number
     subCategories?: boolean // Include this in the response if needed
   }> {
-    const skip = (page - 1) * limit
-
     const where: Prisma.CategoryWhereInput = {
       ...(name && {
         name: { contains: name, mode: 'insensitive' },
@@ -412,8 +408,6 @@ class ShopCategoryServices {
     const [categories, total] = await Promise.all([
       prisma.category.findMany({
         where,
-        skip,
-        take: limit,
         orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
         include: {
           subCategories: subCategories || false,
@@ -425,8 +419,8 @@ class ShopCategoryServices {
     return {
       categories,
       total,
-      page,
-      totalPages: Math.ceil(total / limit),
+      page: 1,
+      totalPages: 1,
     }
   }
 

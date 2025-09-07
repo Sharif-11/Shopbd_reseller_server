@@ -172,7 +172,10 @@ class ShopCategoryValidator {
                 .isInt()
                 .withMessage('প্যারেন্ট ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে'),
             (0, express_validator_1.body)('priority')
-                .optional()
+                .optional({
+                checkFalsy: true,
+                nullable: true,
+            })
                 .isInt({ min: 1 })
                 .withMessage('প্রাধান্য অবশ্যই ১ বা তার বেশি একটি সংখ্যা হতে হবে'),
         ];
@@ -215,7 +218,10 @@ class ShopCategoryValidator {
                 .isInt()
                 .withMessage('প্যারেন্ট ক্যাটাগরি আইডি অবশ্যই সংখ্যা হতে হবে'),
             (0, express_validator_1.body)('priority')
-                .optional()
+                .optional({
+                checkFalsy: true,
+                nullable: true,
+            })
                 .isInt({ min: 1 })
                 .withMessage('প্রাধান্য অবশ্যই ১ বা তার বেশি একটি সংখ্যা হতে হবে'),
         ];

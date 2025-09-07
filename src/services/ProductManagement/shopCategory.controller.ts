@@ -208,16 +208,9 @@ class ShopCategoryController {
 
   async getAllCategories(req: Request, res: Response, next: NextFunction) {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        name = '',
-        subCategories = false,
-      } = req.query
+      const { name = '', subCategories = false } = req.query
 
       const categories = await shopCategoryServices.getAllCategories(
-        Number(page),
-        Number(limit),
         String(name),
         Boolean(subCategories),
       )

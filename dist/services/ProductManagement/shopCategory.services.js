@@ -143,6 +143,7 @@ class ShopCategoryServices {
     // ==========================================
     createCategory(userId, data) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.CREATE);
             // Validate parent exists if provided
             if (data.parentId) {
@@ -159,13 +160,14 @@ class ShopCategoryServices {
                     description: data.description,
                     categoryIcon: data.categoryIcon,
                     parentId: data.parentId,
-                    priority: data.priority || 1,
+                    priority: data.parentId ? null : ((_a = data.priority) !== null && _a !== void 0 ? _a : null),
                 },
             });
         });
     }
     updateCategory(userId, categoryId, data) {
         return __awaiter(this, void 0, void 0, function* () {
+            var _a;
             yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, client_1.ActionType.UPDATE);
             // Check if category exists
             const category = yield prisma_1.default.category.findUnique({
@@ -200,7 +202,7 @@ class ShopCategoryServices {
                     description: data.description,
                     categoryIcon: data.categoryIcon,
                     parentId: data.parentId,
-                    priority: data.priority || 100,
+                    priority: data.parentId ? null : ((_a = data.priority) !== null && _a !== void 0 ? _a : null),
                 },
             });
         });
@@ -269,17 +271,14 @@ class ShopCategoryServices {
             return Object.assign(Object.assign({}, category), { shops: category.shopCategories.map(sc => sc.shop) });
         });
     }
-    getAllCategories() {
-        return __awaiter(this, arguments, void 0, function* (page = 1, limit = 10, name, subCategories = false) {
-            const skip = (page - 1) * limit;
+    getAllCategories(name_1) {
+        return __awaiter(this, arguments, void 0, function* (name, subCategories = false) {
             const where = Object.assign({}, (name && {
                 name: { contains: name, mode: 'insensitive' },
             }));
             const [categories, total] = yield Promise.all([
                 prisma_1.default.category.findMany({
                     where,
-                    skip,
-                    take: limit,
                     orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
                     include: {
                         subCategories: subCategories || false,
@@ -290,8 +289,8 @@ class ShopCategoryServices {
             return {
                 categories,
                 total,
-                page,
-                totalPages: Math.ceil(total / limit),
+                page: 1,
+                totalPages: 1,
             };
         });
     }
