@@ -1277,6 +1277,14 @@ class OrderService {
             }
             // Calculate date ranges
             const now = new Date();
+            const todayStart = new Date(now);
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date(now);
+            todayEnd.setHours(23, 59, 59, 999);
+            const yesterdayStart = new Date(todayStart);
+            yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+            const yesterdayEnd = new Date(todayEnd);
+            yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
             const sevenDaysAgo = new Date(now);
             sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
             const thirtyDaysAgo = new Date(now);
@@ -1289,19 +1297,23 @@ class OrderService {
                 },
             });
             // Filter orders for different time periods
+            const todayOrders = orders.filter(order => new Date(order.createdAt) >= todayStart &&
+                new Date(order.createdAt) <= todayEnd);
+            const yesterdayOrders = orders.filter(order => new Date(order.createdAt) >= yesterdayStart &&
+                new Date(order.createdAt) <= yesterdayEnd);
             const last7DaysOrders = orders.filter(order => new Date(order.createdAt) >= sevenDaysAgo);
             const last30DaysOrders = orders.filter(order => new Date(order.createdAt) >= thirtyDaysAgo);
             // Function to calculate statistics for a given order set
             const calculateStats = (orderSet) => {
                 var _a, _b;
                 let totalSales = 0;
-                let totalCommission = 0;
+                let totalIncome = 0; // Using actualCommission as income
                 let completedOrdersCount = 0;
                 let totalProductsSold = 0;
                 for (const order of orderSet) {
                     if (order.orderStatus === 'COMPLETED') {
                         totalSales += ((_a = order.totalProductSellingPrice) === null || _a === void 0 ? void 0 : _a.toNumber()) || 0;
-                        totalCommission += ((_b = order.actualCommission) === null || _b === void 0 ? void 0 : _b.toNumber()) || 0;
+                        totalIncome += ((_b = order.actualCommission) === null || _b === void 0 ? void 0 : _b.toNumber()) || 0;
                         completedOrdersCount++;
                     }
                     for (const product of order.OrderProduct) {
@@ -1313,19 +1325,23 @@ class OrderService {
                 return {
                     totalOrders: orderSet.length,
                     totalSales,
-                    totalCommission,
+                    totalIncome, // Changed from totalCommission to totalIncome
                     totalProductsSold,
                     totalOrdersCompleted: completedOrdersCount,
                 };
             };
-            // Calculate statistics for all time, last 30 days, and last 7 days
+            // Calculate statistics for all time periods
             const allTimeStats = calculateStats(orders);
             const last30DaysStats = calculateStats(last30DaysOrders);
             const last7DaysStats = calculateStats(last7DaysOrders);
+            const todayStats = calculateStats(todayOrders);
+            const yesterdayStats = calculateStats(yesterdayOrders);
             return {
                 allTime: allTimeStats,
                 last30Days: last30DaysStats,
                 last7Days: last7DaysStats,
+                today: todayStats,
+                yesterday: yesterdayStats,
             };
         });
     }

@@ -475,6 +475,29 @@ class OrderController {
       throw error
     }
   }
+  async getAllReferredOrdersForSeller(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.userId
+      const { page, limit } = req.query
+      const orders = await orderService.getAllReferredOrdersForSeller({
+        sellerId: userId!,
+        page: Number(page) || 1,
+        limit: Number(limit) || 10,
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'All referred orders retrieved successfully',
+        success: true,
+        data: orders,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
   async checkFraud(req: Request, res: Response, next: NextFunction) {
     try {
       const { phoneNumber } = req.params

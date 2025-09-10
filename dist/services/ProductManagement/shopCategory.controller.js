@@ -160,7 +160,7 @@ class ShopCategoryController {
                     description,
                     categoryIcon,
                     parentId: parentId ? Number(parentId) : null,
-                    priority: priority ? Number(priority) : 1,
+                    priority: priority ? Number(priority) : 100,
                 });
                 res.status(201).json({
                     statusCode: 201,

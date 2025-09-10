@@ -208,6 +208,13 @@ class AuthRouter {
       userManagementControllers.getAllUsers,
     )
     this.router.get(
+      '/referred-users',
+      isAuthenticated,
+      UserManagementValidator.getReferredSellersByLevel(),
+      validateRequest,
+      userManagementControllers.getReferredSellersByLevel,
+    )
+    this.router.get(
       '/get-all-customers',
       isAuthenticated,
       UserManagementValidator.getAllCustomers(),

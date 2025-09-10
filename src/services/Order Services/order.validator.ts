@@ -150,7 +150,7 @@ class OrderValidator {
         .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
     ]
   }
-  static getAllReferredOrdersForASeller(): RequestHandler[] {
+  static getAllReferredOrdersForSeller(): RequestHandler[] {
     return [
       query('page')
         .optional()
@@ -160,11 +160,6 @@ class OrderValidator {
         .optional()
         .isInt({ min: 1 })
         .withMessage('সীমা অবশ্যই একটি ধনাত্মক সংখ্যা হতে হবে'),
-      query('search')
-        .optional()
-        .isString()
-        .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
-      query('orderStatus').optional(),
     ]
   }
 

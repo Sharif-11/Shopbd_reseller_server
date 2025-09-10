@@ -230,6 +230,7 @@ class ShopCategoryServices {
         throw new Error('Parent category not found')
       }
     }
+    console.log(data)
 
     return prisma.category.create({
       data: {

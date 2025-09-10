@@ -487,6 +487,37 @@ class UserManagementValidator {
       //   .escape(),
     ]
   }
+  static getReferredSellersByLevel(): RequestHandler[] {
+    return [
+      query('level')
+        .notEmpty()
+        .withMessage('Level is required')
+        .isInt({ min: 1, max: 4 })
+        .withMessage('Level must be an integer between 1 and 4')
+        .toInt(),
+      query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('Page must be a positive integer')
+        .toInt(),
+      query('limit')
+        .optional({
+          nullable: true,
+          checkFalsy: true,
+        })
+        .isInt({ min: 1, max: 100 })
+        .withMessage('Limit must be an integer between 1 and 100')
+        .toInt(),
+      query('search')
+        .optional({
+          nullable: true,
+          checkFalsy: true,
+        })
+        .isString()
+        .withMessage('Search term must be a string')
+        .trim(),
+    ]
+  }
 }
 
 export default UserManagementValidator

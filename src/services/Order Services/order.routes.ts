@@ -55,9 +55,9 @@ class OrderRouter {
       '/seller/referral',
       isAuthenticated,
       verifyRole('Seller'),
-      OrderValidator.getAllReferredOrdersForASeller(),
+      OrderValidator.getAllReferredOrdersForSeller(),
       validateRequest,
-      orderControllers.getAllReferredOrdersForASeller,
+      orderControllers.getAllReferredOrdersForSeller,
     )
     this.router.get(
       '/customer',

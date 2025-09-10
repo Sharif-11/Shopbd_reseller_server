@@ -1573,6 +1573,16 @@ class OrderService {
 
     // Calculate date ranges
     const now = new Date()
+    const todayStart = new Date(now)
+    todayStart.setHours(0, 0, 0, 0)
+    const todayEnd = new Date(now)
+    todayEnd.setHours(23, 59, 59, 999)
+
+    const yesterdayStart = new Date(todayStart)
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+    const yesterdayEnd = new Date(todayEnd)
+    yesterdayEnd.setDate(yesterdayEnd.getDate() - 1)
+
     const sevenDaysAgo = new Date(now)
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     const thirtyDaysAgo = new Date(now)
@@ -1587,6 +1597,16 @@ class OrderService {
     })
 
     // Filter orders for different time periods
+    const todayOrders = orders.filter(
+      order =>
+        new Date(order.createdAt) >= todayStart &&
+        new Date(order.createdAt) <= todayEnd,
+    )
+    const yesterdayOrders = orders.filter(
+      order =>
+        new Date(order.createdAt) >= yesterdayStart &&
+        new Date(order.createdAt) <= yesterdayEnd,
+    )
     const last7DaysOrders = orders.filter(
       order => new Date(order.createdAt) >= sevenDaysAgo,
     )
@@ -1597,14 +1617,14 @@ class OrderService {
     // Function to calculate statistics for a given order set
     const calculateStats = (orderSet: typeof orders) => {
       let totalSales = 0
-      let totalCommission = 0
+      let totalIncome = 0 // Using actualCommission as income
       let completedOrdersCount = 0
       let totalProductsSold = 0
 
       for (const order of orderSet) {
         if (order.orderStatus === 'COMPLETED') {
           totalSales += order.totalProductSellingPrice?.toNumber() || 0
-          totalCommission += order.actualCommission?.toNumber() || 0
+          totalIncome += order.actualCommission?.toNumber() || 0
           completedOrdersCount++
         }
         for (const product of order.OrderProduct) {
@@ -1617,21 +1637,25 @@ class OrderService {
       return {
         totalOrders: orderSet.length,
         totalSales,
-        totalCommission,
+        totalIncome, // Changed from totalCommission to totalIncome
         totalProductsSold,
         totalOrdersCompleted: completedOrdersCount,
       }
     }
 
-    // Calculate statistics for all time, last 30 days, and last 7 days
+    // Calculate statistics for all time periods
     const allTimeStats = calculateStats(orders)
     const last30DaysStats = calculateStats(last30DaysOrders)
     const last7DaysStats = calculateStats(last7DaysOrders)
+    const todayStats = calculateStats(todayOrders)
+    const yesterdayStats = calculateStats(yesterdayOrders)
 
     return {
       allTime: allTimeStats,
       last30Days: last30DaysStats,
       last7Days: last7DaysStats,
+      today: todayStats,
+      yesterday: yesterdayStats,
     }
   }
   public async getTrendingTopSellingProducts(
@@ -1730,6 +1754,93 @@ class OrderService {
       page,
       limit,
       totalPages: Math.ceil(trendingProductCount.length / limit),
+    }
+  }
+  public async getAllReferredOrdersForSeller({
+    sellerId,
+    page = 1,
+    limit = 10,
+  }: {
+    sellerId: string
+    page?: number
+    limit?: number
+  }) {
+    try {
+      const user = await userServices.getUserById(sellerId)
+      if (!user) {
+        throw new ApiError(404, 'User not found')
+      }
+
+      // Get all referred seller phone numbers up to level 2 with their levels
+      const referredSellerPhones =
+        await userServices.getReferredSellerPhonesByLevel({
+          sellerPhoneNo: user.phoneNo,
+          level: 2,
+        })
+
+      const referredPhoneNumbers = referredSellerPhones.map(ref => ref.phoneNo)
+
+      const validatedPage = Math.max(1, page)
+      const validatedLimit = Math.min(Math.max(1, limit), 100)
+
+      const where: Prisma.OrderWhereInput = {
+        sellerPhoneNo: { in: referredPhoneNumbers },
+        orderType: 'SELLER_ORDER', // Exclude CUSTOMER_ORDER
+      }
+
+      const skip = (validatedPage - 1) * validatedLimit
+
+      const [orders, totalOrders] = await Promise.all([
+        prisma.order.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take: validatedLimit,
+          select: {
+            orderId: true,
+            sellerName: true,
+            sellerPhoneNo: true,
+            OrderProduct: {
+              select: {
+                productName: true,
+                productImage: true,
+              },
+            },
+          },
+        }),
+        prisma.order.count({ where }),
+      ])
+
+      // Add level information to each order
+      const processedOrders = orders.map(order => {
+        const sellerLevel =
+          referredSellerPhones.find(ref => ref.phoneNo === order.sellerPhoneNo)
+            ?.level || 0
+
+        return {
+          orderId: order.orderId,
+          sellerName: order.sellerName,
+          sellerPhoneNo: order.sellerPhoneNo,
+          sellerLevel: sellerLevel,
+          products: order.OrderProduct.map(product => ({
+            name: product.productName,
+            image: product.productImage,
+          })),
+        }
+      })
+
+      return {
+        orders: processedOrders,
+        totalOrders,
+        currentPage: validatedPage,
+        totalPages: Math.ceil(totalOrders / validatedLimit) || 1,
+        pageSize: validatedLimit,
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error
+      }
+      throw new ApiError(500, 'Failed to fetch referral orders')
     }
   }
   async fraudChecker(phoneNumber: string) {

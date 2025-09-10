@@ -649,6 +649,33 @@ class UserManagementController {
       next(error)
     }
   }
+  async getReferredSellersByLevel(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const sellerId = req.user?.userId
+      const { level, page, limit, search } = req.query
+      const referredSellers =
+        await userManagementServices.getReferredSellersByLevel({
+          sellerId: sellerId!,
+          level: Number(level) || 1,
+          page: Number(page) || 1,
+          limit: Number(limit) || 10,
+          searchTerm: (search as string) || '',
+        })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Referred sellers retrieved successfully',
+        success: true,
+        data: referredSellers,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new UserManagementController()
