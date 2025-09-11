@@ -216,6 +216,13 @@ class OrderService {
                         totalProductQuantity: verifiedOrderData.totalProductQuantity,
                     },
                 });
+                // update customer name if different
+                if ((customer === null || customer === void 0 ? void 0 : customer.customerName) !== customerName) {
+                    yield user_services_1.default.updateCustomerProfile({
+                        customerId: customer === null || customer === void 0 ? void 0 : customer.customerId,
+                        customerName,
+                    });
+                }
                 // send order notification to admin
                 return order;
             }
@@ -273,6 +280,13 @@ class OrderService {
                     // send order notification to admin
                     return order;
                 }));
+                // update customer name if different
+                if ((customer === null || customer === void 0 ? void 0 : customer.customerName) !== customerName) {
+                    yield user_services_1.default.updateCustomerProfile({
+                        customerId: customer === null || customer === void 0 ? void 0 : customer.customerId,
+                        customerName,
+                    });
+                }
                 return order;
             }
             // now create order connecting with payment
@@ -1428,6 +1442,127 @@ class OrderService {
                 page,
                 limit,
                 totalPages: Math.ceil(trendingProductCount.length / limit),
+            };
+        });
+    }
+    getAllReferredOrdersForSeller(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ sellerId, page = 1, limit = 10, }) {
+            try {
+                const user = yield user_services_1.default.getUserById(sellerId);
+                if (!user) {
+                    throw new ApiError_1.default(404, 'User not found');
+                }
+                // Get all referred seller phone numbers up to level 2 with their levels
+                const referredSellerPhones = yield user_services_1.default.getReferredSellerPhonesByLevel({
+                    sellerPhoneNo: user.phoneNo,
+                    level: 2,
+                });
+                const referredPhoneNumbers = referredSellerPhones.map(ref => ref.phoneNo);
+                const validatedPage = Math.max(1, page);
+                const validatedLimit = Math.min(Math.max(1, limit), 100);
+                const where = {
+                    sellerPhoneNo: { in: referredPhoneNumbers },
+                    orderType: 'SELLER_ORDER', // Exclude CUSTOMER_ORDER
+                };
+                const skip = (validatedPage - 1) * validatedLimit;
+                const [orders, totalOrders] = yield Promise.all([
+                    prisma_1.default.order.findMany({
+                        where,
+                        orderBy: { createdAt: 'desc' },
+                        skip,
+                        take: validatedLimit,
+                        select: {
+                            orderId: true,
+                            sellerName: true,
+                            sellerPhoneNo: true,
+                            actualCommission: true,
+                            createdAt: true,
+                            orderStatus: true,
+                            OrderProduct: {
+                                select: {
+                                    productName: true,
+                                    productImage: true,
+                                    productQuantity: true,
+                                },
+                            },
+                        },
+                    }),
+                    prisma_1.default.order.count({ where }),
+                ]);
+                // Add level information to each order
+                const processedOrders = orders.map(order => {
+                    var _a;
+                    const sellerLevel = ((_a = referredSellerPhones.find(ref => ref.phoneNo === order.sellerPhoneNo)) === null || _a === void 0 ? void 0 : _a.level) || 0;
+                    return {
+                        orderId: order.orderId,
+                        sellerName: order.sellerName,
+                        sellerPhoneNo: order.sellerPhoneNo,
+                        sellerLevel: sellerLevel,
+                        orderStatus: order.orderStatus,
+                        commission: order.actualCommission,
+                        createdAt: order.createdAt,
+                        products: order.OrderProduct.map(product => ({
+                            name: product.productName,
+                            image: product.productImage,
+                            quantity: product.productQuantity,
+                        })),
+                    };
+                });
+                return {
+                    orders: processedOrders,
+                    totalOrders,
+                    currentPage: validatedPage,
+                    totalPages: Math.ceil(totalOrders / validatedLimit) || 1,
+                    pageSize: validatedLimit,
+                };
+            }
+            catch (error) {
+                if (error instanceof ApiError_1.default) {
+                    throw error;
+                }
+                throw new ApiError_1.default(500, 'Failed to fetch referral orders');
+            }
+        });
+    }
+    getAllCustomerOrdersForSeller(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ sellerId, page = 1, limit = 10, }) {
+            const user = yield user_services_1.default.getUserById(sellerId);
+            if (!user) {
+                throw new ApiError_1.default(404, 'User not found');
+            }
+            const where = {
+                sellerId,
+                orderType: 'CUSTOMER_ORDER',
+            };
+            const skip = (Math.max(1, page) - 1) * Math.min(Math.max(1, limit), 100);
+            const orders = yield prisma_1.default.order.findMany({
+                where,
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take: Math.min(Math.max(1, limit), 100),
+                select: {
+                    orderId: true,
+                    customerName: true,
+                    customerPhoneNo: true,
+                    actualCommission: true,
+                    createdAt: true,
+                    orderStatus: true,
+                    OrderProduct: {
+                        select: {
+                            productName: true,
+                            productImage: true,
+                            productQuantity: true,
+                        },
+                    },
+                },
+            });
+            const totalOrders = yield prisma_1.default.order.count({ where });
+            return {
+                orders,
+                totalOrders,
+                currentPage: Math.max(1, page),
+                totalPages: Math.ceil(totalOrders / Math.min(Math.max(1, limit), 100)),
+                pageSize: Math.min(Math.max(1, limit), 100),
             };
         });
     }

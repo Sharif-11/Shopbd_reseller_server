@@ -488,6 +488,27 @@ class UserManagementServices {
     )
     return { customer, token }
   }
+  async updateCustomerProfile({
+    customerId,
+    customerName,
+  }: {
+    customerId: string
+    customerName: string
+  }) {
+    const customer = await prisma.customer.findUnique({
+      where: { customerId },
+    })
+    if (!customer) {
+      throw new ApiError(404, 'Customer not found')
+    }
+    await prisma.customer.update({
+      where: { customerId },
+      data: { customerName },
+    })
+    return customer
+
+    // Update customer profile logic here
+  }
 
   public async getCustomerByPhoneNo({
     customerPhoneNo,
@@ -1806,37 +1827,41 @@ class UserManagementServices {
     }
   }
   /**
- * Find all referred seller phone numbers by a specific seller up to a certain level
- */
-async getReferredSellerPhonesByLevel({
-  sellerPhoneNo,
-  level,
-}: {
-  sellerPhoneNo: string
-  level: number
-}): Promise<Array<{
-  phoneNo: string
-  level: number
-}>> {
-  // Verify the seller exists
-  const seller = await prisma.user.findUnique({
-    where: { phoneNo: sellerPhoneNo, role: UserType.Seller },
-    select: { phoneNo: true }
-  })
-
-  if (!seller) {
-    throw new ApiError(404, 'Seller not found')
-  }
-
-  if (level < 1) {
-    throw new ApiError(400, 'Level must be at least 1')
-  }
-
-  // Recursive query to get all referred seller phone numbers up to the specified level
-  const referredSellerPhones = await prisma.$queryRaw<Array<{
-    phoneNo: string
+   * Find all referred seller phone numbers by a specific seller up to a certain level
+   */
+  async getReferredSellerPhonesByLevel({
+    sellerPhoneNo,
+    level,
+  }: {
+    sellerPhoneNo: string
     level: number
-  }>>`
+  }): Promise<
+    Array<{
+      phoneNo: string
+      level: number
+    }>
+  > {
+    // Verify the seller exists
+    const seller = await prisma.user.findUnique({
+      where: { phoneNo: sellerPhoneNo, role: UserType.Seller },
+      select: { phoneNo: true },
+    })
+
+    if (!seller) {
+      throw new ApiError(404, 'Seller not found')
+    }
+
+    if (level < 1) {
+      throw new ApiError(400, 'Level must be at least 1')
+    }
+
+    // Recursive query to get all referred seller phone numbers up to the specified level
+    const referredSellerPhones = await prisma.$queryRaw<
+      Array<{
+        phoneNo: string
+        level: number
+      }>
+    >`
     WITH RECURSIVE referral_tree AS (
       -- Base case: direct referrals (level 1)
       SELECT 
@@ -1861,8 +1886,69 @@ async getReferredSellerPhonesByLevel({
     ORDER BY level
   `
 
-  return referredSellerPhones
-}
+    return referredSellerPhones
+  }
+  async getReferredCustomersBySeller({
+    sellerId,
+    page = 1,
+    limit = 50,
+    searchTerm,
+  }: {
+    sellerId: string
+    page?: number
+    limit?: number
+    searchTerm?: string
+  }): Promise<{
+    customers: Array<{
+      customerId: string
+      customerName: string | null
+      customerPhoneNo: string
+      createdAt: Date
+    }>
+    totalCount: number
+    totalPages: number
+    currentPage: number
+  }> {
+    const seller = await this.getUserById(sellerId)
+    if (seller.role !== UserType.Seller) {
+      throw new ApiError(400, 'Only sellers have referred customers')
+    }
+    const skip = (page - 1) * limit
+    const where: Prisma.CustomerWhereInput = {
+      sellerId,
+      ...(searchTerm
+        ? {
+            OR: [
+              { customerName: { contains: searchTerm, mode: 'insensitive' } },
+              {
+                customerPhoneNo: { contains: searchTerm, mode: 'insensitive' },
+              },
+            ],
+          }
+        : {}),
+    }
+    const [customers, totalCount] = await prisma.$transaction([
+      prisma.customer.findMany({
+        where,
+        skip,
+        select: {
+          customerId: true,
+          customerPhoneNo: true,
+          customerName: true,
+          createdAt: true,
+        },
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.customer.count({ where }),
+    ])
+    return {
+      customers,
+      totalCount,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page,
+    }
+  }
 }
 
 export default new UserManagementServices()

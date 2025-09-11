@@ -657,5 +657,54 @@ class UserManagementController {
             }
         });
     }
+    getReferredSellersByLevel(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const sellerId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { level, page, limit, search } = req.query;
+                const referredSellers = yield user_services_1.default.getReferredSellersByLevel({
+                    sellerId: sellerId,
+                    level: Number(level) || 1,
+                    page: Number(page) || 1,
+                    limit: Number(limit) || 10,
+                    searchTerm: search || '',
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Referred sellers retrieved successfully',
+                    success: true,
+                    data: referredSellers,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    getReferredCustomersBySeller(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const sellerId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { page, limit, search } = req.query;
+                const referredCustomers = yield user_services_1.default.getReferredCustomersBySeller({
+                    sellerId: sellerId,
+                    page: Number(page) || 1,
+                    limit: Number(limit) || 10,
+                    searchTerm: search || '',
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Referred customers retrieved successfully',
+                    success: true,
+                    data: referredCustomers,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.default = new UserManagementController();

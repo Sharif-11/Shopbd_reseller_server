@@ -149,7 +149,7 @@ class OrderValidator {
                 .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
         ];
     }
-    static getAllReferredOrdersForASeller() {
+    static getAllReferredOrdersForSeller() {
         return [
             (0, express_validator_1.query)('page')
                 .optional()
@@ -159,11 +159,6 @@ class OrderValidator {
                 .optional()
                 .isInt({ min: 1 })
                 .withMessage('সীমা অবশ্যই একটি ধনাত্মক সংখ্যা হতে হবে'),
-            (0, express_validator_1.query)('search')
-                .optional()
-                .isString()
-                .withMessage('অনুসন্ধান শব্দ অবশ্যই স্ট্রিং হতে হবে'),
-            (0, express_validator_1.query)('orderStatus').optional(),
         ];
     }
     static orderPaymentBySeller() {

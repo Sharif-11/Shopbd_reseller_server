@@ -676,6 +676,31 @@ class UserManagementController {
       next(error)
     }
   }
+  async getReferredCustomersBySeller(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const sellerId = req.user?.userId
+      const { page, limit, search } = req.query
+      const referredCustomers =
+        await userManagementServices.getReferredCustomersBySeller({
+          sellerId: sellerId!,
+          page: Number(page) || 1,
+          limit: Number(limit) || 10,
+          searchTerm: (search as string) || '',
+        })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Referred customers retrieved successfully',
+        success: true,
+        data: referredCustomers,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export default new UserManagementController()

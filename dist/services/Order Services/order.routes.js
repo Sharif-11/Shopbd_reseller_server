@@ -24,7 +24,8 @@ class OrderRouter {
         // verifyRole('Customer'),
         order_validator_1.default.createCustomerOrder(), validation_middleware_1.default, order_controllers_1.default.createCustomerOrder);
         this.router.get('/seller', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.getSellerOrders(), validation_middleware_1.default, order_controllers_1.default.getSellerOrders);
-        this.router.get('/seller/referral', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.getAllReferredOrdersForASeller(), validation_middleware_1.default, order_controllers_1.default.getAllReferredOrdersForASeller);
+        this.router.get('/seller/referral', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.getAllReferredOrdersForSeller(), validation_middleware_1.default, order_controllers_1.default.getAllReferredOrdersForSeller);
+        this.router.get('/seller/customer-referral', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.getAllReferredOrdersForSeller(), validation_middleware_1.default, order_controllers_1.default.getAllCustomerOrdersForSeller);
         this.router.get('/customer', order_validator_1.default.getCustomerOrders(), validation_middleware_1.default, order_controllers_1.default.getCustomerOrders);
         this.router.post('/seller/payment', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.orderPaymentBySeller(), validation_middleware_1.default, order_controllers_1.default.orderPaymentBySeller);
         this.router.post('/customer/payment', order_validator_1.default.orderPaymentByCustomer(), validation_middleware_1.default, order_controllers_1.default.orderPaymentByCustomer);

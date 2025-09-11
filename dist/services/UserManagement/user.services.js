@@ -412,6 +412,22 @@ class UserManagementServices {
             return { customer, token };
         });
     }
+    updateCustomerProfile(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ customerId, customerName, }) {
+            const customer = yield prisma_1.default.customer.findUnique({
+                where: { customerId },
+            });
+            if (!customer) {
+                throw new ApiError_1.default(404, 'Customer not found');
+            }
+            yield prisma_1.default.customer.update({
+                where: { customerId },
+                data: { customerName },
+            });
+            return customer;
+            // Update customer profile logic here
+        });
+    }
     getCustomerByPhoneNo(_a) {
         return __awaiter(this, arguments, void 0, function* ({ customerPhoneNo, throwError = true, }) {
             const customer = yield prisma_1.default.customer.findUnique({
@@ -1391,6 +1407,220 @@ class UserManagementServices {
                 totalLevel2Referrals: level2Referrals.length,
                 totalReferredCustomers: referredCustomers,
                 totalReferrals: level1Referrals + level2Referrals.length,
+            };
+        });
+    }
+    /**
+     * Find all referred sellers by a specific seller up to a certain level
+     */
+    /**
+     * Find all referred sellers by a specific seller up to a certain level
+     */
+    /**
+     * Find all referred sellers by a specific seller up to a certain level
+     */
+    getReferredSellersByLevel(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ sellerId, level, page = 1, limit = 50, searchTerm, }) {
+            var _b;
+            // Verify the seller exists
+            const seller = yield prisma_1.default.user.findUnique({
+                where: { userId: sellerId, role: client_1.UserType.Seller },
+                select: { phoneNo: true },
+            });
+            if (!seller) {
+                throw new ApiError_1.default(404, 'Seller not found');
+            }
+            if (level < 1) {
+                throw new ApiError_1.default(400, 'Level must be at least 1');
+            }
+            const skip = (page - 1) * limit;
+            // Check if searchTerm is provided and not empty
+            const hasSearchTerm = searchTerm && searchTerm.trim().length > 0;
+            const searchPattern = hasSearchTerm ? `%${searchTerm.trim()}%` : '';
+            // Recursive query to get all referred sellers up to the specified level
+            const referredSellers = yield prisma_1.default.$queryRaw `
+    WITH RECURSIVE referral_tree AS (
+      -- Base case: direct referrals (level 1)
+      SELECT 
+        u."userId",
+        u."name",
+        u."phoneNo",
+        u."zilla",
+        u."upazilla",
+        u."address",
+        u."createdAt",
+        1 as level
+      FROM "users" u
+      WHERE u."referredByPhone" = ${seller.phoneNo}
+        AND u."role" = 'Seller'
+        ${hasSearchTerm
+                ? client_1.Prisma.sql `AND (
+          u."name" ILIKE ${searchPattern} OR 
+          u."phoneNo" ILIKE ${searchPattern} OR
+          u."zilla" ILIKE ${searchPattern} OR
+          u."upazilla" ILIKE ${searchPattern}
+        )`
+                : client_1.Prisma.empty}
+      
+      UNION ALL
+      
+      -- Recursive case: referrals of referrals
+      SELECT 
+        u."userId",
+        u."name",
+        u."phoneNo",
+        u."zilla",
+        u."upazilla",
+        u."address",
+        u."createdAt",
+        rt.level + 1 as level
+      FROM "users" u
+      INNER JOIN referral_tree rt ON u."referredByPhone" = rt."phoneNo"
+      WHERE rt.level < ${level}
+        AND u."role" = 'Seller'
+        ${hasSearchTerm
+                ? client_1.Prisma.sql `AND (
+          u."name" ILIKE ${searchPattern} OR 
+          u."phoneNo" ILIKE ${searchPattern} OR
+          u."zilla" ILIKE ${searchPattern} OR
+          u."upazilla" ILIKE ${searchPattern}
+        )`
+                : client_1.Prisma.empty}
+    )
+    SELECT * FROM referral_tree
+    ORDER BY level, "createdAt" DESC
+    LIMIT ${limit} OFFSET ${skip}
+  `;
+            // Get total count for pagination
+            const totalCountResult = yield prisma_1.default.$queryRaw `
+    WITH RECURSIVE referral_tree AS (
+      SELECT 
+        u."userId",
+        u."phoneNo",
+        1 as level
+      FROM "users" u
+      WHERE u."referredByPhone" = ${seller.phoneNo}
+        AND u."role" = 'Seller'
+        ${hasSearchTerm
+                ? client_1.Prisma.sql `AND (
+          u."name" ILIKE ${searchPattern} OR 
+          u."phoneNo" ILIKE ${searchPattern} OR
+          u."zilla" ILIKE ${searchPattern} OR
+          u."upazilla" ILIKE ${searchPattern}
+        )`
+                : client_1.Prisma.empty}
+      
+      UNION ALL
+      
+      SELECT 
+        u."userId",
+        u."phoneNo",
+        rt.level + 1 as level
+      FROM "users" u
+      INNER JOIN referral_tree rt ON u."referredByPhone" = rt."phoneNo"
+      WHERE rt.level < ${level}
+        AND u."role" = 'Seller'
+        ${hasSearchTerm
+                ? client_1.Prisma.sql `AND (
+          u."name" ILIKE ${searchPattern} OR 
+          u."phoneNo" ILIKE ${searchPattern} OR
+          u."zilla" ILIKE ${searchPattern} OR
+          u."upazilla" ILIKE ${searchPattern}
+        )`
+                : client_1.Prisma.empty}
+    )
+    SELECT COUNT(*) as count FROM referral_tree
+  `;
+            const totalCount = Number(((_b = totalCountResult[0]) === null || _b === void 0 ? void 0 : _b.count) || 0);
+            return {
+                sellers: referredSellers,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page,
+            };
+        });
+    }
+    /**
+     * Find all referred seller phone numbers by a specific seller up to a certain level
+     */
+    getReferredSellerPhonesByLevel(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ sellerPhoneNo, level, }) {
+            // Verify the seller exists
+            const seller = yield prisma_1.default.user.findUnique({
+                where: { phoneNo: sellerPhoneNo, role: client_1.UserType.Seller },
+                select: { phoneNo: true },
+            });
+            if (!seller) {
+                throw new ApiError_1.default(404, 'Seller not found');
+            }
+            if (level < 1) {
+                throw new ApiError_1.default(400, 'Level must be at least 1');
+            }
+            // Recursive query to get all referred seller phone numbers up to the specified level
+            const referredSellerPhones = yield prisma_1.default.$queryRaw `
+    WITH RECURSIVE referral_tree AS (
+      -- Base case: direct referrals (level 1)
+      SELECT 
+        u."phoneNo",
+        1 as level
+      FROM "users" u
+      WHERE u."referredByPhone" = ${seller.phoneNo}
+        AND u."role" = 'Seller'
+      
+      UNION ALL
+      
+      -- Recursive case: referrals of referrals
+      SELECT 
+        u."phoneNo",
+        rt.level + 1 as level
+      FROM "users" u
+      INNER JOIN referral_tree rt ON u."referredByPhone" = rt."phoneNo"
+      WHERE rt.level < ${level}
+        AND u."role" = 'Seller'
+    )
+    SELECT * FROM referral_tree
+    ORDER BY level
+  `;
+            return referredSellerPhones;
+        });
+    }
+    getReferredCustomersBySeller(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ sellerId, page = 1, limit = 50, searchTerm, }) {
+            const seller = yield this.getUserById(sellerId);
+            if (seller.role !== client_1.UserType.Seller) {
+                throw new ApiError_1.default(400, 'Only sellers have referred customers');
+            }
+            const skip = (page - 1) * limit;
+            const where = Object.assign({ sellerId }, (searchTerm
+                ? {
+                    OR: [
+                        { customerName: { contains: searchTerm, mode: 'insensitive' } },
+                        {
+                            customerPhoneNo: { contains: searchTerm, mode: 'insensitive' },
+                        },
+                    ],
+                }
+                : {}));
+            const [customers, totalCount] = yield prisma_1.default.$transaction([
+                prisma_1.default.customer.findMany({
+                    where,
+                    skip,
+                    select: {
+                        customerId: true,
+                        customerPhoneNo: true,
+                        customerName: true,
+                        createdAt: true,
+                    },
+                    take: limit,
+                    orderBy: { createdAt: 'desc' },
+                }),
+                prisma_1.default.customer.count({ where }),
+            ]);
+            return {
+                customers,
+                totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: page,
             };
         });
     }

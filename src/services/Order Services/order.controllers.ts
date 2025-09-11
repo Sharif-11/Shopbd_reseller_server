@@ -498,6 +498,29 @@ class OrderController {
       next(error)
     }
   }
+  async getAllCustomerOrdersForSeller(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.userId
+      const { page, limit } = req.query
+      const orders = await orderService.getAllCustomerOrdersForSeller({
+        sellerId: userId!,
+        page: Number(page) || 1,
+        limit: Number(limit) || 10,
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'All customer orders retrieved successfully',
+        success: true,
+        data: orders,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
   async checkFraud(req: Request, res: Response, next: NextFunction) {
     try {
       const { phoneNumber } = req.params

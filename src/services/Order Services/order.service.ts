@@ -269,6 +269,13 @@ class OrderService {
           totalProductQuantity: verifiedOrderData.totalProductQuantity,
         },
       })
+      // update customer name if different
+      if (customer?.customerName !== customerName) {
+        await userServices.updateCustomerProfile({
+          customerId: customer?.customerId!,
+          customerName,
+        })
+      }
       // send order notification to admin
 
       return order
@@ -331,6 +338,13 @@ class OrderService {
 
         return order
       })
+      // update customer name if different
+      if (customer?.customerName !== customerName) {
+        await userServices.updateCustomerProfile({
+          customerId: customer?.customerId!,
+          customerName,
+        })
+      }
       return order
     }
 
@@ -1800,10 +1814,14 @@ class OrderService {
             orderId: true,
             sellerName: true,
             sellerPhoneNo: true,
+            actualCommission: true,
+            createdAt: true,
+            orderStatus: true,
             OrderProduct: {
               select: {
                 productName: true,
                 productImage: true,
+                productQuantity: true,
               },
             },
           },
@@ -1822,9 +1840,13 @@ class OrderService {
           sellerName: order.sellerName,
           sellerPhoneNo: order.sellerPhoneNo,
           sellerLevel: sellerLevel,
+          orderStatus: order.orderStatus,
+          commission: order.actualCommission,
+          createdAt: order.createdAt,
           products: order.OrderProduct.map(product => ({
             name: product.productName,
             image: product.productImage,
+            quantity: product.productQuantity,
           })),
         }
       })
@@ -1841,6 +1863,54 @@ class OrderService {
         throw error
       }
       throw new ApiError(500, 'Failed to fetch referral orders')
+    }
+  }
+  public async getAllCustomerOrdersForSeller({
+    sellerId,
+    page = 1,
+    limit = 10,
+  }: {
+    sellerId: string
+    page?: number
+    limit?: number
+  }) {
+    const user = await userServices.getUserById(sellerId)
+    if (!user) {
+      throw new ApiError(404, 'User not found')
+    }
+    const where: Prisma.OrderWhereInput = {
+      sellerId,
+      orderType: 'CUSTOMER_ORDER',
+    }
+    const skip = (Math.max(1, page) - 1) * Math.min(Math.max(1, limit), 100)
+    const orders = await prisma.order.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: Math.min(Math.max(1, limit), 100),
+      select: {
+        orderId: true,
+        customerName: true,
+        customerPhoneNo: true,
+        actualCommission: true,
+        createdAt: true,
+        orderStatus: true,
+        OrderProduct: {
+          select: {
+            productName: true,
+            productImage: true,
+            productQuantity: true,
+          },
+        },
+      },
+    })
+    const totalOrders = await prisma.order.count({ where })
+    return {
+      orders,
+      totalOrders,
+      currentPage: Math.max(1, page),
+      totalPages: Math.ceil(totalOrders / Math.min(Math.max(1, limit), 100)),
+      pageSize: Math.min(Math.max(1, limit), 100),
     }
   }
   async fraudChecker(phoneNumber: string) {

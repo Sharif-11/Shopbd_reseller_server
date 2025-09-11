@@ -478,6 +478,52 @@ class OrderController {
             }
         });
     }
+    getAllReferredOrdersForSeller(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { page, limit } = req.query;
+                const orders = yield order_service_1.orderService.getAllReferredOrdersForSeller({
+                    sellerId: userId,
+                    page: Number(page) || 1,
+                    limit: Number(limit) || 10,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'All referred orders retrieved successfully',
+                    success: true,
+                    data: orders,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    getAllCustomerOrdersForSeller(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { page, limit } = req.query;
+                const orders = yield order_service_1.orderService.getAllCustomerOrdersForSeller({
+                    sellerId: userId,
+                    page: Number(page) || 1,
+                    limit: Number(limit) || 10,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'All customer orders retrieved successfully',
+                    success: true,
+                    data: orders,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     checkFraud(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;

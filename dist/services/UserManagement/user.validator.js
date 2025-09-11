@@ -457,5 +457,61 @@ class UserManagementValidator {
             //   .escape(),
         ];
     }
+    static getReferredSellersByLevel() {
+        return [
+            (0, express_validator_1.query)('level')
+                .notEmpty()
+                .withMessage('Level is required')
+                .isInt({ min: 1, max: 4 })
+                .withMessage('Level must be an integer between 1 and 4')
+                .toInt(),
+            (0, express_validator_1.query)('page')
+                .optional()
+                .isInt({ min: 1 })
+                .withMessage('Page must be a positive integer')
+                .toInt(),
+            (0, express_validator_1.query)('limit')
+                .optional({
+                nullable: true,
+                checkFalsy: true,
+            })
+                .isInt({ min: 1, max: 100 })
+                .withMessage('Limit must be an integer between 1 and 100')
+                .toInt(),
+            (0, express_validator_1.query)('search')
+                .optional({
+                nullable: true,
+                checkFalsy: true,
+            })
+                .isString()
+                .withMessage('Search term must be a string')
+                .trim(),
+        ];
+    }
+    static getReferredCustomersBySeller() {
+        return [
+            (0, express_validator_1.query)('page')
+                .optional()
+                .isInt({ min: 1 })
+                .withMessage('Page must be a positive integer')
+                .toInt(),
+            (0, express_validator_1.query)('limit')
+                .optional({
+                nullable: true,
+                checkFalsy: true,
+            })
+                .isInt({ min: 1, max: 100 })
+                .withMessage('Limit must be an integer between 1 and 100')
+                .toInt(),
+            (0, express_validator_1.query)('search')
+                .optional({
+                nullable: true,
+                checkFalsy: true,
+            })
+                .isString()
+                .withMessage('Search term must be a string')
+                .trim(),
+        ];
+    }
 }
 exports.default = UserManagementValidator;

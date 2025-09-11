@@ -518,6 +518,31 @@ class UserManagementValidator {
         .trim(),
     ]
   }
+  static getReferredCustomersBySeller(): RequestHandler[] {
+    return [
+      query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('Page must be a positive integer')
+        .toInt(),
+      query('limit')
+        .optional({
+          nullable: true,
+          checkFalsy: true,
+        })
+        .isInt({ min: 1, max: 100 })
+        .withMessage('Limit must be an integer between 1 and 100')
+        .toInt(),
+      query('search')
+        .optional({
+          nullable: true,
+          checkFalsy: true,
+        })
+        .isString()
+        .withMessage('Search term must be a string')
+        .trim(),
+    ]
+  }
 }
 
 export default UserManagementValidator
