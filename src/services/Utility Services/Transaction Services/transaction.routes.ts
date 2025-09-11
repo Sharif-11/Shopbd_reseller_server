@@ -34,6 +34,12 @@ class TransactionRouter {
       validateRequest,
       transactionControllers.getAllTransactions,
     )
+    this.router.get(
+      '/seller/income',
+      isAuthenticated,
+      verifyRole('Seller'),
+      transactionControllers.getIncomeStatisticsOfAUser,
+    )
     this.router.patch(
       '/balance/:sellerId',
       isAuthenticated,

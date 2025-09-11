@@ -1814,7 +1814,6 @@ class OrderService {
             orderId: true,
             sellerName: true,
             sellerPhoneNo: true,
-            actualCommission: true,
             createdAt: true,
             orderStatus: true,
             OrderProduct: {
@@ -1838,10 +1837,9 @@ class OrderService {
         return {
           orderId: order.orderId,
           sellerName: order.sellerName,
-          sellerPhoneNo: order.sellerPhoneNo,
+          sellerPhoneNo: sellerLevel === 1 ? order.sellerPhoneNo : null,
           sellerLevel: sellerLevel,
           orderStatus: order.orderStatus,
-          commission: order.actualCommission,
           createdAt: order.createdAt,
           products: order.OrderProduct.map(product => ({
             name: product.productName,
@@ -1895,6 +1893,11 @@ class OrderService {
         actualCommission: true,
         createdAt: true,
         orderStatus: true,
+        deliveryCharge: true,
+        totalProductSellingPrice: true,
+        cashOnAmount: true,
+        amountPaidByCustomer: true,
+        trackingUrl: true,
         OrderProduct: {
           select: {
             productName: true,

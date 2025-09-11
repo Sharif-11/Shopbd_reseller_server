@@ -336,5 +336,65 @@ class TransactionService {
       pageSize: take,
     }
   }
+  public async getIncomeStatisticsOfAUser(userId: string) {
+    // HERE WE NEED income statistics of a user for today, previous day, last 7 days, last 30 days, and all time
+    const now = new Date()
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    )
+    const startOfYesterday = new Date(startOfToday)
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1)
+    const startOfLast7Days = new Date(startOfToday)
+    startOfLast7Days.setDate(startOfLast7Days.getDate() - 7)
+    const startOfLast30Days = new Date(startOfToday)
+    startOfLast30Days.setDate(startOfLast30Days.getDate() - 30)
+
+    const incomeResult = await prisma.transaction.findMany({
+      where: {
+        userId,
+        amount: { gt: 0 },
+      },
+      select: {
+        amount: true,
+        createdAt: true,
+      },
+    })
+    // calculate all time income
+    const allTimeIncome = incomeResult.reduce(
+      (acc, curr) => acc + curr.amount.toNumber(),
+      0,
+    )
+    // now iterate over the time periods and get the income for each period
+    let todayIncome = 0
+    let yesterdayIncome = 0
+    let last7DaysIncome = 0
+    let last30DaysIncome = 0
+    incomeResult.forEach(element => {
+      const createdAt = element.createdAt
+      const amount = element.amount.toNumber()
+      if (createdAt >= startOfToday) {
+        todayIncome += amount
+      }
+      if (createdAt >= startOfYesterday && createdAt < startOfToday) {
+        yesterdayIncome += amount
+      }
+      if (createdAt >= startOfLast7Days) {
+        last7DaysIncome += amount
+      }
+      if (createdAt >= startOfLast30Days) {
+        last30DaysIncome += amount
+      }
+    })
+
+    return {
+      today: todayIncome,
+      yesterday: yesterdayIncome,
+      last7Days: last7DaysIncome,
+      last30Days: last30DaysIncome,
+      allTime: allTimeIncome,
+    }
+  }
 }
 export const transactionServices = new TransactionService()

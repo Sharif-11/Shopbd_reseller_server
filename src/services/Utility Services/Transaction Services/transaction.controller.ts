@@ -82,6 +82,27 @@ class TransactionController {
       next(error)
     }
   }
+  async getIncomeStatisticsOfAUser(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req?.user?.userId
+
+      const statistics = await transactionServices.getIncomeStatisticsOfAUser(
+        userId!,
+      )
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Income statistics retrieved successfully',
+        success: true,
+        data: statistics,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
 export const transactionControllers = new TransactionController()
