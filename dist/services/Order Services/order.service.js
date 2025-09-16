@@ -68,7 +68,7 @@ class OrderService {
             if (!user) {
                 throw new ApiError_1.default(404, 'User not found');
             }
-            const { name: sellerId, balance: sellerBalance, isVerified: sellerVerified, shopName: sellerShopName, phoneNo: sellerPhoneNo, name: sellerName, } = user;
+            const { userId: sellerId, balance: sellerBalance, isVerified: sellerVerified, shopName: sellerShopName, phoneNo: sellerPhoneNo, name: sellerName, } = user;
             // check user blocked
             const isBlocked = yield block_services_1.blockServices.isUserBlocked(sellerPhoneNo, client_1.BlockActionType.ORDER_REQUEST);
             if (isBlocked) {
@@ -96,6 +96,7 @@ class OrderService {
                     orderType: 'SELLER_ORDER',
                 },
             });
+            console.log('existingOrder', existingOrder);
             if (existingOrder) {
                 throw new ApiError_1.default(400, 'আপনার একটি পেমেন্ট করা হয়নি এমন অর্ডার রয়েছে। নতুন অর্ডার করার আগে অনুগ্রহ করে সেটি পেমেন্ট করুন অথবা কনফার্ম করুন।');
             }
@@ -503,7 +504,7 @@ class OrderService {
                     try {
                         const phoneNumbers = yield this.getOrderSmsRecipients();
                         console.clear();
-                        console.log(phoneNumbers);
+                        // console.log(phoneNumbers)
                         yield sms_services_1.default.sendOrderNotificationToAdmin({
                             mobileNo: phoneNumbers,
                             orderId: order.orderId,
@@ -1475,7 +1476,6 @@ class OrderService {
                             orderId: true,
                             sellerName: true,
                             sellerPhoneNo: true,
-                            actualCommission: true,
                             createdAt: true,
                             orderStatus: true,
                             OrderProduct: {
@@ -1496,10 +1496,9 @@ class OrderService {
                     return {
                         orderId: order.orderId,
                         sellerName: order.sellerName,
-                        sellerPhoneNo: order.sellerPhoneNo,
+                        sellerPhoneNo: sellerLevel === 1 ? order.sellerPhoneNo : null,
                         sellerLevel: sellerLevel,
                         orderStatus: order.orderStatus,
-                        commission: order.actualCommission,
                         createdAt: order.createdAt,
                         products: order.OrderProduct.map(product => ({
                             name: product.productName,
@@ -1547,6 +1546,11 @@ class OrderService {
                     actualCommission: true,
                     createdAt: true,
                     orderStatus: true,
+                    deliveryCharge: true,
+                    totalProductSellingPrice: true,
+                    cashOnAmount: true,
+                    amountPaidByCustomer: true,
+                    trackingUrl: true,
                     OrderProduct: {
                         select: {
                             productName: true,
@@ -1583,7 +1587,7 @@ class OrderService {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                 });
-                console.log('Fraud check response:', response.status);
+                // console.log('Fraud check response:', response.status)
                 this.fraudCheckCache.set(phoneNumber, response.data);
                 return response.data;
             }

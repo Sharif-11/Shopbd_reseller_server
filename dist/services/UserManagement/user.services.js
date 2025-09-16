@@ -34,6 +34,7 @@ const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
 const otp_services_1 = __importDefault(require("../Utility Services/otp.services"));
 const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
+const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const block_services_1 = require("./Block Management/block.services");
 class UserManagementServices {
     // create a private method to hash passwords
@@ -314,7 +315,7 @@ class UserManagementServices {
                 }
                 referredByPhone = referrer.phoneNo;
             }
-            return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+            const user = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 // Get or create seller role
                 const sellerRole = yield tx.role.upsert({
                     where: { roleName: 'Seller' },
@@ -362,6 +363,17 @@ class UserManagementServices {
                 const { password } = user, userWithoutPassword = __rest(user, ["password"]);
                 return userWithoutPassword;
             }));
+            // add welcome bonus to the seller wallet
+            if (config_1.default.activateWelcomeBonusForNewSeller &&
+                config_1.default.welcomeBonusAmount &&
+                config_1.default.welcomeBonusAmount > 0) {
+                yield transaction_services_1.transactionServices.addWelcomeBonusToNewSeller({
+                    userId: user.userId,
+                    userName: user.name,
+                    userPhoneNo: user.phoneNo,
+                });
+            }
+            return user;
         });
     }
     /**
@@ -1282,6 +1294,9 @@ class UserManagementServices {
                             },
                         },
                         Wallet: true,
+                        referredBy: {
+                            select: { phoneNo: true, name: true },
+                        },
                     },
                 }),
                 prisma_1.default.user.count({ where }),
@@ -1425,7 +1440,7 @@ class UserManagementServices {
             // Verify the seller exists
             const seller = yield prisma_1.default.user.findUnique({
                 where: { userId: sellerId, role: client_1.UserType.Seller },
-                select: { phoneNo: true },
+                select: { phoneNo: true, name: true },
             });
             if (!seller) {
                 throw new ApiError_1.default(404, 'Seller not found');
@@ -1439,101 +1454,125 @@ class UserManagementServices {
             const searchPattern = hasSearchTerm ? `%${searchTerm.trim()}%` : '';
             // Recursive query to get all referred sellers up to the specified level
             const referredSellers = yield prisma_1.default.$queryRaw `
-    WITH RECURSIVE referral_tree AS (
-      -- Base case: direct referrals (level 1)
-      SELECT 
-        u."userId",
-        u."name",
-        u."phoneNo",
-        u."zilla",
-        u."upazilla",
-        u."address",
-        u."createdAt",
-        1 as level
-      FROM "users" u
-      WHERE u."referredByPhone" = ${seller.phoneNo}
-        AND u."role" = 'Seller'
-        ${hasSearchTerm
+  WITH RECURSIVE referral_tree AS (
+    -- Base case: direct referrals (level 1)
+    SELECT 
+      u."userId",
+      u."name",
+      u."phoneNo",
+      u."zilla",
+      u."upazilla",
+      u."address",
+      u."createdAt",
+      1 as level,
+      ${seller.name} as "referrerName", -- Base referrer is the original seller
+      ${seller.phoneNo} as "referrerPhone"
+    FROM "users" u
+    WHERE u."referredByPhone" = ${seller.phoneNo}
+      AND u."role" = 'Seller'
+      ${hasSearchTerm
                 ? client_1.Prisma.sql `AND (
-          u."name" ILIKE ${searchPattern} OR 
-          u."phoneNo" ILIKE ${searchPattern} OR
-          u."zilla" ILIKE ${searchPattern} OR
-          u."upazilla" ILIKE ${searchPattern}
-        )`
+        u."name" ILIKE ${searchPattern} OR 
+        u."phoneNo" ILIKE ${searchPattern} OR
+        u."zilla" ILIKE ${searchPattern} OR
+        u."upazilla" ILIKE ${searchPattern}
+      )`
                 : client_1.Prisma.empty}
-      
-      UNION ALL
-      
-      -- Recursive case: referrals of referrals
-      SELECT 
-        u."userId",
-        u."name",
-        u."phoneNo",
-        u."zilla",
-        u."upazilla",
-        u."address",
-        u."createdAt",
-        rt.level + 1 as level
-      FROM "users" u
-      INNER JOIN referral_tree rt ON u."referredByPhone" = rt."phoneNo"
-      WHERE rt.level < ${level}
-        AND u."role" = 'Seller'
-        ${hasSearchTerm
+    
+    UNION ALL
+    
+    -- Recursive case: referrals of referrals
+    SELECT 
+      u."userId",
+      u."name",
+      u."phoneNo",
+      u."zilla",
+      u."upazilla",
+      u."address",
+      u."createdAt",
+      rt.level + 1 as level,
+      rt."name" as "referrerName", -- Use the referrer's name from previous level
+      rt."phoneNo" as "referrerPhone" -- Use the referrer's phone from previous level
+    FROM "users" u
+    INNER JOIN referral_tree rt ON u."referredByPhone" = rt."phoneNo"
+    WHERE rt.level < ${level}
+      AND u."role" = 'Seller'
+      ${hasSearchTerm
                 ? client_1.Prisma.sql `AND (
-          u."name" ILIKE ${searchPattern} OR 
-          u."phoneNo" ILIKE ${searchPattern} OR
-          u."zilla" ILIKE ${searchPattern} OR
-          u."upazilla" ILIKE ${searchPattern}
-        )`
+        u."name" ILIKE ${searchPattern} OR 
+        u."phoneNo" ILIKE ${searchPattern} OR
+        u."zilla" ILIKE ${searchPattern} OR
+        u."upazilla" ILIKE ${searchPattern}
+      )`
                 : client_1.Prisma.empty}
-    )
-    SELECT * FROM referral_tree
-    ORDER BY level, "createdAt" DESC
-    LIMIT ${limit} OFFSET ${skip}
-  `;
+  )
+  SELECT * FROM referral_tree
+  ORDER BY level, "createdAt" DESC
+  LIMIT ${limit} OFFSET ${skip}
+`;
             // Get total count for pagination
             const totalCountResult = yield prisma_1.default.$queryRaw `
-    WITH RECURSIVE referral_tree AS (
-      SELECT 
-        u."userId",
-        u."phoneNo",
-        1 as level
-      FROM "users" u
-      WHERE u."referredByPhone" = ${seller.phoneNo}
-        AND u."role" = 'Seller'
-        ${hasSearchTerm
+  WITH RECURSIVE referral_tree AS (
+    SELECT 
+      u."userId",
+      u."phoneNo",
+      1 as level
+    FROM "users" u
+    WHERE u."referredByPhone" = ${seller.phoneNo}
+      AND u."role" = 'Seller'
+      ${hasSearchTerm
                 ? client_1.Prisma.sql `AND (
-          u."name" ILIKE ${searchPattern} OR 
-          u."phoneNo" ILIKE ${searchPattern} OR
-          u."zilla" ILIKE ${searchPattern} OR
-          u."upazilla" ILIKE ${searchPattern}
-        )`
+        u."name" ILIKE ${searchPattern} OR 
+        u."phoneNo" ILIKE ${searchPattern} OR
+        u."zilla" ILIKE ${searchPattern} OR
+        u."upazilla" ILIKE ${searchPattern}
+      )`
                 : client_1.Prisma.empty}
-      
-      UNION ALL
-      
-      SELECT 
-        u."userId",
-        u."phoneNo",
-        rt.level + 1 as level
-      FROM "users" u
-      INNER JOIN referral_tree rt ON u."referredByPhone" = rt."phoneNo"
-      WHERE rt.level < ${level}
-        AND u."role" = 'Seller'
-        ${hasSearchTerm
+    
+    UNION ALL
+    
+    SELECT 
+      u."userId",
+      u."phoneNo",
+      rt.level + 1 as level
+    FROM "users" u
+    INNER JOIN referral_tree rt ON u."referredByPhone" = rt."phoneNo"
+    WHERE rt.level < ${level}
+      AND u."role" = 'Seller'
+      ${hasSearchTerm
                 ? client_1.Prisma.sql `AND (
-          u."name" ILIKE ${searchPattern} OR 
-          u."phoneNo" ILIKE ${searchPattern} OR
-          u."zilla" ILIKE ${searchPattern} OR
-          u."upazilla" ILIKE ${searchPattern}
-        )`
+        u."name" ILIKE ${searchPattern} OR 
+        u."phoneNo" ILIKE ${searchPattern} OR
+        u."zilla" ILIKE ${searchPattern} OR
+        u."upazilla" ILIKE ${searchPattern}
+      )`
                 : client_1.Prisma.empty}
-    )
-    SELECT COUNT(*) as count FROM referral_tree
-  `;
+  )
+  SELECT COUNT(*) as count FROM referral_tree
+`;
             const totalCount = Number(((_b = totalCountResult[0]) === null || _b === void 0 ? void 0 : _b.count) || 0);
+            // now for level other than 1 we need hide the phone no for both seller and referrer due to privacy
+            // i need a map to count total count of sellers for each level
+            const levelCountMap = new Map();
+            referredSellers.forEach(seller => {
+                if (levelCountMap.has(seller.level)) {
+                    levelCountMap.set(seller.level, levelCountMap.get(seller.level) + 1);
+                }
+                else {
+                    levelCountMap.set(seller.level, 1);
+                }
+            });
+            // convert it to an object
+            const levelCountObject = Object.fromEntries(levelCountMap);
+            console.log('Level Count Object:', levelCountObject);
             return {
-                sellers: referredSellers,
+                levelCount: levelCountObject,
+                sellers: referredSellers.map(seller => {
+                    if (seller.level > 1) {
+                        return Object.assign(Object.assign({}, seller), { phoneNo: null, referrerPhone: null });
+                    }
+                    return seller;
+                }),
                 totalCount,
                 totalPages: Math.ceil(totalCount / limit),
                 currentPage: page,

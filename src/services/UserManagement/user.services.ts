@@ -18,6 +18,7 @@ import prisma from '../../utils/prisma'
 import otpServices from '../Utility Services/otp.services'
 
 import SmsServices from '../Utility Services/Sms Service/sms.services'
+import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
 import { blockServices } from './Block Management/block.services'
 import {
   AssignPermissionInput,
@@ -362,7 +363,7 @@ class UserManagementServices {
       referredByPhone = referrer.phoneNo
     }
 
-    return await prisma.$transaction(async tx => {
+    const user = await prisma.$transaction(async tx => {
       // Get or create seller role
       const sellerRole = await tx.role.upsert({
         where: { roleName: 'Seller' },
@@ -429,6 +430,20 @@ class UserManagementServices {
       const { password, ...userWithoutPassword } = user
       return userWithoutPassword
     })
+    // add welcome bonus to the seller wallet
+    if (
+      config.activateWelcomeBonusForNewSeller &&
+      config.welcomeBonusAmount &&
+      config.welcomeBonusAmount > 0
+    ) {
+      await transactionServices.addWelcomeBonusToNewSeller({
+        userId: user.userId,
+        userName: user.name,
+        userPhoneNo: user.phoneNo,
+      })
+    }
+
+    return user
   }
 
   /**
@@ -1493,6 +1508,9 @@ class UserManagementServices {
             },
           },
           Wallet: true,
+          referredBy: {
+            select: { phoneNo: true, name: true },
+          },
         },
       }),
       prisma.user.count({ where }),

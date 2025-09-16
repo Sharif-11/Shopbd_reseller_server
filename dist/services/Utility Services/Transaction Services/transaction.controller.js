@@ -92,5 +92,23 @@ class TransactionController {
             }
         });
     }
+    getIncomeStatisticsOfAUser(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const statistics = yield transaction_services_1.transactionServices.getIncomeStatisticsOfAUser(userId);
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Income statistics retrieved successfully',
+                    success: true,
+                    data: statistics,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
 }
 exports.transactionControllers = new TransactionController();

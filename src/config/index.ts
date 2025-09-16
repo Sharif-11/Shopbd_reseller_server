@@ -45,6 +45,8 @@ export interface IConfig {
   // cloudinaryKey?: string;
   // cloudinarySecret?: string;
   // cloudinaryName?: string;
+  welcomeBonusAmount?: number
+  activateWelcomeBonusForNewSeller?: boolean
 }
 
 const config: IConfig = {
@@ -89,6 +91,12 @@ const config: IConfig = {
   sellerCommissionRate: 1,
   // cloudinarySecret: process.env.CLOUDINARY_SECRET,
   // cloudinaryName: process.env.CLOUDINARY_NAME,
+
+  activateWelcomeBonusForNewSeller:
+    process.env.ACTIVATE_WELCOME_BONUS_FOR_NEW_SELLER === 'true',
+  welcomeBonusAmount: process.env.WELCOME_BONUS_AMOUNT
+    ? parseInt(process.env.WELCOME_BONUS_AMOUNT)
+    : 0,
 }
 
 export default config

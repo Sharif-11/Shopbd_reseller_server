@@ -1,4 +1,5 @@
 import { ActionType, PermissionType, Prisma } from '@prisma/client'
+import config from '../../../config'
 import prisma from '../../../utils/prisma'
 import userServices from '../../UserManagement/user.services'
 
@@ -395,6 +396,39 @@ class TransactionService {
       last30Days: last30DaysIncome,
       allTime: allTimeIncome,
     }
+  }
+  public async addWelcomeBonusToNewSeller({
+    userPhoneNo,
+    userId,
+    userName,
+  }: {
+    userPhoneNo: string
+    userId: string
+    userName: string
+  }) {
+    const amount = config.welcomeBonusAmount || 0
+    if (amount <= 0) {
+      return
+    }
+    // we need to create a transaction and add balance to the user in a transaction
+    await prisma.$transaction(async tx => {
+      // add balance to the user
+      await this.addBalance({
+        userId,
+        amount,
+        tx,
+      })
+      // create a transaction
+      await tx.transaction.create({
+        data: {
+          userId,
+          userPhoneNo,
+          userName,
+          amount,
+          reason: `আপনি Shop BD Reseller Job প্লাটফর্মে নতুন একাউন্ট রেজিস্ট্রেশন করার জন্য ৳${amount} welcome বোনাস পেয়েছেন... সাথে থাকার জন্য ধন্যবাদ 🥰`,
+        },
+      })
+    })
   }
 }
 export const transactionServices = new TransactionService()

@@ -14,6 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.transactionServices = void 0;
 const client_1 = require("@prisma/client");
+const config_1 = __importDefault(require("../../../config"));
 const prisma_1 = __importDefault(require("../../../utils/prisma"));
 const user_services_1 = __importDefault(require("../../UserManagement/user.services"));
 class TransactionService {
@@ -257,6 +258,86 @@ class TransactionService {
                 currentPage: offset + 1,
                 pageSize: take,
             };
+        });
+    }
+    getIncomeStatisticsOfAUser(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // HERE WE NEED income statistics of a user for today, previous day, last 7 days, last 30 days, and all time
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const startOfYesterday = new Date(startOfToday);
+            startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+            const startOfLast7Days = new Date(startOfToday);
+            startOfLast7Days.setDate(startOfLast7Days.getDate() - 7);
+            const startOfLast30Days = new Date(startOfToday);
+            startOfLast30Days.setDate(startOfLast30Days.getDate() - 30);
+            const incomeResult = yield prisma_1.default.transaction.findMany({
+                where: {
+                    userId,
+                    amount: { gt: 0 },
+                },
+                select: {
+                    amount: true,
+                    createdAt: true,
+                },
+            });
+            // calculate all time income
+            const allTimeIncome = incomeResult.reduce((acc, curr) => acc + curr.amount.toNumber(), 0);
+            // now iterate over the time periods and get the income for each period
+            let todayIncome = 0;
+            let yesterdayIncome = 0;
+            let last7DaysIncome = 0;
+            let last30DaysIncome = 0;
+            incomeResult.forEach(element => {
+                const createdAt = element.createdAt;
+                const amount = element.amount.toNumber();
+                if (createdAt >= startOfToday) {
+                    todayIncome += amount;
+                }
+                if (createdAt >= startOfYesterday && createdAt < startOfToday) {
+                    yesterdayIncome += amount;
+                }
+                if (createdAt >= startOfLast7Days) {
+                    last7DaysIncome += amount;
+                }
+                if (createdAt >= startOfLast30Days) {
+                    last30DaysIncome += amount;
+                }
+            });
+            return {
+                today: todayIncome,
+                yesterday: yesterdayIncome,
+                last7Days: last7DaysIncome,
+                last30Days: last30DaysIncome,
+                allTime: allTimeIncome,
+            };
+        });
+    }
+    addWelcomeBonusToNewSeller(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ userPhoneNo, userId, userName, }) {
+            const amount = config_1.default.welcomeBonusAmount || 0;
+            if (amount <= 0) {
+                return;
+            }
+            // we need to create a transaction and add balance to the user in a transaction
+            yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                // add balance to the user
+                yield this.addBalance({
+                    userId,
+                    amount,
+                    tx,
+                });
+                // create a transaction
+                yield tx.transaction.create({
+                    data: {
+                        userId,
+                        userPhoneNo,
+                        userName,
+                        amount,
+                        reason: `আপনি Shop BD Reseller Job প্লাটফর্মে নতুন একাউন্ট রেজিস্ট্রেশন করার জন্য ৳${amount} welcome বোনাস পেয়েছেন... সাথে থাকার জন্য ধন্যবাদ 🥰`,
+                    },
+                });
+            }));
         });
     }
 }

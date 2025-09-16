@@ -78,7 +78,7 @@ class OrderService {
       throw new ApiError(404, 'User not found')
     }
     const {
-      name: sellerId,
+      userId: sellerId,
       balance: sellerBalance,
       isVerified: sellerVerified,
       shopName: sellerShopName,
@@ -117,6 +117,7 @@ class OrderService {
         orderType: 'SELLER_ORDER',
       },
     })
+    console.log('existingOrder', existingOrder)
     if (existingOrder) {
       throw new ApiError(
         400,
@@ -649,7 +650,7 @@ class OrderService {
         try {
           const phoneNumbers = await this.getOrderSmsRecipients()
           console.clear()
-          console.log(phoneNumbers)
+          // console.log(phoneNumbers)
 
           await SmsServices.sendOrderNotificationToAdmin({
             mobileNo: phoneNumbers,
@@ -1937,7 +1938,7 @@ class OrderService {
         },
       )
 
-      console.log('Fraud check response:', response.status)
+      // console.log('Fraud check response:', response.status)
       this.fraudCheckCache.set(phoneNumber, response.data)
       return response.data
     } catch (error) {

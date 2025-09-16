@@ -18,6 +18,7 @@ class TransactionRouter {
         this.router.get('/', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), transaction_validator_1.default.getUserTransactions(), validation_middleware_1.default, transaction_controller_1.transactionControllers.getUserTransactions);
         // Admin transactions routes
         this.router.get('/admin', auth_middlewares_1.isAuthenticated, transaction_validator_1.default.getAllTransactions(), validation_middleware_1.default, transaction_controller_1.transactionControllers.getAllTransactions);
+        this.router.get('/seller/income', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), transaction_controller_1.transactionControllers.getIncomeStatisticsOfAUser);
         this.router.patch('/balance/:sellerId', auth_middlewares_1.isAuthenticated, transaction_validator_1.default.updateBalanceByAdminToSeller(), validation_middleware_1.default, transaction_controller_1.transactionControllers.updateBalanceByAdminToSeller);
     }
     getRouter() {
