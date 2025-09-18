@@ -23,13 +23,20 @@ const shopCategory_services_1 = __importDefault(require("../ProductManagement/sh
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 const axios_1 = __importDefault(require("axios"));
+const lruCache_1 = require("../../utils/lruCache");
 const commission_services_1 = __importDefault(require("../Commission Management/commission.services"));
 const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 class OrderService {
     constructor() {
-        this.fraudCheckCache = new Map();
+        this.fraudCheckCache = new lruCache_1.LRUCache({
+            maxSize: 100,
+            ttl: 3 * 24 * 60 * 60 * 1000, // 3 DAYS
+            onEviction: (key, value) => {
+                console.log(`Evicted fraud check cache entry: ${key}`);
+            },
+        });
     }
     checkExistingTrackingUrl(trackingUrl) {
         return __awaiter(this, void 0, void 0, function* () {

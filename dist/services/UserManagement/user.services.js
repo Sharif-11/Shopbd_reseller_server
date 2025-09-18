@@ -33,6 +33,7 @@ const config_1 = __importDefault(require("../../config"));
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
 const otp_services_1 = __importDefault(require("../Utility Services/otp.services"));
+const generateRandomCode_1 = require("../../utils/generateRandomCode");
 const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const block_services_1 = require("./Block Management/block.services");
@@ -966,16 +967,18 @@ class UserManagementServices {
                 throw new ApiError_1.default(400, 'Seller already has a referral code');
             }
             // Check if referral code already exists
-            const existingReferral = yield prisma_1.default.user.findUnique({
-                where: { referralCode },
-            });
-            if (existingReferral) {
-                throw new ApiError_1.default(400, 'রেফারেল কোড ইতোমধ্যে ব্যবহৃত, অনুগ্রহ করে অন্য একটি বেছে নিন');
-            }
             return yield prisma_1.default.user.update({
                 where: { userId: sellerId, role: client_1.UserType.Seller },
                 data: { referralCode },
             });
+        });
+    }
+    checkReferralCodeExists(referralCode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const existingReferral = yield prisma_1.default.user.findUnique({
+                where: { referralCode },
+            });
+            return !!existingReferral;
         });
     }
     verifySeller(_a) {
@@ -1014,9 +1017,16 @@ class UserManagementServices {
                     throw new ApiError_1.default(403, 'Only sellers can be verified');
                 }
             }
+            let referralCode = (0, generateRandomCode_1.generateRandomCode)(8);
+            while (1) {
+                const exists = yield this.checkReferralCodeExists(referralCode);
+                if (!exists)
+                    break;
+                referralCode = (0, generateRandomCode_1.generateRandomCode)(8);
+            }
             return yield (tx || prisma_1.default).user.update({
                 where: { userId: user.userId },
-                data: { isVerified: true },
+                data: { isVerified: true, referralCode },
             });
         });
     }

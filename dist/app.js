@@ -63,6 +63,43 @@ const corsOptions = {
 app.use((0, cors_1.default)(corsOptions));
 // Routes
 app.use('/api/v1', global_routes_1.default);
+// app.get('/', async (req, res) => {
+//    const result= await prisma.user.findMany({
+//       where: {
+//         isVerified: true,
+//         referralCode: null,
+//       },
+//       select: {
+//         userId: true,
+//       },
+//    })
+//    const referralCodes: Record<string, string> = {}
+//    const uniqueCodes = new Set<string>()
+//     for (const user of result) {
+//       let referralCode = generateRandomCode(8)
+//       while (1) {
+//         referralCode = generateRandomCode(8)
+//         if (!referralCodes[user.userId as string] && !uniqueCodes.has(referralCode)) {
+//           referralCodes[user.userId as string] = referralCode
+//           uniqueCodes.add(referralCode)
+//           break
+//         }
+//       }
+//     }
+//     const updatePromises = result.map(user =>
+//       prisma.user.update({
+//         where: { userId: user.userId },
+//         data: { referralCode: referralCodes[user.userId as string] },
+//       })
+//     )
+//     const results = await Promise.all(updatePromises)
+//    res.status(200).json({
+//       statusCode: 200,
+//       success: true,
+//       message: 'Referral codes generated successfully',
+//       data: results,
+//    })
+// })
 // Health check
 app.get('/health', (req, res) => {
     res.status(200).json({

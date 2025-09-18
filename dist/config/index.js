@@ -55,5 +55,7 @@ const config = {
     welcomeBonusAmount: process.env.WELCOME_BONUS_AMOUNT
         ? parseInt(process.env.WELCOME_BONUS_AMOUNT)
         : 0,
+    localCachePath: './cache/bloom-filter.json',
+    remoteFilePath: process.env.FTP_BLOOM_PATH || '/data/bloom-filters/filter.json',
 };
 exports.default = config;

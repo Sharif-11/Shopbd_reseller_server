@@ -173,6 +173,7 @@ model User {
   Wallet              Wallet[]
 
   @@index([phoneNo], name: "userIndex")
+  @@index([referralCode], name: "referralCodeIndex")
   @@map("users")
 }
 

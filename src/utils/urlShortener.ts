@@ -1,9 +1,5 @@
 import axios from 'axios'
 
-interface ShortenUrlRequest {
-  url: string
-}
-
 // Function to shorten URL using tinyurl API
 async function shortenUrl(originalUrl: string): Promise<string> {
   try {
