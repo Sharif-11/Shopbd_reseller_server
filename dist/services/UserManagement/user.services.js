@@ -973,9 +973,9 @@ class UserManagementServices {
             });
         });
     }
-    checkReferralCodeExists(referralCode) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const existingReferral = yield prisma_1.default.user.findUnique({
+    checkReferralCodeExists(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ tx, referralCode, }) {
+            const existingReferral = yield (tx || prisma_1.default).user.findUnique({
                 where: { referralCode },
             });
             return !!existingReferral;
@@ -1019,7 +1019,7 @@ class UserManagementServices {
             }
             let referralCode = (0, generateRandomCode_1.generateRandomCode)(8);
             while (1) {
-                const exists = yield this.checkReferralCodeExists(referralCode);
+                const exists = yield this.checkReferralCodeExists({ tx, referralCode });
                 if (!exists)
                     break;
                 referralCode = (0, generateRandomCode_1.generateRandomCode)(8);

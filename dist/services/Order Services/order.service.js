@@ -852,11 +852,38 @@ class OrderService {
             }
         });
     }
-    reorderFailedOrder(_a) {
+    reorderFailedOrderBySeller(_a) {
         return __awaiter(this, arguments, void 0, function* ({ userId, orderId, }) {
             const user = yield user_services_1.default.getUserById(userId);
             if (!user) {
                 throw new ApiError_1.default(404, 'User not found');
+            }
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'Order not found');
+            }
+            if (order.orderStatus !== 'FAILED') {
+                throw new ApiError_1.default(400, 'Only failed orders can be reordered');
+            }
+            const updatedOrder = yield prisma_1.default.order.update({
+                where: { orderId },
+                data: {
+                    orderStatus: 'CONFIRMED',
+                    trackingUrl: null,
+                },
+            });
+            return updatedOrder;
+        });
+    }
+    reorderFailedOrderByCustomer(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ customerPhoneNo, orderId, }) {
+            const customer = yield user_services_1.default.getCustomerByPhoneNo({
+                customerPhoneNo,
+            });
+            if (!customer) {
+                throw new ApiError_1.default(404, 'Customer not found');
             }
             const order = yield prisma_1.default.order.findUnique({
                 where: { orderId },

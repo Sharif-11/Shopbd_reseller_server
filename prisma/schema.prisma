@@ -156,6 +156,7 @@ model User {
   zilla               String?
   upazilla            String?
   address             String?
+  profileImage        String?
   referralCode        String?    @unique
   referredBy          User?      @relation("UserReferredBy", fields: [referredByPhone], references: [phoneNo], onDelete: NoAction, onUpdate: Cascade)
   referredByPhone     String?

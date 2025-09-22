@@ -47,20 +47,20 @@ export const calculateTransactionFee = ({
     throw new Error(`নূন্যতম উত্তোলনের পরিমাণ ${config.minWithdrawAmount} টাকা`)
   }
 
-  let transactionFee: number
+  let transactionFee: number = 0
 
-  if (amount <= config.smallAmountThreshold) {
-    transactionFee = config.smallAmountFee
-  } else if (walletName === 'bKash' && amount > config.smallAmountThreshold) {
-    // For bKash, calculate 10 TK for amounts over 1000
-    transactionFee = config.largeAmountFee
-  } else if (walletName === 'Nagad' && amount > config.smallAmountThreshold) {
-    // For Nagad, calculate 5 TK for amounts over 1000
-    transactionFee =
-      Math.floor(amount / 1000) * config.largeAmountFeePerThousand!
-  } else {
-    throw new Error('Invalid amount')
-  }
+  // if (amount <= config.smallAmountThreshold) {
+  //   transactionFee = config.smallAmountFee
+  // } else if (walletName === 'bKash' && amount > config.smallAmountThreshold) {
+  //   // For bKash, calculate 10 TK for amounts over 1000
+  //   transactionFee = config.largeAmountFee
+  // } else if (walletName === 'Nagad' && amount > config.smallAmountThreshold) {
+  //   // For Nagad, calculate 5 TK for amounts over 1000
+  //   transactionFee =
+  //     Math.floor(amount / 1000) * config.largeAmountFeePerThousand!
+  // } else {
+  //   throw new Error('Invalid amount')
+  // }
 
   const actualAmount = amount - transactionFee
 

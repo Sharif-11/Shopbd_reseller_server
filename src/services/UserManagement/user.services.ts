@@ -1099,8 +1099,14 @@ class UserManagementServices {
       data: { referralCode },
     })
   }
-  async checkReferralCodeExists(referralCode: string) {
-    const existingReferral = await prisma.user.findUnique({
+  async checkReferralCodeExists({
+    tx,
+    referralCode,
+  }: {
+    tx?: Prisma.TransactionClient
+    referralCode: string
+  }) {
+    const existingReferral = await (tx || prisma).user.findUnique({
       where: { referralCode },
     })
     return !!existingReferral
@@ -1158,7 +1164,7 @@ class UserManagementServices {
     }
     let referralCode = generateRandomCode(8)
     while (1) {
-      const exists = await this.checkReferralCodeExists(referralCode)
+      const exists = await this.checkReferralCodeExists({ tx, referralCode })
       if (!exists) break
       referralCode = generateRandomCode(8)
     }

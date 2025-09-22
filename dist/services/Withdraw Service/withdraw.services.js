@@ -51,7 +51,7 @@ class WithdrawService {
             // check user block status
             const isBlocked = yield block_services_1.blockServices.isUserBlocked(user.phoneNo, client_1.BlockActionType.WITHDRAW_REQUEST);
             if (isBlocked) {
-                throw new Error('You are blocked from making withdraw requests. Please contact support.');
+                throw new Error('আপনাকে ব্লক করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।');
             }
             // check if user has sufficient balance
             if ((((_b = user.balance) === null || _b === void 0 ? void 0 : _b.toNumber()) || 0) < amount) {

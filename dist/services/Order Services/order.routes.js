@@ -32,7 +32,8 @@ class OrderRouter {
         this.router.post('/seller/cancel', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.cancelOrderBySeller(), validation_middleware_1.default, order_controllers_1.default.cancelOrderBySeller);
         this.router.post('/customer/cancel', order_validator_1.default.cancelOrderByCustomer(), validation_middleware_1.default, order_controllers_1.default.cancelOrderByCustomer);
         this.router.post('/seller/confirm/:orderId', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_validator_1.default.confirmOrderBySeller(), validation_middleware_1.default, order_controllers_1.default.confirmOrderBySeller);
-        this.router.post('/seller/re-order/:orderId', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_controllers_1.default.reorderFailedOrder);
+        this.router.post('/seller/re-order/:orderId', auth_middlewares_1.isAuthenticated, (0, auth_middlewares_1.verifyRole)('Seller'), order_controllers_1.default.reorderFailedOrderBySeller);
+        this.router.post('/customer/re-order/:orderId', order_controllers_1.default.reorderFailedOrderByCustomer);
         // ==========================================
         // ADMIN ORDER MANAGEMENT ROUTES
         // ==========================================

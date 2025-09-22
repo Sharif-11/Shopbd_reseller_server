@@ -1058,7 +1058,7 @@ class OrderService {
       }
     }
   }
-  public async reorderFailedOrder({
+  public async reorderFailedOrderBySeller({
     userId,
     orderId,
   }: {
@@ -1077,6 +1077,38 @@ class OrderService {
       throw new ApiError(404, 'Order not found')
     }
 
+    if (order.orderStatus !== 'FAILED') {
+      throw new ApiError(400, 'Only failed orders can be reordered')
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { orderId },
+      data: {
+        orderStatus: 'CONFIRMED',
+        trackingUrl: null,
+      },
+    })
+    return updatedOrder
+  }
+  public async reorderFailedOrderByCustomer({
+    customerPhoneNo,
+    orderId,
+  }: {
+    customerPhoneNo: string
+    orderId: number
+  }) {
+    const customer = await userServices.getCustomerByPhoneNo({
+      customerPhoneNo,
+    })
+    if (!customer) {
+      throw new ApiError(404, 'Customer not found')
+    }
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+    })
+    if (!order) {
+      throw new ApiError(404, 'Order not found')
+    }
     if (order.orderStatus !== 'FAILED') {
       throw new ApiError(400, 'Only failed orders can be reordered')
     }

@@ -51,11 +51,11 @@ class WithdrawService {
     // check user block status
     const isBlocked = await blockServices.isUserBlocked(
       user.phoneNo,
-      BlockActionType.WITHDRAW_REQUEST,
+      BlockActionType.WITHDRAW_REQUEST
     )
     if (isBlocked) {
       throw new Error(
-        'You are blocked from making withdraw requests. Please contact support.',
+        'আপনাকে ব্লক করা হয়েছে। অনুগ্রহ করে সাপোর্টের সাথে যোগাযোগ করুন।'
       )
     }
     // check if user has sufficient balance
@@ -72,7 +72,7 @@ class WithdrawService {
     await walletServices.checkWalletOwnership(
       user.userId,
       walletPhoneNo,
-      walletName,
+      walletName
     )
     // check if user has a pending withdraw request
     const existingWithdraw = await prisma.withdraw.findFirst({
@@ -84,7 +84,7 @@ class WithdrawService {
     if (existingWithdraw) {
       throw new ApiError(
         400,
-        'You already have a pending withdraw request. Please wait for it to be processed.',
+        'You already have a pending withdraw request. Please wait for it to be processed.'
       )
     }
     // check if user  request two withdraws within 24 hours
@@ -101,7 +101,7 @@ class WithdrawService {
     if (timeDifference && timeDifference < 24 * 60 * 60 * 1000) {
       throw new ApiError(
         400,
-        'You can only request one withdraw every 24 hours. Please try again later.',
+        'You can only request one withdraw every 24 hours. Please try again later.'
       )
     }
 
@@ -120,7 +120,7 @@ class WithdrawService {
     try {
       // send sms notification to  the admin
       const smsRecipients = await userServices.getSmsRecipientsForPermission(
-        PermissionType.WITHDRAWAL_MANAGEMENT,
+        PermissionType.WITHDRAWAL_MANAGEMENT
       )
       console.clear()
 
@@ -147,7 +147,7 @@ class WithdrawService {
     if (withdraw.userId !== userId) {
       throw new ApiError(
         403,
-        'You are not authorized to cancel this withdraw request',
+        'You are not authorized to cancel this withdraw request'
       )
     }
     if (withdraw.withdrawStatus !== 'PENDING') {
@@ -172,7 +172,7 @@ class WithdrawService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.WITHDRAWAL_MANAGEMENT,
-      'APPROVE',
+      'APPROVE'
     )
     const withdraw = await this.getWithdrawById(withdrawId)
     await paymentService.checkExistingTransactionId(transactionId)
@@ -238,7 +238,7 @@ class WithdrawService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.WITHDRAWAL_MANAGEMENT,
-      'REJECT',
+      'REJECT'
     )
     const withdraw = await this.getWithdrawById(withdrawId)
     // check if withdraw is already approved
@@ -347,7 +347,7 @@ class WithdrawService {
     await userServices.verifyUserPermission(
       adminId,
       PermissionType.WITHDRAWAL_MANAGEMENT,
-      'READ',
+      'READ'
     )
     const offset = (page || 1) - 1
     const take = limit || 10

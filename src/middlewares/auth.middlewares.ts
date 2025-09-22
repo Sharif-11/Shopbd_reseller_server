@@ -15,7 +15,7 @@ import prisma from '../utils/prisma'
 export const isAuthenticated = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   const token = req?.cookies?.token || req?.headers.authorization?.split(' ')[1]
 
@@ -44,7 +44,7 @@ export const isAuthenticated = async (
 export const authenticate = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   const token = req?.cookies?.token || req.headers.authorization?.split(' ')[1]
   if (!token) {
@@ -89,7 +89,7 @@ export const verifyRole = (role: UserType | UserType[]) => {
 
 export const verifyPermission = (
   permissionType: PermissionType,
-  actionType: ActionType,
+  actionType: ActionType
 ) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -103,7 +103,7 @@ export const verifyPermission = (
       await userServices.verifyUserPermission(
         userId,
         permissionType,
-        actionType,
+        actionType
       )
 
       // If verification succeeds, proceed to next middleware
@@ -125,12 +125,15 @@ export const verifyAccess = (action: BlockActionType) => {
       }
       const isBlocked = await blockServices.isUserBlocked(
         phoneNo,
-        action as BlockActionType,
+        action as BlockActionType
       )
 
       if (isBlocked) {
         return next(
-          new ApiError(403, 'You are blocked from performing this action'),
+          new ApiError(
+            403,
+            'আপনাকে ব্লক করা হয়েছে। অনুগ্রহ করে সাপোর্ট এর সাথে যোগাযোগ করুন'
+          )
         )
       }
       next()
@@ -139,7 +142,7 @@ export const verifyAccess = (action: BlockActionType) => {
         await userServices.verifyUserPermission(
           req.user?.userId!,
           PermissionType.SUPPORT_TICKET_MANAGEMENT,
-          ActionType.READ,
+          ActionType.READ
         )
         next()
       } catch (error) {

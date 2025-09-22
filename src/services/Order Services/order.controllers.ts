@@ -122,7 +122,7 @@ class OrderController {
   async getAllReferredOrdersForASeller(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const userId = req.user?.userId
@@ -182,7 +182,7 @@ class OrderController {
   async orderPaymentByCustomer(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const {
@@ -278,13 +278,41 @@ class OrderController {
     }
   }
 
-  async reorderFailedOrder(req: Request, res: Response, next: NextFunction) {
+  async reorderFailedOrderBySeller(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const userId = req.user?.userId
       const { orderId } = req.params
 
-      const order = await orderService.reorderFailedOrder({
+      const order = await orderService.reorderFailedOrderBySeller({
         userId: userId!,
+        orderId: Number(orderId),
+      })
+
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Order reordered successfully',
+        success: true,
+        data: order,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async reorderFailedOrderByCustomer(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { phoneNo } = req.body
+      const { orderId } = req.params
+
+      const order = await orderService.reorderFailedOrderByCustomer({
+        customerPhoneNo: phoneNo,
         orderId: Number(orderId),
       })
 
@@ -435,7 +463,7 @@ class OrderController {
   async markOrderAsFailedByAdmin(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const userId = req.user?.userId
@@ -457,13 +485,13 @@ class OrderController {
   async getTrendingTopSellingProducts(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const user = req.user
       const products = await orderService.getTrendingTopSellingProducts(
         30,
-        Boolean(user),
+        Boolean(user)
       )
       res.status(200).json({
         statusCode: 200,
@@ -478,7 +506,7 @@ class OrderController {
   async getAllReferredOrdersForSeller(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const userId = req.user?.userId
@@ -501,7 +529,7 @@ class OrderController {
   async getAllCustomerOrdersForSeller(
     req: Request,
     res: Response,
-    next: NextFunction,
+    next: NextFunction
   ) {
     try {
       const userId = req.user?.userId

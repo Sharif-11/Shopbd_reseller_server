@@ -209,13 +209,19 @@ class UserManagementValidator {
                 .isString()
                 .withMessage('দোকানের নাম অবশ্যই স্ট্রিং হতে হবে'),
             (0, express_validator_1.body)('nomineePhone')
-                .optional()
+                .optional({
+                nullable: true,
+                checkFalsy: true,
+            })
                 .isMobilePhone('bn-BD')
                 .withMessage('সঠিক বাংলাদেশী ফোন নম্বর প্রদান করুন')
                 .isLength({ min: 11, max: 11 })
                 .withMessage('ফোন নম্বরটি অবশ্যই ১১ ডিজিটের হতে হবে'),
             (0, express_validator_1.body)('facebookProfileLink')
-                .optional()
+                .optional({
+                nullable: true,
+                checkFalsy: true,
+            })
                 .isURL()
                 .withMessage('সঠিক ফেসবুক প্রোফাইল লিংক প্রদান করুন'),
         ];

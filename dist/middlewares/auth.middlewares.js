@@ -118,7 +118,7 @@ const verifyAccess = (action) => {
             }
             const isBlocked = yield block_services_1.blockServices.isUserBlocked(phoneNo, action);
             if (isBlocked) {
-                return next(new ApiError_1.default(403, 'You are blocked from performing this action'));
+                return next(new ApiError_1.default(403, 'আপনাকে ব্লক করা হয়েছে। অনুগ্রহ করে সাপোর্ট এর সাথে যোগাযোগ করুন'));
             }
             next();
         }
