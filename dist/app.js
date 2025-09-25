@@ -109,6 +109,14 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
     });
 });
+app.get('/', (req, res) => {
+    res.status(200).json({
+        statusCode: 200,
+        success: true,
+        message: 'Server is running on port ' + config_1.default.port,
+        timestamp: new Date().toISOString(),
+    });
+});
 // Handle 404
 app.all('*', (req, res) => {
     res.status(404).json({

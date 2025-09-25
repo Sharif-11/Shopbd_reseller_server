@@ -1017,12 +1017,12 @@ class UserManagementServices {
                     throw new ApiError_1.default(403, 'Only sellers can be verified');
                 }
             }
-            let referralCode = (0, generateRandomCode_1.generateRandomCode)(8);
+            let referralCode = (0, generateRandomCode_1.generateRandomCode)(4);
             while (1) {
                 const exists = yield this.checkReferralCodeExists({ tx, referralCode });
                 if (!exists)
                     break;
-                referralCode = (0, generateRandomCode_1.generateRandomCode)(8);
+                referralCode = (0, generateRandomCode_1.generateRandomCode)(4);
             }
             return yield (tx || prisma_1.default).user.update({
                 where: { userId: user.userId },

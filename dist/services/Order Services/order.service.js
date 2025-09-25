@@ -274,7 +274,7 @@ class OrderService {
                             sellerId: (customer === null || customer === void 0 ? void 0 : customer.sellerId) || '',
                             sellerName: (customer === null || customer === void 0 ? void 0 : customer.sellerName) || '',
                             sellerPhoneNo: (customer === null || customer === void 0 ? void 0 : customer.sellerPhone) || '',
-                            orderStatus: 'PAID',
+                            orderStatus: 'CONFIRMED',
                             orderType: 'CUSTOMER_ORDER',
                             totalCommission: verifiedOrderData.totalCommission.toNumber() *
                                 config_1.default.sellerCommissionRate,

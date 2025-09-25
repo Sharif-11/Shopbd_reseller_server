@@ -7,6 +7,7 @@ import config from './config'
 import globalErrorHandler from './middlewares/globalErrorHandler'
 import trimRequestBody from './middlewares/trim.middlewares'
 import GlobalRoutes from './routes/global.routes'
+import prisma from './utils/prisma'
 
 const app: Application = express()
 
@@ -117,6 +118,17 @@ app.get('/health', (req, res) => {
   })
 })
 
+app.get('/',  (req, res) => {
+
+
+  res.status(200).json({
+    statusCode: 200,
+    success: true,
+    message: 'Server is running on port ' + config.port,
+    timestamp: new Date().toISOString(),
+  
+  })
+})
 // Handle 404
 app.all('*', (req, res) => {
   res.status(404).json({

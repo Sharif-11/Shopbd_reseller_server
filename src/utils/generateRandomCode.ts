@@ -1,8 +1,6 @@
-export function generateRandomCode(length: number = 5): string {
-  const firstChars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz123456789'
-  const otherChars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+export function generateRandomCode(length: number = 4): string {
+  const firstChars = '123456789'
+  const otherChars = '0123456789'
 
   let result = firstChars.charAt(Math.floor(Math.random() * firstChars.length))
 

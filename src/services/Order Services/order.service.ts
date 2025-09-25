@@ -329,7 +329,7 @@ class OrderService {
             sellerId: customer?.sellerId || '',
             sellerName: customer?.sellerName || '',
             sellerPhoneNo: customer?.sellerPhone || '',
-            orderStatus: 'PAID',
+            orderStatus: 'CONFIRMED',
             orderType: 'CUSTOMER_ORDER',
 
             totalCommission:

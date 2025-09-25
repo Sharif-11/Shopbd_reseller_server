@@ -1162,11 +1162,11 @@ class UserManagementServices {
         throw new ApiError(403, 'Only sellers can be verified')
       }
     }
-    let referralCode = generateRandomCode(8)
+    let referralCode = generateRandomCode(4)
     while (1) {
       const exists = await this.checkReferralCodeExists({ tx, referralCode })
       if (!exists) break
-      referralCode = generateRandomCode(8)
+      referralCode = generateRandomCode(4)
     }
 
     return await (tx || prisma).user.update({
