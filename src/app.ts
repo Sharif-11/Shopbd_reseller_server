@@ -2,12 +2,13 @@ import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express, { Application } from 'express'
 import helmet from 'helmet'
+import swaggerUi from 'swagger-ui-express'
+import swaggerDocument from '../src/swagger.json'
 
 import config from './config'
 import globalErrorHandler from './middlewares/globalErrorHandler'
 import trimRequestBody from './middlewares/trim.middlewares'
 import GlobalRoutes from './routes/global.routes'
-import prisma from './utils/prisma'
 
 const app: Application = express()
 
@@ -67,6 +68,11 @@ const corsOptions: cors.CorsOptions = {
 
 app.use(cors(corsOptions))
 
+const options = {
+  customCss: '.swagger-ui .topbar { display: none }',
+}
+// Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, options))
 // Routes
 app.use('/api/v1', GlobalRoutes)
 // app.get('/', async (req, res) => {
@@ -118,15 +124,12 @@ app.get('/health', (req, res) => {
   })
 })
 
-app.get('/',  (req, res) => {
-
-
+app.get('/', (req, res) => {
   res.status(200).json({
     statusCode: 200,
     success: true,
     message: 'Server is running on port ' + config.port,
     timestamp: new Date().toISOString(),
-  
   })
 })
 // Handle 404

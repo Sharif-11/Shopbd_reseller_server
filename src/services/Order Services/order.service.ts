@@ -342,6 +342,7 @@ class OrderService {
             totalProductSellingPrice:
               verifiedOrderData.totalProductSellingPrice,
             totalProductQuantity: verifiedOrderData.totalProductQuantity,
+            cashOnAmount: verifiedOrderData.totalProductSellingPrice,
           },
         })
         // send order notification to admin

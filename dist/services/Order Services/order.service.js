@@ -283,6 +283,7 @@ class OrderService {
                             totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
                             totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
                             totalProductQuantity: verifiedOrderData.totalProductQuantity,
+                            cashOnAmount: verifiedOrderData.totalProductSellingPrice,
                         },
                     });
                     // send order notification to admin

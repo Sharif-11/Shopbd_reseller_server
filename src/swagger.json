@@ -1,0 +1,1465 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Product Management API",
+    "description": "API for managing products, variants, images, and product listings with multi-role access",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "email": "support@example.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.yourdomain.com/api/v1",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Products",
+      "description": "Product CRUD operations"
+    },
+    {
+      "name": "Variants",
+      "description": "Product variant management"
+    },
+    {
+      "name": "Images",
+      "description": "Product image management"
+    },
+    {
+      "name": "Listings",
+      "description": "Product listing and search"
+    }
+  ],
+  "paths": {
+    "/products": {
+      "post": {
+        "tags": ["Products"],
+        "summary": "Create a new product",
+        "description": "Create a new product with basic information",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "shopId",
+                  "categoryId",
+                  "name",
+                  "description",
+                  "basePrice",
+                  "suggestedMaxPrice"
+                ],
+                "properties": {
+                  "shopId": {
+                    "type": "integer",
+                    "description": "Shop ID where the product belongs"
+                  },
+                  "categoryId": {
+                    "type": "integer",
+                    "description": "Category ID for the product"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "description": "Product name"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Product description"
+                  },
+                  "basePrice": {
+                    "type": "number",
+                    "format": "decimal",
+                    "description": "Base price of the product"
+                  },
+                  "suggestedMaxPrice": {
+                    "type": "number",
+                    "format": "decimal",
+                    "description": "Suggested maximum price (must be greater than basePrice)"
+                  },
+                  "videoUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Optional video URL for the product"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Shop or category not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{productId}": {
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update a product",
+        "description": "Update product information",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID of the product to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 3,
+                    "description": "Product name"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Product description"
+                  },
+                  "basePrice": {
+                    "type": "number",
+                    "format": "decimal",
+                    "description": "Base price of the product"
+                  },
+                  "suggestedMaxPrice": {
+                    "type": "number",
+                    "format": "decimal",
+                    "description": "Suggested maximum price"
+                  },
+                  "videoUrl": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Video URL for the product"
+                  },
+                  "categoryId": {
+                    "type": "integer",
+                    "description": "Category ID"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete a product",
+        "description": "Permanently delete a product and its associated images/variants",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Product deleted successfully"
+          },
+          "400": {
+            "description": "Cannot delete product with active orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{productId}/archive": {
+      "patch": {
+        "tags": ["Products"],
+        "summary": "Archive a product",
+        "description": "Archive a product (soft delete)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Product archived successfully"
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{productId}/restore": {
+      "patch": {
+        "tags": ["Products"],
+        "summary": "Restore an archived product",
+        "description": "Restore a previously archived product",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Product restored successfully"
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{productId}/publish": {
+      "patch": {
+        "tags": ["Products"],
+        "summary": "Toggle publish status",
+        "description": "Publish or unpublish a product",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["publish"],
+                "properties": {
+                  "publish": {
+                    "type": "boolean",
+                    "description": "Set to true to publish, false to unpublish"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Publish status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cannot publish without visible images",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{productId}/variants": {
+      "get": {
+        "tags": ["Variants"],
+        "summary": "Get product variants",
+        "description": "Get all variants for a product grouped by variant name",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Variants retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Variants"],
+        "summary": "Replace all variants",
+        "description": "Replace all variants for a product (delete existing and create new)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["variants"],
+                "properties": {
+                  "variants": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": ["name", "value"],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Variant name (e.g., 'Color', 'Size')"
+                        },
+                        "value": {
+                          "type": "string",
+                          "description": "Variant value (e.g., 'Red', 'Large')"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Variants replaced successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{productId}/images": {
+      "post": {
+        "tags": ["Images"],
+        "summary": "Add images to product",
+        "description": "Add multiple images to a product",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["images"],
+                "properties": {
+                  "images": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "object",
+                      "required": ["url"],
+                      "properties": {
+                        "url": {
+                          "type": "string",
+                          "format": "uri",
+                          "description": "Image URL"
+                        },
+                        "hidden": {
+                          "type": "boolean",
+                          "description": "Whether the image is hidden",
+                          "default": false
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Images added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Images"],
+        "summary": "Get product images",
+        "description": "Get all images for a product",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Images retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Images"],
+        "summary": "Delete all product images",
+        "description": "Delete all images associated with a product",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All images deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/images/{imageId}": {
+      "patch": {
+        "tags": ["Images"],
+        "summary": "Update image properties",
+        "description": "Update image properties like hidden status",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "imageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hidden": {
+                    "type": "boolean",
+                    "description": "Whether to hide the image"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Image updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Images"],
+        "summary": "Delete a specific image",
+        "description": "Delete a single product image",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "imageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cannot delete image associated with orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/admin/{productId}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product details for admin",
+        "description": "Get detailed product information for admin users",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/customer/{productId}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product details for customer",
+        "description": "Get product information for customers (only published products)",
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found or not published",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/seller/{productId}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product details for seller",
+        "description": "Get product information for sellers",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/user/{productId}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product details (auto-detect user type)",
+        "description": "Get product details with automatic user type detection",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "productId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/admin": {
+      "get": {
+        "tags": ["Listings"],
+        "summary": "Get all products for admin",
+        "description": "Get paginated list of products with admin view",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search in product name or description"
+          },
+          {
+            "name": "shopId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Filter by shop ID"
+          },
+          {
+            "name": "published",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter by published status"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/customer": {
+      "get": {
+        "tags": ["Listings"],
+        "summary": "Get all products for customer",
+        "description": "Get paginated list of published products for customers",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/seller": {
+      "get": {
+        "tags": ["Listings"],
+        "summary": "Get all products for seller",
+        "description": "Get paginated list of products for sellers",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "shopId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/user": {
+      "get": {
+        "tags": ["Listings"],
+        "summary": "Get all products (auto-detect user type)",
+        "description": "Get products with automatic user type detection",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "minPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "maxPrice",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "categoryId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "shopId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/latest": {
+      "get": {
+        "tags": ["Listings"],
+        "summary": "Get latest products",
+        "description": "Get recently added products",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 30
+            },
+            "description": "Number of days to look back"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest products retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/archived": {
+      "get": {
+        "tags": ["Listings"],
+        "summary": "Get archived products",
+        "description": "Get all archived products",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archived products retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "integer",
+            "description": "HTTP status code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Response message"
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Success status"
+          },
+          "data": {
+            "type": "object",
+            "description": "Response data"
+          }
+        }
+      },
+      "PaginatedResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "properties": {
+              "page": {
+                "type": "integer",
+                "description": "Current page number"
+              },
+              "limit": {
+                "type": "integer",
+                "description": "Items per page"
+              },
+              "total": {
+                "type": "integer",
+                "description": "Total number of items"
+              },
+              "totalPages": {
+                "type": "integer",
+                "description": "Total number of pages"
+              }
+            }
+          },
+          "userType": {
+            "type": "string",
+            "enum": ["customer", "seller"],
+            "description": "Detected user type"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "integer",
+            "description": "HTTP status code"
+          },
+          "message": {
+            "type": "string",
+            "description": "Error message"
+          },
+          "success": {
+            "type": "boolean",
+            "default": false
+          },
+          "error": {
+            "type": "string",
+            "description": "Error details"
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "integer",
+            "description": "Unique product identifier"
+          },
+          "shopId": {
+            "type": "integer",
+            "description": "Shop ID that owns the product"
+          },
+          "categoryId": {
+            "type": "integer",
+            "description": "Category ID"
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name"
+          },
+          "description": {
+            "type": "string",
+            "description": "Product description"
+          },
+          "basePrice": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Base price"
+          },
+          "suggestedMaxPrice": {
+            "type": "number",
+            "format": "decimal",
+            "description": "Suggested maximum price"
+          },
+          "videoUrl": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "Product video URL"
+          },
+          "published": {
+            "type": "boolean",
+            "description": "Whether product is published"
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Whether product is archived"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp"
+          }
+        }
+      },
+      "ProductWithDetails": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Product"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "shop": {
+                "type": "object",
+                "properties": {
+                  "shopName": {
+                    "type": "string"
+                  },
+                  "shopLocation": {
+                    "type": "string"
+                  }
+                }
+              },
+              "category": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                }
+              },
+              "variants": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "description": "Grouped variants by name"
+              },
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "imageUrl": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "imageId": {
+                      "type": "integer"
+                    },
+                    "isPrimary": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
