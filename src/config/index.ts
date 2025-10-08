@@ -50,6 +50,8 @@ export interface IConfig {
 
   localCachePath: string
   remoteFilePath: string
+
+  ttlForNotification?: number
 }
 
 const config: IConfig = {
@@ -103,6 +105,9 @@ const config: IConfig = {
   localCachePath: './cache/bloom-filter.json',
   remoteFilePath:
     process.env.FTP_BLOOM_PATH || '/data/bloom-filters/filter.json',
+  ttlForNotification: !isNaN(Number(process.env.TTL_FOR_NOTIFICATION))
+    ? Number(process.env.TTL_FOR_NOTIFICATION)
+    : 24 * 60 * 60 * 1000, // 1 day
 }
 
 export default config
