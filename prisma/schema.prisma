@@ -191,8 +191,8 @@ model Customer {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  @@index([customerPhoneNo], name: "customerPhoneIndex")
   @@unique([customerPhoneNo, sellerId], name: "uniqueCustomerSeller")
+  @@index([customerPhoneNo], name: "customerPhoneIndex")
   @@map("customers")
 }
 
@@ -279,7 +279,7 @@ model Wallet {
   user   User?   @relation(fields: [userId], references: [userId])
   userId String?
 
-  isActive       Boolean   @default(true) // Flag to indicate if the wallet is active
+  isActive Boolean @default(true) // Flag to indicate if the wallet is active
 
   createdAt DateTime @default(now()) // Timestamp for creation
   updatedAt DateTime @updatedAt // Timestamp for updates
@@ -343,7 +343,7 @@ model Category {
   updatedAt      DateTime       @updatedAt
   Product        Product[]
   shopCategories ShopCategory[]
-  priority      Int?            @default(1)
+  priority       Int?           @default(1)
 
   // Self-referential relationship for parent-child
   parentCategory Category?  @relation("CategoryHierarchy", fields: [parentId], references: [categoryId])
@@ -385,8 +385,8 @@ model Product {
   ProductVariant ProductVariant[]
 
   // soft deletion
-  archived      Boolean  @default(false)
-  archivedAt    DateTime? @updatedAt  
+  archived   Boolean   @default(false)
+  archivedAt DateTime? @updatedAt
 
   @@map("products")
 }
@@ -457,18 +457,18 @@ model Order {
   sellerBalance  Decimal? @default(0.0) @db.Decimal(15, 2) // Balance of the seller
 
   courierName String? // Name of the courier service
-  trackingUrl String?   // URL for tracking the order 
+  trackingUrl String? // URL for tracking the order 
 
-  isDeliveryChargePaid Boolean       @default(false) // Flag to indicate if the delivery charge is paid
+  isDeliveryChargePaid Boolean        @default(false) // Flag to indicate if the delivery charge is paid
   deliveryChargePaidAt DateTime? // Timestamp when the delivery charge was paid
   paymentType          PaymentMethod?
-  paymentVerified      Boolean       @default(false) // Flag to indicate if the payment is verified
-  Payment              Payment?      @relation("OrderPayment")
+  paymentVerified      Boolean        @default(false) // Flag to indicate if the payment is verified
+  Payment              Payment?       @relation("OrderPayment")
 
-  totalProductQuantity     Int     @default(0) // Total quantity of products in the order
-  totalProductSellingPrice Decimal @db.Decimal(15, 2) // Total selling price of products in the order
-  totalProductBasePrice    Decimal @db.Decimal(15, 2) // Total base price of products in the order
-  totalCommission          Decimal @db.Decimal(15, 2) // Total commission for the order
+  totalProductQuantity     Int      @default(0) // Total quantity of products in the order
+  totalProductSellingPrice Decimal  @db.Decimal(15, 2) // Total selling price of products in the order
+  totalProductBasePrice    Decimal  @db.Decimal(15, 2) // Total base price of products in the order
+  totalCommission          Decimal  @db.Decimal(15, 2) // Total commission for the order
   amountPaidByCustomer     Decimal? @db.Decimal(15, 2) // Total amount paid by the customer
   actualCommission         Decimal? @db.Decimal(15, 2) // Actual commission after deductions
   cashOnAmount             Decimal? @db.Decimal(15, 2) // Amount to be collected on delivery
@@ -501,11 +501,10 @@ model OrderProduct {
 // ======================
 
 model Withdraw {
-  withdrawId      String         @id @default(cuid())
-  requestedAt     DateTime       @default(now()) // Timestamp when the withdrawal was requested
-  processedAt     DateTime? // Timestamp when the withdrawal was processed
-  withdrawStatus  WithdrawStatus @default(PENDING) // Status of the withdrawal
- 
+  withdrawId     String         @id @default(cuid())
+  requestedAt    DateTime       @default(now()) // Timestamp when the withdrawal was requested
+  processedAt    DateTime? // Timestamp when the withdrawal was processed
+  withdrawStatus WithdrawStatus @default(PENDING) // Status of the withdrawal
 
   userId              String // Foreign key to User table
   userName            String // Name of the user associated with the withdrawal
@@ -590,6 +589,7 @@ model Commission {
   @@unique([startPrice, endPrice, level], name: "uniqueCommissionRange")
   @@map("commissions")
 }
+
 model Announcements {
   id            Int      @id @default(autoincrement())
   announcements Json[]   @db.JsonB
@@ -599,21 +599,23 @@ model Announcements {
   @@unique([id])
   @@map("announcements")
 }
+
 //Config  Settings
 
 model Config {
-  id        String  @id @default(cuid())  // Better than autoincrement for distributed systems
-  type      String                       // The config type/category
-  content   Json                         // Flexible content storage
-  version   Int     @default(1)          // For versioning/config migrations
-  isActive  Boolean @default(true)       // To toggle configs without deleting
-  
+  id       String  @id @default(cuid()) // Better than autoincrement for distributed systems
+  type     String // The config type/category
+  content  Json // Flexible content storage
+  version  Int     @default(1) // For versioning/config migrations
+  isActive Boolean @default(true) // To toggle configs without deleting
+
   // System metadata
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([type])  // Ensure each config type is unique
+  @@unique([type]) // Ensure each config type is unique
 }
+
 // =============================
 
 //===============================
@@ -622,35 +624,35 @@ model Config {
 
 model SupportTicket {
   // Primary Key
-  ticketId      String         @id @default(cuid())
+  ticketId String @id @default(cuid())
 
   // Ticket Metadata
-  subject       String
-  status        TicketStatus   @default(OPEN)
-  priority      TicketPriority @default(MEDIUM)
-  category      TicketCategory
+  subject  String
+  status   TicketStatus   @default(OPEN)
+  priority TicketPriority @default(MEDIUM)
+  category TicketCategory
 
   // User Context (self-contained)
-  userId        String
-  userType      UserType
-  userName      String
-  userPhone     String
-  userEmail     String?
-  shopName      String?
-  
+  userId    String
+  userType  UserType
+  userName  String
+  userPhone String
+  userEmail String?
+  shopName  String?
+
   // Optional References (as strings, not relations)
-  orderId       String?
-  paymentId     String?
-  productId     String?
+  orderId   String?
+  paymentId String?
+  productId String?
 
   // Timestamps
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  closedAt      DateTime?
-  closedBy      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  closedAt  DateTime?
+  closedBy  String?
 
   // Relations (only within ticket system)
-  messages      TicketMessage[]
+  messages TicketMessage[]
 
   // Indexes
   @@index([userId], name: "ticketUserIndex")
@@ -661,26 +663,26 @@ model SupportTicket {
 
 model TicketMessage {
   // Primary Key
-  messageId     String        @id @default(cuid())
+  messageId String @id @default(cuid())
 
   // Ticket Reference (with explicit relation)
-  ticketId      String
-  ticket        SupportTicket @relation(fields: [ticketId], references: [ticketId])
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [ticketId])
 
   // Sender Info (self-contained)
-  senderId      String
-  senderType    SenderType
-  senderName    String
-  senderEmail   String?
+  senderId    String
+  senderType  SenderType
+  senderName  String
+  senderEmail String?
 
   // Message Content
-  content       String
-  attachments   String[]
+  content     String
+  attachments String[]
 
   // Metadata
-  isRead        Boolean       @default(false)
-  createdAt     DateTime      @default(now())
-  parentId      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  parentId  String?
 
   // Indexes
   @@index([ticketId], name: "messageTicketIndex")
@@ -690,24 +692,69 @@ model TicketMessage {
 
 // Enums (unchanged from previous)
 enum TicketStatus {
-   OPEN 
-   IN_PROGRESS
-   WAITING_RESPONSE
-   RESOLVED
-   CLOSED
+  OPEN
+  IN_PROGRESS
+  WAITING_RESPONSE
+  RESOLVED
+  CLOSED
 }
-enum TicketPriority { 
-LOW
-MEDIUM
-HIGH
-CRITICAL
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
+
 enum TicketCategory {
-   ACCOUNT
-   PAYMENT
-   ORDER
-   PRODUCT
-   WITHDRAWAL
-   TECHNICAL
-   OTHER
+  ACCOUNT
+  PAYMENT
+  ORDER
+  PRODUCT
+  WITHDRAWAL
+  TECHNICAL
+  OTHER
+}
+
+// ======================
+// NOTIFICATION MANAGEMENT
+// ======================
+
+model Notification {
+  notificationId String           @id @default(cuid())
+  type           NotificationType
+  title          String
+  message        String
+  data           Json? // Flexible data storage for additional context
+
+  // Reference to related entities (optional)
+  orderId    Int?
+  paymentId  String?
+  withdrawId String?
+  ticketId   String?
+
+  // Target users (for multiple admins)
+  targetUserIds String[] // Array of user IDs who should receive this notification
+  readBy        String[] // Array of user IDs who have read this notification
+
+  // Delivery status
+  isDelivered Boolean   @default(false)
+  deliveredAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Indexes for better query performance
+  @@index([type], name: "notificationTypeIndex")
+  @@index([createdAt], name: "notificationCreatedAtIndex")
+  @@index([targetUserIds], name: "notificationTargetIndex")
+  @@map("notifications")
+}
+
+enum NotificationType {
+  NEW_ORDER
+  PAYMENT_REQUEST
+  WITHDRAW_REQUEST
+  TICKET_MESSAGE
 }

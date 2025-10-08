@@ -1,0 +1,74 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    # Simulate flash sale traffic pattern
+    - duration: 30
+      arrivalRate: 50  # Immediate high traffic
+      name: "Flash Sale Start"
+    
+    - duration: 60
+      arrivalRate: 80
+      rampTo: 120      # Peak during sale
+      name: "Sale Peak"
+    
+    - duration: 30
+      arrivalRate: 100 # Maximum stress
+      name: "Stress Test"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+  ensure:
+    thresholds:
+      - http.response_time.p95: 200   # Strict for e-commerce
+      - http.response_time.p99: 500
+      - http.error_rate: 0.01         # Max 1% errors
+      - http.request_rate: 80         # Minimum throughput
+
+scenarios:
+  - name: "Flash Sale Browser"
+    weight: 70
+    flow:
+      # Quick product listing view
+      - get:
+          url: "/api/v1/products/customer?categoryId=2&page=1&limit=20"
+          capture:
+            - json: "$.data[0].productId"
+              as: "productId"
+          expect:
+            - statusCode: 200
+
+      - think: 1  # Fast browsing
+
+      # View product details (critical path)
+      - get:
+          url: "/api/v1/products/customer/{{ productId }}"
+          expect:
+            - statusCode: 200
+
+      - think: 2
+
+      # Filter by price (common behavior)
+      - get:
+          url: "/api/v1/products/customer?categoryId=2&minPrice=500&maxPrice=5000&page=1&limit=16"
+          expect:
+            - statusCode: 200
+
+  - name: "Quick Product Viewer"
+    weight: 30
+    flow:
+      # Direct to product page (deep links)
+      - get:
+          url: "/api/v1/products/customer/1"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      # Latest products (new arrivals)
+      - get:
+          url: "/api/v1/products/latest?days=1&limit=12"
+          expect:
+            - statusCode: 200

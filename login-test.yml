@@ -1,0 +1,113 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    # Phase 1: Normal login traffic
+    - duration: 30
+      arrivalRate: 20
+      name: "Normal Login Traffic"
+    
+    # Phase 2: Peak login (morning rush)
+    - duration: 45
+      arrivalRate: 50
+      rampTo: 100
+      name: "Peak Login Hour"
+    
+    # Phase 3: Stress test (flash sale login)
+    - duration: 30
+      arrivalRate: 100
+      rampTo: 200
+      name: "Login Stress Test"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+  ensure:
+    thresholds:
+      - http.response_time.p95: 500
+      - http.response_time.p99: 1000
+      - http.error_rate: 0.02
+      - http.request_rate: 30
+
+scenarios:
+  # Scenario 1: Customer Login (Most Common - 60%)
+  - name: "Customer Login"
+    weight: 60
+
+    flow:
+      # Login as customer
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            phoneNo: "017{{ $randomNumber(10000000, 99999999) }}"
+            password: "TestPassword123!"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+            - hasProperty: "token"
+
+      - think: 2
+
+      # Verify the token works by accessing profile
+      - get:
+          url: "/api/v1/auth/profile"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # Scenario 2: Admin Login (20%)
+  - name: "Admin Login"
+    weight: 20
+
+    flow:
+      # Admin login
+      - post:
+          url: "/api/v1/auth/admin-login"
+          json:
+            phoneNo: "018{{ $randomNumber(10000000, 99999999) }}"
+            password: "AdminPass123!"
+          capture:
+            - json: "$.token"
+              as: "adminToken"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      # Verify admin access
+      - get:
+          url: "/api/v1/auth/profile"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          expect:
+            - statusCode: 200
+
+  # Scenario 3: Seller Login (20%)
+  - name: "Seller Login"
+    weight: 20
+
+    flow:
+      # Seller login
+      - post:
+          url: "/api/v1/auth/login"
+          json:
+            phoneNo: "019{{ $randomNumber(10000000, 99999999) }}"
+            password: "SellerPass123!"
+          capture:
+            - json: "$.token"
+              as: "sellerToken"
+          expect:
+            - statusCode: 200
+
+      - think: 2
+
+      # Verify seller profile
+      - get:
+          url: "/api/v1/auth/profile"
+          headers:
+            Authorization: "Bearer {{ sellerToken }}"
+          expect:
+            - statusCode: 200

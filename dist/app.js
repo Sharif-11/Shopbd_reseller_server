@@ -7,6 +7,8 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const cors_1 = __importDefault(require("cors"));
 const express_1 = __importDefault(require("express"));
 const helmet_1 = __importDefault(require("helmet"));
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const swagger_json_1 = __importDefault(require("../src/swagger.json"));
 const config_1 = __importDefault(require("./config"));
 const globalErrorHandler_1 = __importDefault(require("./middlewares/globalErrorHandler"));
 const trim_middlewares_1 = __importDefault(require("./middlewares/trim.middlewares"));
@@ -61,6 +63,11 @@ const corsOptions = {
     optionsSuccessStatus: 200,
 };
 app.use((0, cors_1.default)(corsOptions));
+const options = {
+    customCss: '.swagger-ui .topbar { display: none }',
+};
+// Swagger UI
+app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swagger_json_1.default, options));
 // Routes
 app.use('/api/v1', global_routes_1.default);
 // app.get('/', async (req, res) => {
