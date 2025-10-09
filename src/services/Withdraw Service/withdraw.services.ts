@@ -11,6 +11,7 @@ import config from '../../config'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
 import paymentService from '../Payment Service/payment.service'
+import { notificationService } from '../Real-Time-Notification/NotificationService'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
 import SmsServices from '../Utility Services/Sms Service/sms.services'
@@ -134,6 +135,20 @@ class WithdrawService {
       console.error('Failed to send SMS notification:', error)
       // Log the error but do not throw it, so the withdraw request can still be processed
     }
+    const admins = await userServices.getUsersWithPermission(
+      PermissionType.WITHDRAWAL_MANAGEMENT,
+      'READ'
+    )
+    const adminIds = admins.map(admin => admin.userId)
+    notificationService.addNotification(
+      {
+        title: 'ব্যালেন্স উত্তোলনের অনুরোধ',
+        message: `${user.name} ব্যালেন্স উত্তোলনের অনুরোধ করেছেন।`,
+        type: 'WITHDRAW_REQUEST',
+      },
+      adminIds
+    )
+
     return withdraw
   }
   public async cancelWithdraw({

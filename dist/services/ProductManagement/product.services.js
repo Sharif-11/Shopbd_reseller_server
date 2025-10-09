@@ -530,6 +530,8 @@ class ProductServices {
     getProductDetail(_a) {
         return __awaiter(this, arguments, void 0, function* ({ userId, productId, }) {
             try {
+                console.clear();
+                console.log('Get product detail called with:', { userId, productId });
                 if (userId) {
                     const product = yield this.getProductDetailForSeller(productId);
                     // Seller or admin view

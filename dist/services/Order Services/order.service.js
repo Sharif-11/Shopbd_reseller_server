@@ -25,16 +25,22 @@ const user_services_1 = __importDefault(require("../UserManagement/user.services
 const axios_1 = __importDefault(require("axios"));
 const lruCache_1 = require("../../utils/lruCache");
 const commission_services_1 = __importDefault(require("../Commission Management/commission.services"));
+const NotificationService_1 = require("../Real-Time-Notification/NotificationService");
 const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
 const wallet_services_1 = __importDefault(require("../WalletManagement/wallet.services"));
 class OrderService {
     constructor() {
         this.fraudCheckCache = new lruCache_1.LRUCache({
-            maxSize: 100,
+            maxSize: 1000,
             ttl: 3 * 24 * 60 * 60 * 1000, // 3 DAYS
             onEviction: (key, value) => {
                 console.log(`Evicted fraud check cache entry: ${key}`);
+            },
+            persistence: {
+                filePath: './cache/fraudCheckCache.json',
+                autoSave: true,
+                saveInterval: 30 * 1000,
             },
         });
     }
@@ -148,6 +154,15 @@ class OrderService {
                     totalProductQuantity: verifiedOrderData.totalProductQuantity,
                 },
             });
+            // send order notification to admin
+            const admins = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.READ);
+            const targetUserIds = admins.map(admin => admin.userId);
+            NotificationService_1.notificationService.addNotification({
+                title: 'New Seller Order',
+                message: `New order #${order.orderId} from seller ${sellerName}.`,
+                orderId: order.orderId,
+                type: 'NEW_ORDER',
+            }, targetUserIds);
             return order;
         });
     }
@@ -231,6 +246,14 @@ class OrderService {
                         customerName,
                     });
                 }
+                const admins = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.READ);
+                const targetUserIds = admins.map(admin => admin.userId);
+                NotificationService_1.notificationService.addNotification({
+                    title: 'New Customer Order',
+                    message: `New order #${order.orderId} from customer ${customerName}.`,
+                    orderId: order.orderId,
+                    type: 'NEW_ORDER',
+                }, targetUserIds);
                 // send order notification to admin
                 return order;
             }
@@ -296,6 +319,14 @@ class OrderService {
                         customerName,
                     });
                 }
+                const admins = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.READ);
+                const targetUserIds = admins.map(admin => admin.userId);
+                NotificationService_1.notificationService.addNotification({
+                    title: 'New Customer Order',
+                    message: `New order #${order.orderId} from customer ${customerName}.`,
+                    orderId: order.orderId,
+                    type: 'NEW_ORDER',
+                }, targetUserIds);
                 return order;
             }
             // now create order connecting with payment
@@ -580,6 +611,14 @@ class OrderService {
                 catch (error) {
                     console.error('Error sending order SMS:', error);
                 }
+                const admins = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.READ);
+                const targetUserIds = admins.map(admin => admin.userId);
+                NotificationService_1.notificationService.addNotification({
+                    title: 'নতুন পেমেন্ট অনুরোধ',
+                    message: `${user.name} অর্ডার #${order.orderId} এর জন্য একটি পেমেন্ট অনুরোধ করেছেন।`,
+                    orderId: order.orderId,
+                    type: 'PAYMENT_REQUEST',
+                }, targetUserIds);
                 return updatedOrder;
             }
         });
@@ -961,6 +1000,7 @@ class OrderService {
                     OrderProduct: true,
                     Payment: true,
                 },
+                orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
             })
                 .then(orders => orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant) }))) }))));
             const totalOrders = yield prisma_1.default.order.count({

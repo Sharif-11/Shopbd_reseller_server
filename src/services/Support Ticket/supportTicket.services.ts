@@ -9,6 +9,7 @@ import {
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
 import { ftpUploader } from '../FtpFileUpload/ftp.services'
+import { notificationService } from '../Real-Time-Notification/NotificationService'
 import userServices from '../UserManagement/user.services'
 
 class SupportTicketService {
@@ -29,7 +30,7 @@ class SupportTicketService {
     await userServices.verifyUserPermission(
       userId,
       'SUPPORT_TICKET_MANAGEMENT',
-      'READ',
+      'READ'
     )
   }
 
@@ -78,7 +79,7 @@ class SupportTicketService {
       orderId?: string
       paymentId?: string
       productId?: string
-    },
+    }
   ) {
     const user = await userServices.getUserById(userId)
     if (!user) {
@@ -88,7 +89,7 @@ class SupportTicketService {
     // Validate attachments
     this.validateAttachmentUrls(attachmentUrls)
 
-    return await prisma.$transaction(async tx => {
+    const ticket = await prisma.$transaction(async tx => {
       const ticket = await tx.supportTicket.create({
         data: {
           subject,
@@ -120,6 +121,23 @@ class SupportTicketService {
 
       return ticket
     })
+    const admins = await userServices.getUsersWithPermission(
+      'SUPPORT_TICKET_MANAGEMENT',
+      'READ'
+    )
+    const adminIds = admins.map(admin => admin.userId)
+    // Notify admins about new ticket
+    // notificationService.addNotification(
+    notificationService.addNotification(
+      {
+        title: 'নতুন সাপোর্ট টিকেট',
+        message: `${user.name} একটি নতুন সাপোর্ট টিকেট তৈরি করেছেন।`,
+        type: 'TICKET_MESSAGE',
+        ticketId: ticket.ticketId,
+      },
+      adminIds
+    )
+    return ticket
   }
 
   public async replyToTicket(
@@ -134,7 +152,7 @@ class SupportTicketService {
       message: string
       attachmentUrls?: string[]
       senderType: SenderType
-    },
+    }
   ) {
     const user = await userServices.getUserById(userId)
     if (!user) {
@@ -155,7 +173,7 @@ class SupportTicketService {
       statusUpdate = 'IN_PROGRESS'
     }
 
-    return await prisma.$transaction(async tx => {
+    const result = await prisma.$transaction(async tx => {
       await tx.supportTicket.update({
         where: { ticketId },
         data: {
@@ -178,6 +196,24 @@ class SupportTicketService {
 
       return newMessage
     })
+    if (senderType === 'SELLER') {
+      const admins = await userServices.getUsersWithPermission(
+        'SUPPORT_TICKET_MANAGEMENT',
+        'READ'
+      )
+      const adminIds = admins.map(admin => admin.userId)
+      // Notify admins about new ticket message
+      notificationService.addNotification(
+        {
+          title: 'নতুন টিকেট মেসেজ',
+          message: `${user.name} টিকেটে একটি নতুন মেসেজ পাঠিয়েছেন।`,
+          type: 'TICKET_MESSAGE',
+          ticketId: ticket.ticketId,
+        },
+        adminIds
+      )
+    }
+    return result
   }
 
   public async closeTicket(userId: string, ticketId: string) {
@@ -263,7 +299,7 @@ class SupportTicketService {
       page?: number
       limit?: number
       search?: string
-    },
+    }
   ) {
     const skip = (page - 1) * limit
     const where: Prisma.SupportTicketWhereInput = { userId }
@@ -314,7 +350,7 @@ class SupportTicketService {
       search?: string
       priority?: TicketPriority | TicketPriority[]
       category?: TicketCategory | TicketCategory[]
-    },
+    }
   ) {
     await this.validateAdminAccess(adminId)
 
@@ -368,7 +404,7 @@ class SupportTicketService {
     await userServices.verifyUserPermission(
       adminId,
       'SUPPORT_TICKET_MANAGEMENT',
-      'DELETE',
+      'DELETE'
     )
 
     if (days < 1) {

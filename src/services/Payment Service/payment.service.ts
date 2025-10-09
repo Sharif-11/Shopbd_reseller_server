@@ -10,6 +10,7 @@ import config from '../../config'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
 import { orderService } from '../Order Services/order.service'
+import { notificationService } from '../Real-Time-Notification/NotificationService'
 import { blockServices } from '../UserManagement/Block Management/block.services'
 import userServices from '../UserManagement/user.services'
 import { transactionServices } from '../Utility Services/Transaction Services/transaction.services'
@@ -77,6 +78,20 @@ class PaymentService {
         sender: 'SELLER',
       },
     })
+    const admins = await userServices.getUsersWithPermission(
+      PermissionType.PAYMENT_MANAGEMENT,
+      'READ',
+    )
+    const adminIds = admins.map(admin => admin.userId)
+    notificationService.addNotification(
+      {
+        title: 'বকেয়া পরিশোধের অনুরোধ',
+        message: `${user.name} বকেয়া পরিশোধের অনুরোধ করেছেন।`,
+        type: 'PAYMENT_REQUEST',
+      },
+      adminIds,
+    )
+
     return payment
   }
   public async createWithdrawPayment({
@@ -121,6 +136,7 @@ class PaymentService {
         userWalletPhoneNo,
       },
     })
+
     return payment
   }
   public async createPayment({
@@ -457,6 +473,27 @@ class PaymentService {
       totalPages: Math.ceil(totalCount / (limit || 10)),
       currentPage: page || 1,
     }
+  }
+  public async getPaymentByIdForAdmin({
+    adminId,
+    paymentId,
+  }: {
+    adminId: string
+    paymentId: string
+  }) {
+    // verify permission
+    await userServices.verifyUserPermission(
+      adminId,
+      PermissionType.PAYMENT_MANAGEMENT,
+      'READ',
+    )
+    const payment = await prisma.payment.findUnique({
+      where: { paymentId },
+    })
+    if (!payment) {
+      throw new ApiError(404, 'Payment not found')
+    }
+    return payment
   }
 }
 

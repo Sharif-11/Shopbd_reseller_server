@@ -16,6 +16,7 @@ exports.supportTicketService = void 0;
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
 const ftp_services_1 = require("../FtpFileUpload/ftp.services");
+const NotificationService_1 = require("../Real-Time-Notification/NotificationService");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 class SupportTicketService {
     constructor() {
@@ -120,7 +121,7 @@ class SupportTicketService {
             }
             // Validate attachments
             this.validateAttachmentUrls(attachmentUrls);
-            return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+            const ticket = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 const ticket = yield tx.supportTicket.create({
                     data: {
                         subject,
@@ -150,6 +151,17 @@ class SupportTicketService {
                 });
                 return ticket;
             }));
+            const admins = yield user_services_1.default.getUsersWithPermission('SUPPORT_TICKET_MANAGEMENT', 'READ');
+            const adminIds = admins.map(admin => admin.userId);
+            // Notify admins about new ticket
+            // notificationService.addNotification(
+            NotificationService_1.notificationService.addNotification({
+                title: 'নতুন সাপোর্ট টিকেট',
+                message: `${user.name} একটি নতুন সাপোর্ট টিকেট তৈরি করেছেন।`,
+                type: 'TICKET_MESSAGE',
+                ticketId: ticket.ticketId,
+            }, adminIds);
+            return ticket;
         });
     }
     replyToTicket(userId_1, _a) {
@@ -170,7 +182,7 @@ class SupportTicketService {
             else if (senderType === 'SYSTEM') {
                 statusUpdate = 'IN_PROGRESS';
             }
-            return yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+            const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 yield tx.supportTicket.update({
                     where: { ticketId },
                     data: {
@@ -191,6 +203,18 @@ class SupportTicketService {
                 });
                 return newMessage;
             }));
+            if (senderType === 'SELLER') {
+                const admins = yield user_services_1.default.getUsersWithPermission('SUPPORT_TICKET_MANAGEMENT', 'READ');
+                const adminIds = admins.map(admin => admin.userId);
+                // Notify admins about new ticket message
+                NotificationService_1.notificationService.addNotification({
+                    title: 'নতুন টিকেট মেসেজ',
+                    message: `${user.name} টিকেটে একটি নতুন মেসেজ পাঠিয়েছেন।`,
+                    type: 'TICKET_MESSAGE',
+                    ticketId: ticket.ticketId,
+                }, adminIds);
+            }
+            return result;
         });
     }
     closeTicket(userId, ticketId) {

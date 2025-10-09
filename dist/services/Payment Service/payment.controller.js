@@ -204,6 +204,28 @@ class PaymentController {
             }
         });
     }
+    getPaymentByIdForAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const adminId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { paymentId } = req.params;
+                const payment = yield payment_service_1.default.getPaymentByIdForAdmin({
+                    adminId: adminId,
+                    paymentId,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Payment retrieved successfully',
+                    success: true,
+                    data: payment,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     createDuePayment(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;

@@ -19,6 +19,7 @@ const config_1 = __importDefault(require("../../config"));
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
 const payment_service_1 = __importDefault(require("../Payment Service/payment.service"));
+const NotificationService_1 = require("../Real-Time-Notification/NotificationService");
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 const sms_services_1 = __importDefault(require("../Utility Services/Sms Service/sms.services"));
@@ -116,6 +117,13 @@ class WithdrawService {
                 console.error('Failed to send SMS notification:', error);
                 // Log the error but do not throw it, so the withdraw request can still be processed
             }
+            const admins = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.WITHDRAWAL_MANAGEMENT, 'READ');
+            const adminIds = admins.map(admin => admin.userId);
+            NotificationService_1.notificationService.addNotification({
+                title: 'ব্যালেন্স উত্তোলনের অনুরোধ',
+                message: `${user.name} ব্যালেন্স উত্তোলনের অনুরোধ করেছেন।`,
+                type: 'WITHDRAW_REQUEST',
+            }, adminIds);
             return withdraw;
         });
     }

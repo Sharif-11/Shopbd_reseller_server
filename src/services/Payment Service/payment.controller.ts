@@ -179,7 +179,7 @@ class PaymentController {
   async getAllPaymentsForAdmin(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const adminId = req.user?.userId
@@ -199,6 +199,28 @@ class PaymentController {
         message: 'Payments retrieved successfully',
         success: true,
         data: result,
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+  async getPaymentByIdForAdmin(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const adminId = req.user?.userId
+      const { paymentId } = req.params
+      const payment = await paymentServices.getPaymentByIdForAdmin({
+        adminId: adminId!,
+        paymentId,
+      })
+      res.status(200).json({
+        statusCode: 200,
+        message: 'Payment retrieved successfully',
+        success: true,
+        data: payment,
       })
     } catch (error) {
       next(error)

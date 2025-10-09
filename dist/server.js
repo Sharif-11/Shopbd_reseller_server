@@ -12,14 +12,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.notificationSocketHandler = exports.io = exports.server = void 0;
 const fs_1 = __importDefault(require("fs"));
+const http_1 = require("http");
 const util_1 = __importDefault(require("util"));
+const socket_io_1 = require("socket.io");
 const app_1 = __importDefault(require("./app"));
 const index_1 = __importDefault(require("./config/index"));
+const NotificationService_1 = require("./services/Real-Time-Notification/NotificationService");
+const SocketHandler_1 = require("./services/Real-Time-Notification/SocketHandler");
 const prisma_1 = __importDefault(require("./utils/prisma"));
+exports.server = (0, http_1.createServer)(app_1.default);
 function bootstrap() {
     return __awaiter(this, void 0, void 0, function* () {
-        let server;
         const logFile = fs_1.default.createWriteStream('application.log', { flags: 'a' });
         // Override console.log
         console.log = function () {
@@ -36,11 +41,11 @@ function bootstrap() {
                 throw error; // This will be caught by the outer try-catch
             }
             // Start the server
-            server = app_1.default.listen(index_1.default.port, () => {
+            exports.server.listen(index_1.default.port, () => {
                 console.log(`Server running on port ${index_1.default.port} in ${index_1.default.env} mode`);
             });
             // Configure server timeout
-            server.timeout = 60000; // 60 seconds
+            exports.server.timeout = 60000; // 60 seconds
             // Handle unhandled rejections
             process.on('unhandledRejection', (reason, promise) => {
                 console.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
@@ -57,9 +62,9 @@ function bootstrap() {
                 console.log(`Received ${signal}, shutting down gracefully...`);
                 try {
                     // Close server
-                    if (server) {
+                    if (exports.server) {
                         yield new Promise((resolve, reject) => {
-                            server.close(err => {
+                            exports.server.close(err => {
                                 if (err) {
                                     console.error('Error while closing server:', err);
                                     reject(err);
@@ -98,4 +103,13 @@ function bootstrap() {
         }
     });
 }
+const io = new socket_io_1.Server(exports.server, {
+    cors: {
+        origin: '*', // Adjust this in production to your client's origin
+        methods: ['GET', 'POST'],
+    },
+});
+exports.io = io;
+const notificationSocketHandler = new SocketHandler_1.NotificationSocketHandler(io, NotificationService_1.notificationService);
+exports.notificationSocketHandler = notificationSocketHandler;
 bootstrap();

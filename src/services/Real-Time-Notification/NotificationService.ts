@@ -1,9 +1,12 @@
 // NotificationService.ts
-import { v4 as uuidv4 } from 'uuid'
 
-import { NotificationType } from '@prisma/client'
+import { v4 as uuidv4 } from 'uuid'
 import config from '../../config'
-import { Notification, NotificationData } from './NotificationTypes'
+import {
+  Notification,
+  NotificationData,
+  NotificationType,
+} from './NotificationTypes'
 import { PersistentFIFOQueue } from './PersistentFIFOQueue'
 import { SocketUser } from './types'
 
@@ -11,6 +14,7 @@ export class NotificationService {
   private notificationQueue: PersistentFIFOQueue<Notification>
   private connectedUsers: Map<string, SocketUser> = new Map()
   private userNotifications: Map<string, Set<string>> = new Map()
+  private cleanupInterval?: NodeJS.Timeout
 
   constructor({
     maxQueueSize = 1000,
@@ -34,11 +38,11 @@ export class NotificationService {
   /**
    * Add a new notification with optional TTL
    */
-  addNotification(
+  async addNotification(
     data: NotificationData,
     targetUserIds: string[],
-    ttl?: number
-  ): string {
+    ttl?: number,
+  ): Promise<string> {
     const notificationId = uuidv4()
     const now = new Date()
 
@@ -52,7 +56,12 @@ export class NotificationService {
       updatedAt: now,
     }
 
-    this.notificationQueue.enqueue(notificationId, notification, undefined, ttl)
+    await this.notificationQueue.enqueue(
+      notificationId,
+      notification,
+      undefined,
+      ttl,
+    )
 
     // Update user notifications mapping
     targetUserIds.forEach(userId => {
@@ -63,7 +72,7 @@ export class NotificationService {
     })
 
     // Send real-time notification to connected users
-    this.sendRealTimeNotification(notification)
+    await this.sendRealTimeNotification(notification)
 
     return notificationId
   }
@@ -73,15 +82,17 @@ export class NotificationService {
    */
   private setupExpirationCleanup(): void {
     // The queue auto-cleans expired items, but we need to clean our mappings
-    setInterval(() => {
-      this.cleanupExpiredMappings()
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupExpiredMappings().catch(error => {
+        console.error('Error cleaning up expired mappings:', error)
+      })
     }, 60000) // Check every minute
   }
 
   /**
    * Clean up user notifications mapping for expired items
    */
-  private cleanupExpiredMappings(): void {
+  private async cleanupExpiredMappings(): Promise<void> {
     const expiredNotifications = new Set<string>()
 
     // Check all tracked notifications and remove expired ones from mappings
@@ -101,7 +112,7 @@ export class NotificationService {
 
     if (expiredNotifications.size > 0) {
       console.log(
-        `Cleaned up ${expiredNotifications.size} expired notification mappings`
+        `Cleaned up ${expiredNotifications.size} expired notification mappings`,
       )
     }
   }
@@ -109,55 +120,59 @@ export class NotificationService {
   /**
    * Get all non-expired notifications for a user
    */
-  getUserNotifications(userId: string): Notification[] {
-    this.cleanupExpiredMappings()
+  async getUserNotifications(userId: string): Promise<Notification[]> {
+    await this.cleanupExpiredMappings()
 
     const userNotificationIds = this.userNotifications.get(userId) || new Set()
     const notifications: Notification[] = []
 
-    userNotificationIds.forEach(notificationId => {
+    for (const notificationId of userNotificationIds) {
       const queueItem = this.notificationQueue.getById(notificationId)
       if (queueItem) {
         notifications.push(queueItem.data)
       }
-    })
+    }
 
     // Sort by creation date, newest first
     return notifications.sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
   }
 
   /**
    * Get unread notifications for a user (non-expired only)
    */
-  getUnreadNotifications(userId: string): Notification[] {
-    return this.getUserNotifications(userId).filter(
-      notification => !notification.readBy.includes(userId)
+  async getUnreadNotifications(userId: string): Promise<Notification[]> {
+    const userNotifications = await this.getUserNotifications(userId)
+    return userNotifications.filter(
+      notification => !notification.readBy.includes(userId),
     )
   }
 
   /**
    * Mark notification as read by user (only if not expired)
    */
-  markAsRead(notificationId: string, userId: string): boolean {
-    const success = this.notificationQueue.updateById(notificationId, item => {
-      const notification = { ...item.data }
+  async markAsRead(notificationId: string, userId: string): Promise<boolean> {
+    const success = await this.notificationQueue.updateById(
+      notificationId,
+      item => {
+        const notification = { ...item.data }
 
-      if (!notification.readBy.includes(userId)) {
-        notification.readBy.push(userId)
-        notification.updatedAt = new Date()
-      }
+        if (!notification.readBy.includes(userId)) {
+          notification.readBy.push(userId)
+          notification.updatedAt = new Date()
+        }
 
-      return { ...item, data: notification }
-    })
+        return { ...item, data: notification }
+      },
+    )
 
     if (success) {
       // Update unread count for connected user
       const user = this.connectedUsers.get(userId)
       if (user) {
-        const unreadCount = this.getUnreadNotifications(userId).length
+        const unreadCount = (await this.getUnreadNotifications(userId)).length
         user.socket.emit('unread_count', unreadCount)
       }
     }
@@ -168,8 +183,8 @@ export class NotificationService {
   /**
    * Mark notification as delivered (only if not expired)
    */
-  markAsDelivered(notificationId: string): boolean {
-    return this.notificationQueue.updateById(notificationId, item => {
+  async markAsDelivered(notificationId: string): Promise<boolean> {
+    return await this.notificationQueue.updateById(notificationId, item => {
       const notification = { ...item.data }
 
       if (!notification.isDelivered) {
@@ -185,18 +200,24 @@ export class NotificationService {
   /**
    * Extend TTL for a notification
    */
-  extendNotificationTTL(
+  async extendNotificationTTL(
     notificationId: string,
-    additionalTime: number
-  ): boolean {
-    return this.notificationQueue.extendTTL(notificationId, additionalTime)
+    additionalTime: number,
+  ): Promise<boolean> {
+    return await this.notificationQueue.extendTTL(
+      notificationId,
+      additionalTime,
+    )
   }
 
   /**
    * Update TTL for a notification
    */
-  updateNotificationTTL(notificationId: string, newTTL: number): boolean {
-    return this.notificationQueue.updateTTL(notificationId, newTTL)
+  async updateNotificationTTL(
+    notificationId: string,
+    newTTL: number,
+  ): Promise<boolean> {
+    return await this.notificationQueue.updateTTL(notificationId, newTTL)
   }
 
   /**
@@ -209,15 +230,15 @@ export class NotificationService {
   /**
    * User connects via socket
    */
-  userConnected(userId: string, socket: any): void {
+  async userConnected(userId: string, socket: any): Promise<void> {
     this.connectedUsers.set(userId, { userId, socket })
 
     // Send all non-expired user notifications on connection
-    const userNotifications = this.getUserNotifications(userId)
+    const userNotifications = await this.getUserNotifications(userId)
     socket.emit('all_notifications', userNotifications)
 
     // Send unread count
-    const unreadCount = this.getUnreadNotifications(userId).length
+    const unreadCount = (await this.getUnreadNotifications(userId)).length
     socket.emit('unread_count', unreadCount)
   }
 
@@ -231,46 +252,52 @@ export class NotificationService {
   /**
    * Send real-time notification to target users
    */
-  private sendRealTimeNotification(notification: Notification): void {
-    notification.targetUserIds.forEach(userId => {
+  private async sendRealTimeNotification(
+    notification: Notification,
+  ): Promise<void> {
+    const promises = notification.targetUserIds.map(async userId => {
       const user = this.connectedUsers.get(userId)
       if (user) {
         user.socket.emit('new_notification', notification)
 
         // Update unread count
-        const unreadCount = this.getUnreadNotifications(userId).length
+        const unreadCount = (await this.getUnreadNotifications(userId)).length
         user.socket.emit('unread_count', unreadCount)
       }
     })
 
+    await Promise.all(promises)
+
     // Mark as delivered for connected users
     const connectedTargetUsers = notification.targetUserIds.filter(userId =>
-      this.connectedUsers.has(userId)
+      this.connectedUsers.has(userId),
     )
 
     if (connectedTargetUsers.length > 0) {
-      this.markAsDelivered(notification.notificationId)
+      await this.markAsDelivered(notification.notificationId)
     }
   }
 
   /**
    * Get notifications by type (non-expired only)
    */
-  getNotificationsByType(type: NotificationType): Notification[] {
+  async getNotificationsByType(
+    type: NotificationType,
+  ): Promise<Notification[]> {
     const allItems = this.notificationQueue.getAll()
     return allItems
       .filter(item => item.data.type === type)
       .map(item => item.data)
       .sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       )
   }
 
   /**
    * Get queue statistics including TTL info
    */
-  getStats() {
+  async getStats() {
     const expiredCount = this.notificationQueue.getExpiredCount()
     const totalCount = this.notificationQueue.totalSize()
 
@@ -287,19 +314,45 @@ export class NotificationService {
   /**
    * Set default TTL for new notifications
    */
-  setDefaultTTL(ttl: number): void {
-    this.notificationQueue.setDefaultTTL(ttl)
+  async setDefaultTTL(ttl: number): Promise<void> {
+    await this.notificationQueue.setDefaultTTL(ttl)
+  }
+
+  /**
+   * Remove notification by ID (regardless of expiration)
+   */
+  async removeNotification(notificationId: string): Promise<boolean> {
+    const success = await this.notificationQueue.removeById(notificationId)
+
+    if (success) {
+      // Clean up from user mappings
+      this.userNotifications.forEach((notificationIds, userId) => {
+        if (notificationIds.has(notificationId)) {
+          notificationIds.delete(notificationId)
+          if (notificationIds.size === 0) {
+            this.userNotifications.delete(userId)
+          }
+        }
+      })
+    }
+
+    return success
   }
 
   /**
    * Cleanup resources
    */
-  destroy(): void {
-    this.notificationQueue.destroy()
+  async destroy(): Promise<void> {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+    }
+    await this.notificationQueue.destroy()
     this.connectedUsers.clear()
     this.userNotifications.clear()
   }
 }
+
+// Create singleton instance
 export const notificationService = new NotificationService({
   maxQueueSize: 10,
   defaultTTL: config.ttlForNotification || 24 * 60 * 60 * 1000, // 1 day

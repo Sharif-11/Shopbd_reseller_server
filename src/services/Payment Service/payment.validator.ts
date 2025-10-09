@@ -250,6 +250,15 @@ class PaymentValidator {
         .withMessage('সীমা অবশ্যই ১ থেকে ১০০ এর মধ্যে হতে হবে'),
     ]
   }
+  static getPaymentByIdForAdmin() {
+    return [
+      param('paymentId')
+        .notEmpty()
+        .withMessage('পেমেন্ট আইডি প্রয়োজন')
+        .isString()
+        .withMessage('পেমেন্ট আইডি অবশ্যই স্ট্রিং হতে হবে'),
+    ]
+  }
 }
 
 export default PaymentValidator

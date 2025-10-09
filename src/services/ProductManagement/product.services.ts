@@ -26,7 +26,7 @@ class ProductServices {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      action,
+      action
     )
   }
 
@@ -44,7 +44,7 @@ class ProductServices {
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
       videoUrl?: string
-    },
+    }
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.CREATE)
 
@@ -101,7 +101,7 @@ class ProductServices {
       suggestedMaxPrice: Prisma.Decimal | number
       videoUrl?: string
       categoryId?: number
-    },
+    }
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
     if (data.categoryId) {
@@ -117,7 +117,7 @@ class ProductServices {
   async togglePublishStatus(
     userId: string,
     productId: number,
-    publish: boolean,
+    publish: boolean
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
     if (publish === true) {
@@ -159,7 +159,7 @@ class ProductServices {
     if (associatedOrders.length > 0) {
       throw new ApiError(
         400,
-        'সক্রিয় অর্ডার থাকার কারণে পণ্যটি মুছে ফেলা যাবে না',
+        'সক্রিয় অর্ডার থাকার কারণে পণ্যটি মুছে ফেলা যাবে না'
       )
     }
 
@@ -178,7 +178,7 @@ class ProductServices {
     // now we need to delete the product image from ftp server
     if (product.ProductImage.length > 0) {
       await ftpUploader.deleteFilesWithUrls(
-        product.ProductImage.map(img => img.imageUrl),
+        product.ProductImage.map(img => img.imageUrl)
       )
     }
     return product
@@ -205,23 +205,20 @@ class ProductServices {
   // ==========================================
 
   async getProductVariants(
-    productId: number,
+    productId: number
   ): Promise<{ [key: string]: string[] }> {
     const variants = await prisma.productVariant.findMany({
       where: { productId },
     })
 
     // Group variants by name
-    const groupedVariants = variants.reduce(
-      (acc, variant) => {
-        if (!acc[variant.name]) {
-          acc[variant.name] = []
-        }
-        acc[variant.name].push(variant.value)
-        return acc
-      },
-      {} as { [key: string]: string[] },
-    )
+    const groupedVariants = variants.reduce((acc, variant) => {
+      if (!acc[variant.name]) {
+        acc[variant.name] = []
+      }
+      acc[variant.name].push(variant.value)
+      return acc
+    }, {} as { [key: string]: string[] })
 
     return groupedVariants
   }
@@ -229,7 +226,7 @@ class ProductServices {
   async replaceVariants(
     userId: string,
     productId: number,
-    variants: { name: string; value: string }[],
+    variants: { name: string; value: string }[]
   ) {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -259,7 +256,7 @@ class ProductServices {
   async addImages(
     userId: string,
     productId: number,
-    images: { url: string; hidden?: boolean }[],
+    images: { url: string; hidden?: boolean }[]
   ) {
     await this.verifyProductPermission(userId, ActionType.CREATE)
 
@@ -300,7 +297,7 @@ class ProductServices {
   async updateImage(
     userId: string,
     imageId: number,
-    data: { hidden?: boolean },
+    data: { hidden?: boolean }
   ) {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -343,17 +340,17 @@ class ProductServices {
       if (product.sellingPrice < foundProduct.basePrice.toNumber()) {
         throw new ApiError(
           400,
-          `Selling price for product ${product.id} must be greater than or equal to base price`,
+          `Selling price for product ${product.id} must be greater than or equal to base price`
         )
       }
 
       const image = foundProduct.ProductImage.some(
-        img => img.imageId === product.imageId,
+        img => img.imageId === product.imageId
       )
       if (!image) {
         throw new ApiError(
           404,
-          `Invalid image ID ${product.imageId} for product ${product.id}`,
+          `Invalid image ID ${product.imageId} for product ${product.id}`
         )
       }
     }
@@ -377,25 +374,25 @@ class ProductServices {
         productBasePrice: foundProduct.basePrice,
         totalProductQuantity: product.quantity,
         totalProductSellingPrice: new Prisma.Decimal(
-          product.sellingPrice * product.quantity,
+          product.sellingPrice * product.quantity
         ),
         totalProductBasePrice: new Prisma.Decimal(
-          foundProduct.basePrice.toNumber() * product.quantity,
+          foundProduct.basePrice.toNumber() * product.quantity
         ),
       }
     })
     // order summary
     const totalProductQuantity = orderProducts.reduce(
       (sum, product) => sum + product.totalProductQuantity,
-      0,
+      0
     )
     const totalProductSellingPrice = orderProducts.reduce(
       (sum, product) => sum.add(product.totalProductSellingPrice),
-      new Prisma.Decimal(0),
+      new Prisma.Decimal(0)
     )
     const totalProductBasePrice = orderProducts.reduce(
       (sum, product) => sum.add(product.totalProductBasePrice),
-      new Prisma.Decimal(0),
+      new Prisma.Decimal(0)
     )
     const totalCommission = totalProductSellingPrice.sub(totalProductBasePrice)
 
@@ -475,7 +472,7 @@ class ProductServices {
         } catch (error) {
           console.error(
             `Failed to delete image ${image.imageId} from FTP:`,
-            error,
+            error
           )
           // Continue with other deletions even if one fails
         }
@@ -493,7 +490,7 @@ class ProductServices {
   // ==========================================
   async getProductDetailForAdmin(
     userId: string,
-    productId: number,
+    productId: number
   ): Promise<
     Product & {
       shop: { shopName: string }
@@ -520,16 +517,13 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce(
-      (acc, variant) => {
-        if (!acc[variant.name]) {
-          acc[variant.name] = []
-        }
-        acc[variant.name].push(variant.value)
-        return acc
-      },
-      {} as Record<string, string[]>,
-    )
+    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
+      if (!acc[variant.name]) {
+        acc[variant.name] = []
+      }
+      acc[variant.name].push(variant.value)
+      return acc
+    }, {} as Record<string, string[]>)
 
     return {
       ...product,
@@ -567,16 +561,13 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found or not published')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce(
-      (acc, variant) => {
-        if (!acc[variant.name]) {
-          acc[variant.name] = []
-        }
-        acc[variant.name].push(variant.value)
-        return acc
-      },
-      {} as Record<string, string[]>,
-    )
+    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
+      if (!acc[variant.name]) {
+        acc[variant.name] = []
+      }
+      acc[variant.name].push(variant.value)
+      return acc
+    }, {} as Record<string, string[]>)
 
     const { basePrice, ...productData } = product
     return {
@@ -625,16 +616,13 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found in your shop')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce(
-      (acc, variant) => {
-        if (!acc[variant.name]) {
-          acc[variant.name] = []
-        }
-        acc[variant.name].push(variant.value)
-        return acc
-      },
-      {} as Record<string, string[]>,
-    )
+    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
+      if (!acc[variant.name]) {
+        acc[variant.name] = []
+      }
+      acc[variant.name].push(variant.value)
+      return acc
+    }, {} as Record<string, string[]>)
 
     return {
       product: {
@@ -653,6 +641,8 @@ class ProductServices {
     productId: number
   }) {
     try {
+      console.clear()
+      console.log('Get product detail called with:', { userId, productId })
       if (userId) {
         const product = await this.getProductDetailForSeller(productId)
         // Seller or admin view
@@ -685,7 +675,7 @@ class ProductServices {
       published?: boolean
       categoryId?: number // Optional for admin view
     },
-    pagination: { page: number; limit: number },
+    pagination: { page: number; limit: number }
   ) {
     await this.verifyProductPermission(adminId, ActionType.READ)
     const where: Prisma.ProductWhereInput = {
@@ -958,7 +948,7 @@ class ProductServices {
     days: number = 30,
     page = 1,
     limit = 10,
-    isSeller: boolean = false,
+    isSeller: boolean = false
   ) {
     try {
       // More robust date calculation using timestamps
@@ -1030,12 +1020,12 @@ class ProductServices {
     filters?: {
       search?: string
     },
-    pagination?: { page: number; limit: number },
+    pagination?: { page: number; limit: number }
   ) {
     await userServices.verifyUserPermission(
       userId!,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.READ,
+      ActionType.READ
     )
     // Fetch archived products
     const products = await prisma.product.findMany({

@@ -1303,11 +1303,24 @@ class UserManagementServices {
                                 },
                             },
                         },
-                        Wallet: true,
+                        Wallet: {
+                            select: {
+                                walletId: true,
+                                walletName: true,
+                                walletPhoneNo: true,
+                            },
+                        },
                         referredBy: {
                             select: { phoneNo: true, name: true },
                         },
+                        // Add referral count
+                        _count: {
+                            select: {
+                                referrals: true, // This will count the number of referrals
+                            },
+                        },
                     },
+                    orderBy: { createdAt: 'desc' },
                 }),
                 prisma_1.default.user.count({ where }),
             ]);
@@ -1332,6 +1345,7 @@ class UserManagementServices {
                     where,
                     skip,
                     take: limit,
+                    orderBy: { createdAt: 'desc' },
                 }),
                 prisma_1.default.customer.count({ where }),
             ]);
@@ -1387,7 +1401,7 @@ class UserManagementServices {
                     last7DaysUsers++;
             }
             return {
-                totalUsers: allUsers.length,
+                totalUsers: allUsers.length + allCustomers.length,
                 totalSellers,
                 totalCustomers: allCustomers.length,
                 totalAdmins,

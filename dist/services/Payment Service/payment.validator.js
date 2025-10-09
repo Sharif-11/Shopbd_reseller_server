@@ -223,5 +223,14 @@ class PaymentValidator {
                 .withMessage('সীমা অবশ্যই ১ থেকে ১০০ এর মধ্যে হতে হবে'),
         ];
     }
+    static getPaymentByIdForAdmin() {
+        return [
+            (0, express_validator_1.param)('paymentId')
+                .notEmpty()
+                .withMessage('পেমেন্ট আইডি প্রয়োজন')
+                .isString()
+                .withMessage('পেমেন্ট আইডি অবশ্যই স্ট্রিং হতে হবে'),
+        ];
+    }
 }
 exports.default = PaymentValidator;

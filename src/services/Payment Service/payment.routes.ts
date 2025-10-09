@@ -21,14 +21,14 @@ class PaymentRouter {
       isAuthenticated,
       PaymentValidator.verifyPaymentByAdmin(),
       validateRequest,
-      paymentControllers.verifyPaymentByAdmin
+      paymentControllers.verifyPaymentByAdmin,
     )
     this.router.post(
       '/admin/reject/:paymentId',
       isAuthenticated,
       // PaymentValidator.rejectPaymentByAdmin(),
       // validateRequest,
-      paymentControllers.rejectPaymentByAdmin
+      paymentControllers.rejectPaymentByAdmin,
     )
 
     // Payment retrieval routes
@@ -37,7 +37,7 @@ class PaymentRouter {
       isAuthenticated,
       PaymentValidator.getAllPaymentsOfAUser(),
       validateRequest,
-      paymentControllers.getAllPaymentsOfAUser
+      paymentControllers.getAllPaymentsOfAUser,
     )
 
     this.router.get(
@@ -45,7 +45,14 @@ class PaymentRouter {
       isAuthenticated,
       PaymentValidator.getAllPaymentsForAdmin(),
       validateRequest,
-      paymentControllers.getAllPaymentsForAdmin
+      paymentControllers.getAllPaymentsForAdmin,
+    )
+    this.router.get(
+      '/admin/:paymentId',
+      isAuthenticated,
+      PaymentValidator.getPaymentByIdForAdmin(),
+      validateRequest,
+      paymentControllers.getPaymentByIdForAdmin,
     )
     this.router.post(
       '/seller/pay-due',
@@ -53,7 +60,7 @@ class PaymentRouter {
       verifyRole('Seller'),
       PaymentValidator.payDueBySeller(),
       validateRequest,
-      paymentControllers.createDuePayment
+      paymentControllers.createDuePayment,
     )
   }
 

@@ -17,6 +17,7 @@ const config_1 = __importDefault(require("../../config"));
 const ApiError_1 = __importDefault(require("../../utils/ApiError"));
 const prisma_1 = __importDefault(require("../../utils/prisma"));
 const order_service_1 = require("../Order Services/order.service");
+const NotificationService_1 = require("../Real-Time-Notification/NotificationService");
 const block_services_1 = require("../UserManagement/Block Management/block.services");
 const user_services_1 = __importDefault(require("../UserManagement/user.services"));
 const transaction_services_1 = require("../Utility Services/Transaction Services/transaction.services");
@@ -63,6 +64,13 @@ class PaymentService {
                     sender: 'SELLER',
                 },
             });
+            const admins = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.PAYMENT_MANAGEMENT, 'READ');
+            const adminIds = admins.map(admin => admin.userId);
+            NotificationService_1.notificationService.addNotification({
+                title: 'বকেয়া পরিশোধের অনুরোধ',
+                message: `${user.name} বকেয়া পরিশোধের অনুরোধ করেছেন।`,
+                type: 'PAYMENT_REQUEST',
+            }, adminIds);
             return payment;
         });
     }
@@ -349,6 +357,19 @@ class PaymentService {
                 totalPages: Math.ceil(totalCount / (limit || 10)),
                 currentPage: page || 1,
             };
+        });
+    }
+    getPaymentByIdForAdmin(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, paymentId, }) {
+            // verify permission
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.PAYMENT_MANAGEMENT, 'READ');
+            const payment = yield prisma_1.default.payment.findUnique({
+                where: { paymentId },
+            });
+            if (!payment) {
+                throw new ApiError_1.default(404, 'Payment not found');
+            }
+            return payment;
         });
     }
 }

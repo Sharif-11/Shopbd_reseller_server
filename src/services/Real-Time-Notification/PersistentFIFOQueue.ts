@@ -1,10 +1,12 @@
 // PersistentFIFOQueue.ts
+import * as fs from 'fs/promises'
+import * as path from 'path'
 import { QueueItem, QueueOptions } from './types'
 
 export class PersistentFIFOQueue<T> {
   private items: QueueItem<T>[] = []
   private maxSize: number
-  private persistenceKey?: string
+  private storagePath?: string
   private autoSave: boolean
   private saveInterval: number
   private defaultTTL: number
@@ -13,7 +15,9 @@ export class PersistentFIFOQueue<T> {
 
   constructor(options: QueueOptions) {
     this.maxSize = options.maxSize
-    this.persistenceKey = options.persistenceKey
+    this.storagePath = options.persistenceKey
+      ? this.getStoragePath(options.persistenceKey)
+      : undefined
     this.autoSave = options.autoSave ?? true
     this.saveInterval = options.saveInterval ?? 5000
     this.defaultTTL = options.defaultTTL ?? 24 * 60 * 60 * 1000 // Default: 1 day
@@ -21,20 +25,43 @@ export class PersistentFIFOQueue<T> {
     this.loadFromStorage()
     this.startAutoCleanup()
 
-    if (this.autoSave && this.persistenceKey) {
+    if (this.autoSave && this.storagePath) {
       this.startAutoSave()
+    }
+  }
+
+  /**
+   * Get storage file path
+   */
+  private getStoragePath(persistenceKey: string): string {
+    // Store in a 'queue-data' directory in the current working directory
+    const dataDir = path.join(process.cwd(), 'queue-data')
+    return path.join(dataDir, `${persistenceKey}.json`)
+  }
+
+  /**
+   * Ensure storage directory exists
+   */
+  private async ensureStorageDir(): Promise<void> {
+    if (!this.storagePath) return
+
+    const dataDir = path.dirname(this.storagePath)
+    try {
+      await fs.access(dataDir)
+    } catch {
+      await fs.mkdir(dataDir, { recursive: true })
     }
   }
 
   /**
    * Add item to queue with TTL
    */
-  enqueue(
+  async enqueue(
     id: string,
     data: T,
     metadata?: Record<string, any>,
     ttl?: number
-  ): void {
+  ): Promise<void> {
     const now = Date.now()
     const itemTTL = ttl ?? this.defaultTTL
 
@@ -56,18 +83,20 @@ export class PersistentFIFOQueue<T> {
     }
 
     this.items.push(item)
-    this.autoSave && this.saveToStorage()
+    if (this.autoSave) {
+      await this.saveToStorage()
+    }
   }
 
   /**
    * Remove and return the oldest non-expired item
    */
-  dequeue(): QueueItem<T> | null {
+  async dequeue(): Promise<QueueItem<T> | null> {
     this.removeExpiredItems()
 
     const item = this.items.shift()
     if (item && this.autoSave) {
-      this.saveToStorage()
+      await this.saveToStorage()
     }
     return item || null
   }
@@ -99,12 +128,12 @@ export class PersistentFIFOQueue<T> {
   /**
    * Remove item by ID (regardless of expiration)
    */
-  removeById(id: string): boolean {
+  async removeById(id: string): Promise<boolean> {
     const initialLength = this.items.length
     this.items = this.items.filter(item => item.id !== id)
 
     if (this.items.length !== initialLength && this.autoSave) {
-      this.saveToStorage()
+      await this.saveToStorage()
       return true
     }
     return false
@@ -113,16 +142,18 @@ export class PersistentFIFOQueue<T> {
   /**
    * Update item by ID (only if not expired)
    */
-  updateById(
+  async updateById(
     id: string,
     updateFn: (item: QueueItem<T>) => QueueItem<T>
-  ): boolean {
+  ): Promise<boolean> {
     this.removeExpiredItems()
 
     const index = this.items.findIndex(item => item.id === id)
     if (index !== -1) {
       this.items[index] = updateFn(this.items[index])
-      this.autoSave && this.saveToStorage()
+      if (this.autoSave) {
+        await this.saveToStorage()
+      }
       return true
     }
     return false
@@ -131,7 +162,7 @@ export class PersistentFIFOQueue<T> {
   /**
    * Update TTL for an item
    */
-  updateTTL(id: string, newTTL: number): boolean {
+  async updateTTL(id: string, newTTL: number): Promise<boolean> {
     return this.updateById(id, item => {
       const now = Date.now()
       return {
@@ -145,7 +176,7 @@ export class PersistentFIFOQueue<T> {
   /**
    * Extend TTL for an item by adding time
    */
-  extendTTL(id: string, additionalTime: number): boolean {
+  async extendTTL(id: string, additionalTime: number): Promise<boolean> {
     return this.updateById(id, item => {
       return {
         ...item,
@@ -158,7 +189,7 @@ export class PersistentFIFOQueue<T> {
   /**
    * Remove expired items from the queue
    */
-  removeExpiredItems(): number {
+  async removeExpiredItems(): Promise<number> {
     const now = Date.now()
     const initialLength = this.items.length
 
@@ -166,7 +197,7 @@ export class PersistentFIFOQueue<T> {
 
     const removedCount = initialLength - this.items.length
     if (removedCount > 0 && this.autoSave) {
-      this.saveToStorage()
+      await this.saveToStorage()
     }
 
     return removedCount
@@ -238,9 +269,11 @@ export class PersistentFIFOQueue<T> {
   /**
    * Clear all items
    */
-  clear(): void {
+  async clear(): Promise<void> {
     this.items = []
-    this.autoSave && this.saveToStorage()
+    if (this.autoSave) {
+      await this.saveToStorage()
+    }
   }
 
   /**
@@ -253,27 +286,34 @@ export class PersistentFIFOQueue<T> {
     }
 
     this.cleanupTimer = setInterval(() => {
-      const removed = this.removeExpiredItems()
-      if (removed > 0) {
-        console.log(`Auto-cleanup removed ${removed} expired items`)
-      }
+      this.removeExpiredItems().then(removed => {
+        if (removed > 0) {
+          console.log(`Auto-cleanup removed ${removed} expired items`)
+        }
+      })
     }, intervalMs)
   }
 
   /**
    * Save to persistent storage
    */
-  saveToStorage(): void {
-    if (!this.persistenceKey) return
+  async saveToStorage(): Promise<void> {
+    if (!this.storagePath) return
 
     try {
-      localStorage.setItem(
-        this.persistenceKey,
-        JSON.stringify({
-          items: this.items,
-          savedAt: Date.now(),
-          defaultTTL: this.defaultTTL,
-        })
+      await this.ensureStorageDir()
+
+      const data = {
+        items: this.items,
+        savedAt: Date.now(),
+        defaultTTL: this.defaultTTL,
+        maxSize: this.maxSize,
+      }
+
+      await fs.writeFile(
+        this.storagePath,
+        JSON.stringify(data, null, 2),
+        'utf-8'
       )
     } catch (error) {
       console.warn('Failed to save queue to storage:', error)
@@ -283,13 +323,15 @@ export class PersistentFIFOQueue<T> {
   /**
    * Load from persistent storage
    */
-  private loadFromStorage(): void {
-    if (!this.persistenceKey) return
+  private async loadFromStorage(): Promise<void> {
+    if (!this.storagePath) return
 
     try {
-      const stored = localStorage.getItem(this.persistenceKey)
-      if (stored) {
-        const parsed = JSON.parse(stored)
+      await fs.access(this.storagePath)
+      const fileContent = await fs.readFile(this.storagePath, 'utf-8')
+
+      if (fileContent) {
+        const parsed = JSON.parse(fileContent)
         this.items = parsed.items || []
         this.defaultTTL = parsed.defaultTTL || this.defaultTTL
 
@@ -299,10 +341,13 @@ export class PersistentFIFOQueue<T> {
         }
 
         // Remove any expired items on load
-        this.removeExpiredItems()
+        await this.removeExpiredItems()
       }
-    } catch (error) {
-      console.warn('Failed to load queue from storage:', error)
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        // Only warn if it's not a "file not found" error
+        console.warn('Failed to load queue from storage:', error)
+      }
     }
   }
 
@@ -315,16 +360,20 @@ export class PersistentFIFOQueue<T> {
     }
 
     this.saveTimer = setInterval(() => {
-      this.saveToStorage()
+      this.saveToStorage().catch(error => {
+        console.warn('Auto-save failed:', error)
+      })
     }, this.saveInterval)
   }
 
   /**
    * Set new default TTL
    */
-  setDefaultTTL(ttl: number): void {
+  async setDefaultTTL(ttl: number): Promise<void> {
     this.defaultTTL = ttl
-    this.autoSave && this.saveToStorage()
+    if (this.autoSave) {
+      await this.saveToStorage()
+    }
   }
 
   /**
@@ -335,15 +384,22 @@ export class PersistentFIFOQueue<T> {
   }
 
   /**
+   * Get current storage path (for debugging/inspection)
+   */
+  getCurrentStoragePath(): string | undefined {
+    return this.storagePath
+  }
+
+  /**
    * Cleanup resources
    */
-  destroy(): void {
+  async destroy(): Promise<void> {
     if (this.saveTimer) {
       clearInterval(this.saveTimer)
     }
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer)
     }
-    this.saveToStorage()
+    await this.saveToStorage()
   }
 }

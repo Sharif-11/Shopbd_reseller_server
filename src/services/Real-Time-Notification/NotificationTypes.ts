@@ -1,10 +1,9 @@
 // NotificationTypes.ts
-export enum NotificationType {
-  NEW_ORDER = 'NEW_ORDER',
-  PAYMENT_REQUEST = 'PAYMENT_REQUEST',
-  WITHDRAW_REQUEST = 'WITHDRAW_REQUEST',
-  TICKET_MESSAGE = 'TICKET_MESSAGE',
-}
+export type NotificationType =
+  | 'NEW_ORDER'
+  | 'PAYMENT_REQUEST'
+  | 'WITHDRAW_REQUEST'
+  | 'TICKET_MESSAGE'
 
 export interface NotificationData {
   type: NotificationType
