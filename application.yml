@@ -1,0 +1,349 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    # Simulate mixed traffic patterns throughout the day
+    - duration: 120  # 2 minutes
+      arrivalRate: 30
+      name: "Steady State"
+    
+    - duration: 180  # 3 minutes
+      arrivalRate: 50
+      rampTo: 100    # Peak business hours
+      name: "Business Peak"
+    
+    - duration: 120  # 2 minutes
+      arrivalRate: 150
+      name: "Flash Sale Stress"
+    
+    - duration: 120  # 2 minutes
+      arrivalRate: 40
+      name: "Evening Slowdown"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+
+  ensure:
+    thresholds:
+      - http.response_time.p95: 300
+      - http.response_time.p99: 800
+      - http.error_rate: 0.02
+      - http.request_rate: 50
+
+  processor: "./auth-tokens.js"
+
+scenarios:
+  # SCENARIO 1: ACTIVE SELLER WORKFLOW
+  - name: "Active Seller - Quick Operations"
+    weight: 25
+    flow:
+      # Login as seller
+      - function: "sellerLogin"
+      
+      # Get profile
+      - get:
+          url: "/api/v1/auth/profile"
+          headers:
+            Authorization: "Bearer {{ sellerToken }}"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      # Browse seller's own products
+      - get:
+          url: "/api/v1/products/seller?page=1&limit=20&categoryId=1"
+          headers:
+            Authorization: "Bearer {{ sellerToken }}"
+          capture:
+            - json: "$.data[0].productId"
+              as: "sellerProductId"
+            - json: "$.data[1].productId"
+              as: "sellerProductId2"
+          expect:
+            - statusCode: 200
+
+      - think: 2
+
+      # Quick download of product images (rapid succession)
+      - post:
+          url: "/api/v1/ftp/download"
+          headers:
+            Authorization: "Bearer {{ sellerToken }}"
+          json:
+            fileName: "product_{{ sellerProductId }}_1.jpg"
+          expect:
+            - statusCode: 200
+
+      - think: 0.5  # Minimal thinking time
+
+      - post:
+          url: "/api/v1/ftp/download"
+          headers:
+            Authorization: "Bearer {{ sellerToken }}"
+          json:
+            fileName: "product_{{ sellerProductId }}_2.jpg"
+          expect:
+            - statusCode: 200
+
+      - think: 0.3
+
+      # Browse orders
+      - get:
+          url: "/api/v1/orders/seller?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ sellerToken }}"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      # Create a quick order
+      - post:
+          url: "/api/v1/orders/seller"
+          headers:
+            Authorization: "Bearer {{ sellerToken }}"
+          json:
+            shopId: 1
+            customerName: "Test Customer"
+            customerPhoneNo: "017{{ randomNumber(8) }}"
+            customerZilla: "Dhaka"
+            customerUpazilla: "Mirpur"
+            deliveryAddress: "Test Address"
+            products:
+              - id: "{{ sellerProductId }}"
+                quantity: 2
+          capture:
+            - json: "$.data.orderId"
+              as: "sellerOrderId"
+          expect:
+            - statusCode: 201
+
+      # Logout
+      - post:
+          url: "/api/v1/auth/logout"
+          headers:
+            Authorization: "Bearer {{ sellerToken }}"
+          expect:
+            - statusCode: 200
+
+  # SCENARIO 2: NEW USER REGISTRATION FLOW
+  - name: "New Customer Registration"
+    weight: 20
+    flow:
+      # Start OTP process
+      - post:
+          url: "/api/v1/auth/send-otp"
+          json:
+            phoneNo: "018{{ randomNumber(8) }}"
+          capture:
+            - json: "$.data.verificationId"
+              as: "verificationId"
+          expect:
+            - statusCode: 200
+
+      - think: 3  # Time to receive SMS
+
+      # Verify OTP (using a mock OTP for testing)
+      - post:
+          url: "/api/v1/auth/verify-otp"
+          json:
+            phoneNo: "018{{ randomNumber(8) }}"
+            otp: "123456"
+            verificationId: "{{ verificationId }}"
+          capture:
+            - json: "$.data.token"
+              as: "customerToken"
+          expect:
+            - statusCode: 200
+
+      - think: 2
+
+      # Complete customer registration
+      - post:
+          url: "/api/v1/auth/customer"
+          headers:
+            Authorization: "Bearer {{ customerToken }}"
+          json:
+            name: "Test Customer {{ randomNumber(5) }}"
+            email: "test{{ randomNumber(5) }}@gmail.com"
+            zilla: "Dhaka"
+            upazilla: "Gulshan"
+            address: "Test Address {{ randomNumber(3) }}"
+          expect:
+            - statusCode: 201
+
+      - think: 1
+
+      # Browse products after registration
+      - get:
+          url: "/api/v1/products/customer?categoryId=1&page=1&limit=12"
+          headers:
+            Authorization: "Bearer {{ customerToken }}"
+          capture:
+            - json: "$.data[0].productId"
+              as: "customerProductId"
+          expect:
+            - statusCode: 200
+
+  # SCENARIO 3: CUSTOMER BROWSING & ORDERING
+  - name: "Customer Direct Link Purchase"
+    weight: 30
+    flow:
+      # Direct product link access (from shared link)
+      - get:
+          url: "/api/v1/products/customer/{{ randomInt(1, 100) }}"
+          expect:
+            - statusCode: 200
+
+      - think: 2
+
+      # Browse related products
+      - get:
+          url: "/api/v1/products/customer?categoryId=2&page=1&limit=16"
+          capture:
+            - json: "$.data[0].productId"
+              as: "browsedProductId"
+          expect:
+            - statusCode: 200
+
+      - think: 3
+
+      # Create order as guest customer
+      - post:
+          url: "/api/v1/orders/customer"
+          json:
+            shopId: 1
+            customerName: "Guest Customer"
+            customerPhoneNo: "019{{ randomNumber(8) }}"
+            customerZilla: "Chittagong"
+            customerUpazilla: "Agrabad"
+            deliveryAddress: "Guest Address"
+            products:
+              - id: "{{ browsedProductId }}"
+                quantity: 1
+          capture:
+            - json: "$.data.orderId"
+              as: "customerOrderId"
+          expect:
+            - statusCode: 201
+
+      - think: 2
+
+      # Check order status
+      - get:
+          url: "/api/v1/orders/customer?phoneNo=019{{ randomNumber(8) }}&page=1&limit=5"
+          expect:
+            - statusCode: 200
+
+  # SCENARIO 4: ADMIN OPERATIONS
+  - name: "Admin Order & Payment Processing"
+    weight: 15
+    flow:
+      # Admin login
+      - function: "adminLogin"
+
+      - think: 1
+
+      # Process pending orders
+      - get:
+          url: "/api/v1/orders/admin?page=1&limit=20"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          capture:
+            - json: "$.data[0].orderId"
+              as: "adminOrderId"
+          expect:
+            - statusCode: 200
+
+      - think: 2
+
+      # Confirm an order
+      - post:
+          url: "/api/v1/orders/admin/confirm/{{ adminOrderId }}"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      # Process payments
+      - get:
+          url: "/api/v1/payments/admin?page=1&limit=15"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          capture:
+            - json: "$.data[0].paymentId"
+              as: "paymentId"
+          expect:
+            - statusCode: 200
+
+      - think: 2
+
+      # Verify a payment
+      - post:
+          url: "/api/v1/payments/admin/verify/{{ paymentId }}"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          json:
+            transactionId: "TXN{{ randomNumber(10) }}"
+          expect:
+            - statusCode: 200
+
+      # Check all users
+      - get:
+          url: "/api/v1/auth/get-all-users?page=1&limit=10"
+          headers:
+            Authorization: "Bearer {{ adminToken }}"
+          expect:
+            - statusCode: 200
+
+  # SCENARIO 5: MIXED QUICK OPERATIONS
+  - name: "Mixed Quick Actions"
+    weight: 10
+    flow:
+      # Quick product browsing (no auth)
+      - get:
+          url: "/api/v1/products/latest?days=7&limit=8"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      # Category browsing
+      - get:
+          url: "/api/v1/products/customer?categoryId={{ randomInt(1, 5) }}&page=1&limit=12"
+          expect:
+            - statusCode: 200
+
+      - think: 1
+
+      # Fraud check
+      - get:
+          url: "/api/v1/orders/fraud-check/017{{ randomNumber(8) }}"
+          expect:
+            - statusCode: 200
+
+      - think: 0.5
+
+      # Top selling products
+      - get:
+          url: "/api/v1/orders/top-selling-products"
+          expect:
+            - statusCode: 200
+
+      # Image upload simulation (for sellers)
+      - function: "sellerLogin"
+
+      - post:
+          url: "/api/v1/ftp/upload"
+          headers:
+            Authorization: "Bearer {{ sellerToken }}"
+          formData:
+            image:
+              file: "./test-image.jpg"
+              contentType: "image/jpeg"
+          expect:
+            - statusCode: 200

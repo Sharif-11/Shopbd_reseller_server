@@ -7,6 +7,7 @@ export interface OrderProductData {
   selectedVariants?: {
     [key: string]: string | number
   }
+  selectedAddOns?: string
 }
 export interface OrderData {
   shopId: number

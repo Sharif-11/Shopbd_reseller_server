@@ -367,17 +367,20 @@ model ShopCategory {
 }
 
 model Product {
-  productId         Int      @id @default(autoincrement())
+  productId         Int     @id @default(autoincrement())
   categoryId        Int
   shopId            Int
   name              String
   description       String
-  published         Boolean  @default(false)
+  published         Boolean @default(false)
   videoUrl          String?
-  basePrice         Decimal  @db.Decimal(15, 2)
-  suggestedMaxPrice Decimal  @db.Decimal(15, 2)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  basePrice         Decimal @db.Decimal(15, 2)
+  suggestedMaxPrice Decimal @db.Decimal(15, 2)
+
+  addOns Json? // Array of add-on objects
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   category       Category         @relation(fields: [categoryId], references: [categoryId])
   shop           Shop             @relation(fields: [shopId], references: [shopId])
@@ -491,6 +494,10 @@ model OrderProduct {
   totalProductBasePrice    Decimal @db.Decimal(15, 2) // Total base price for the product
   totalProductSellingPrice Decimal @db.Decimal(15, 2) // Total selling price for the product
   totalProductQuantity     Int     @default(0) // Total quantity of
+
+  selectedAddOns    Json? // Array of selected add-ons
+  totalAddOnPrice   Decimal @default(0.0) @db.Decimal(15, 2)
+  finalProductPrice Decimal @db.Decimal(15, 2) // productSellingPrice + totalAddOnPrice
 
   // define relationships
   order Order @relation(fields: [orderId], references: [orderId])
@@ -719,4 +726,3 @@ enum TicketCategory {
 // ======================
 // NOTIFICATION MANAGEMENT
 // ======================
-

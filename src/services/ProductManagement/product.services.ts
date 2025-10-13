@@ -26,8 +26,102 @@ class ProductServices {
     await userManagementService.verifyUserPermission(
       userId,
       PermissionType.PRODUCT_MANAGEMENT,
-      action
+      action,
     )
+  }
+  /**
+   * Validate selected add-ons against available add-ons
+   */
+  private validateAddOnFormat(addOns: string) {
+    const parsedAddOns =
+      typeof addOns === 'string' ? JSON.parse(addOns) : addOns
+    //convert string to json
+    console.log(parsedAddOns, typeof addOns)
+
+    if (!Array.isArray(parsedAddOns)) {
+      throw new ApiError(400, 'Add-ons must be an array')
+    }
+    for (const addOn of parsedAddOns) {
+      if (
+        typeof addOn.id !== 'string' ||
+        typeof addOn.name !== 'string' ||
+        typeof addOn.price !== 'number' ||
+        (addOn.imageUrl && typeof addOn.imageUrl !== 'string')
+      ) {
+        return false
+      }
+    }
+    return true
+  }
+
+  private validateSelectedAddOns(
+    selectedAddOns: string,
+    availableAddOns: string,
+  ) {
+    // Parse JSON strings
+
+    const updatedSelectedAddOns = JSON.parse(selectedAddOns)
+    const updatedAvailableAddOns = JSON.parse(availableAddOns)
+
+    if (!this.validateAddOnFormat(selectedAddOns)) {
+      throw new ApiError(400, 'Invalid add-on format')
+    }
+    // Define interface for add-on structure
+    interface AddOn {
+      id: number
+      name: string
+      price: number
+      imageUrl?: string
+    }
+
+    // Create map with proper typing
+    const availableAddOnMap: Map<number, AddOn> = new Map(
+      updatedAvailableAddOns.map((addOn: AddOn) => [addOn.id, addOn]),
+    )
+
+    for (const selectedAddOn of updatedSelectedAddOns) {
+      const availableAddOn = availableAddOnMap.get(selectedAddOn.id)
+
+      if (!availableAddOn) {
+        throw new ApiError(400, `Invalid add-on ID: ${selectedAddOn.id}`)
+      }
+
+      if (selectedAddOn.price !== availableAddOn.price) {
+        throw new ApiError(
+          400,
+          `Price mismatch for add-on: ${selectedAddOn.name}`,
+        )
+      }
+
+      if (selectedAddOn.quantity < 1) {
+        throw new ApiError(
+          400,
+          `Invalid quantity for add-on: ${selectedAddOn.name}`,
+        )
+      }
+    }
+  }
+
+  /**
+   * Calculate total price of selected add-ons
+   */
+  private calculateTotalAddOnPrice(selectedAddOns?: string): number {
+    if (!selectedAddOns || selectedAddOns.length === 0) {
+      return 0
+    }
+
+    const parsedAddOns = JSON.parse(selectedAddOns)
+
+    interface AddOnItem {
+      id: number
+      name: string
+      price: number
+      imageUrl: string
+    }
+
+    return parsedAddOns.reduce((total: number, addOn: AddOnItem) => {
+      return total + addOn.price
+    }, 0)
   }
 
   // ==========================================
@@ -44,20 +138,25 @@ class ProductServices {
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
       videoUrl?: string
-    }
+      addOns?: string // NEW: Accept add-ons as JSON array
+    },
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.CREATE)
+    if (data.addOns && !this.validateAddOnFormat(data.addOns)) {
+      throw new ApiError(400, 'Invalid add-on format')
+    }
 
     // check validity of shop and category
-
     const shop = await prisma.shop.findUnique({
       where: { shopId: data.shopId },
     })
     if (!shop) throw new ApiError(404, 'Shop not found')
+
     const category = await prisma.category.findUnique({
       where: { categoryId: data.categoryId },
     })
     if (!category) throw new ApiError(404, 'Category not found')
+
     // now we need to assign the category to the shop and add product within a transaction
     const shopCategory = await prisma.shopCategory.findFirst({
       where: {
@@ -65,10 +164,12 @@ class ProductServices {
         categoryId: data.categoryId,
       },
     })
+
     if (shopCategory) {
       return prisma.product.create({
         data: {
           ...data,
+          addOns: data.addOns || Prisma.JsonNull, // NEW: Store add-ons as JSON
           published: false, // Default to unpublished
         },
       })
@@ -84,6 +185,7 @@ class ProductServices {
         return tx.product.create({
           data: {
             ...data,
+            addOns: data.addOns || Prisma.JsonNull, // NEW: Store add-ons as JSON
             published: false, // Default to unpublished
           },
         })
@@ -101,23 +203,29 @@ class ProductServices {
       suggestedMaxPrice: Prisma.Decimal | number
       videoUrl?: string
       categoryId?: number
-    }
+      addOns?: string // NEW: Allow updating add-ons
+    },
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
     if (data.categoryId) {
       await shopCategoryServices.getCategory(data.categoryId)
     }
-
+    if (data.addOns && !this.validateAddOnFormat(data.addOns)) {
+      throw new ApiError(400, 'Invalid add-on format')
+    }
     return prisma.product.update({
       where: { productId },
-      data,
+      data: {
+        ...data,
+        addOns: data.addOns !== undefined ? data.addOns : undefined, // Only update if provided
+      },
     })
   }
 
   async togglePublishStatus(
     userId: string,
     productId: number,
-    publish: boolean
+    publish: boolean,
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
     if (publish === true) {
@@ -159,7 +267,7 @@ class ProductServices {
     if (associatedOrders.length > 0) {
       throw new ApiError(
         400,
-        'সক্রিয় অর্ডার থাকার কারণে পণ্যটি মুছে ফেলা যাবে না'
+        'সক্রিয় অর্ডার থাকার কারণে পণ্যটি মুছে ফেলা যাবে না',
       )
     }
 
@@ -178,7 +286,7 @@ class ProductServices {
     // now we need to delete the product image from ftp server
     if (product.ProductImage.length > 0) {
       await ftpUploader.deleteFilesWithUrls(
-        product.ProductImage.map(img => img.imageUrl)
+        product.ProductImage.map(img => img.imageUrl),
       )
     }
     return product
@@ -205,20 +313,23 @@ class ProductServices {
   // ==========================================
 
   async getProductVariants(
-    productId: number
+    productId: number,
   ): Promise<{ [key: string]: string[] }> {
     const variants = await prisma.productVariant.findMany({
       where: { productId },
     })
 
     // Group variants by name
-    const groupedVariants = variants.reduce((acc, variant) => {
-      if (!acc[variant.name]) {
-        acc[variant.name] = []
-      }
-      acc[variant.name].push(variant.value)
-      return acc
-    }, {} as { [key: string]: string[] })
+    const groupedVariants = variants.reduce(
+      (acc, variant) => {
+        if (!acc[variant.name]) {
+          acc[variant.name] = []
+        }
+        acc[variant.name].push(variant.value)
+        return acc
+      },
+      {} as { [key: string]: string[] },
+    )
 
     return groupedVariants
   }
@@ -226,7 +337,7 @@ class ProductServices {
   async replaceVariants(
     userId: string,
     productId: number,
-    variants: { name: string; value: string }[]
+    variants: { name: string; value: string }[],
   ) {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -249,6 +360,26 @@ class ProductServices {
     })
   }
 
+  // AddOn management could be added here if needed
+  async getProductAddOns(productId: number) {
+    const product = await prisma.product.findUnique({
+      where: { productId },
+      select: { addOns: true },
+    })
+    if (!product) throw new ApiError(404, 'Product not found')
+    return product.addOns
+  }
+  async updateProductAddOns(userId: string, productId: number, addOns: any[]) {
+    await this.verifyProductPermission(userId, ActionType.UPDATE)
+    if (!this.validateAddOnFormat(addOns)) {
+      throw new ApiError(400, 'Invalid add-on format')
+    }
+    return prisma.product.update({
+      where: { productId },
+      data: { addOns: addOns.length > 0 ? addOns : Prisma.JsonNull },
+    })
+  }
+
   // ==========================================
   // IMAGE MANAGEMENT
   // ==========================================
@@ -256,7 +387,7 @@ class ProductServices {
   async addImages(
     userId: string,
     productId: number,
-    images: { url: string; hidden?: boolean }[]
+    images: { url: string; hidden?: boolean }[],
   ) {
     await this.verifyProductPermission(userId, ActionType.CREATE)
 
@@ -297,7 +428,7 @@ class ProductServices {
   async updateImage(
     userId: string,
     imageId: number,
-    data: { hidden?: boolean }
+    data: { hidden?: boolean },
   ) {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
 
@@ -311,13 +442,12 @@ class ProductServices {
   }
 
   async verifyOrderProducts(productsData: OrderProductData[]) {
-    // here for each product we need to check existence of products, image visibility and whether the selling price is greater or equal to base price and we need to check whether the product is archived
     const productIds = productsData.map(p => p.id)
     const products = await prisma.product.findMany({
       where: {
         productId: { in: productIds },
         ProductImage: {
-          some: { hidden: false }, // Ensure at least one visible image exists
+          some: { hidden: false },
         },
         archived: false,
       },
@@ -336,31 +466,61 @@ class ProductServices {
         throw new ApiError(404, `Product with ID ${product.id} not found`)
       }
 
-      // Check if the selling price is greater than or equal to base price
-      if (product.sellingPrice < foundProduct.basePrice.toNumber()) {
+      // Validate selected add-ons against product's available add-ons
+      if (product.selectedAddOns) {
+        const availableAddOns = Array.isArray(foundProduct.addOns)
+          ? foundProduct.addOns
+          : []
+
+        if (availableAddOns.length > 0) {
+          this.validateSelectedAddOns(
+            product.selectedAddOns,
+            JSON.stringify(availableAddOns),
+          )
+        } else if (product.selectedAddOns.length > 0) {
+          throw new ApiError(
+            400,
+            `Product ${product.id} does not have add-ons available`,
+          )
+        }
+      }
+
+      // CORRECTED: Calculate base product portion (sellingPrice minus add-ons)
+      const totalAddOnPrice = this.calculateTotalAddOnPrice(
+        product.selectedAddOns,
+      )
+      const baseProductPrice = product.sellingPrice - totalAddOnPrice
+
+      // CORRECTED: Validate that base product portion meets minimum requirement
+      if (baseProductPrice < foundProduct.basePrice.toNumber()) {
         throw new ApiError(
           400,
-          `Selling price for product ${product.id} must be greater than or equal to base price`
+          `Base product price (${baseProductPrice}) for "${foundProduct.name}" must be ≥ ${foundProduct.basePrice.toNumber()} (after deducting add-ons)`,
         )
       }
 
-      const image = foundProduct.ProductImage.some(
-        img => img.imageId === product.imageId
+      const imageExists = foundProduct.ProductImage.some(
+        img => img.imageId === product.imageId,
       )
-      if (!image) {
+      if (!imageExists) {
         throw new ApiError(
           404,
-          `Invalid image ID ${product.imageId} for product ${product.id}`
+          `Invalid image ID ${product.imageId} for product ${product.id}`,
         )
       }
     }
 
-    // now we need to re arrange the productsData compatible with the OrderProduct interface
+    // Transform productsData to orderProducts format
     const orderProducts = productsData.map(product => {
       const foundProduct = products.find(p => p.productId === product.id)
       if (!foundProduct) {
         throw new ApiError(404, `Product with ID ${product.id} not found`)
       }
+
+      const totalAddOnPrice = this.calculateTotalAddOnPrice(
+        product.selectedAddOns,
+      )
+      const baseProductPrice = product.sellingPrice - totalAddOnPrice
 
       return {
         productId: foundProduct.productId,
@@ -369,38 +529,54 @@ class ProductServices {
         productVariant: product.selectedVariants
           ? JSON.stringify(product.selectedVariants)
           : null,
+        // Add-on fields
+        selectedAddOns: product.selectedAddOns || null,
+        totalAddOnPrice: new Prisma.Decimal(totalAddOnPrice),
+        // CORRECTED: finalProductPrice should be the sellingPrice (which includes add-ons)
+        finalProductPrice: new Prisma.Decimal(product.sellingPrice),
+
         productQuantity: product.quantity,
-        productSellingPrice: new Prisma.Decimal(product.sellingPrice),
+        // CORRECTED: productSellingPrice should be base product portion only
+        productSellingPrice: new Prisma.Decimal(baseProductPrice),
         productBasePrice: foundProduct.basePrice,
         totalProductQuantity: product.quantity,
         totalProductSellingPrice: new Prisma.Decimal(
-          product.sellingPrice * product.quantity
+          baseProductPrice * product.quantity,
         ),
         totalProductBasePrice: new Prisma.Decimal(
-          foundProduct.basePrice.toNumber() * product.quantity
+          foundProduct.basePrice.toNumber() * product.quantity,
         ),
       }
     })
-    // order summary
+
+    // Calculate order summary
     const totalProductQuantity = orderProducts.reduce(
       (sum, product) => sum + product.totalProductQuantity,
-      0
+      0,
     )
     const totalProductSellingPrice = orderProducts.reduce(
       (sum, product) => sum.add(product.totalProductSellingPrice),
-      new Prisma.Decimal(0)
+      new Prisma.Decimal(0),
     )
     const totalProductBasePrice = orderProducts.reduce(
       (sum, product) => sum.add(product.totalProductBasePrice),
-      new Prisma.Decimal(0)
+      new Prisma.Decimal(0),
+    )
+    const totalAddOnPrice = orderProducts.reduce(
+      (sum, product) => sum.add(product.totalAddOnPrice),
+      new Prisma.Decimal(0),
     )
     const totalCommission = totalProductSellingPrice.sub(totalProductBasePrice)
+    // CORRECTED: finalOrderTotal should be totalProductSellingPrice + totalAddOnPrice
+    const finalOrderTotal = totalProductSellingPrice.add(totalAddOnPrice)
 
     return {
       totalProductQuantity,
       totalProductSellingPrice,
       totalProductBasePrice,
+      totalAddOnPrice,
       totalCommission,
+      finalOrderTotal,
       products: orderProducts,
     }
   }
@@ -472,7 +648,7 @@ class ProductServices {
         } catch (error) {
           console.error(
             `Failed to delete image ${image.imageId} from FTP:`,
-            error
+            error,
           )
           // Continue with other deletions even if one fails
         }
@@ -490,7 +666,7 @@ class ProductServices {
   // ==========================================
   async getProductDetailForAdmin(
     userId: string,
-    productId: number
+    productId: number,
   ): Promise<
     Product & {
       shop: { shopName: string }
@@ -517,13 +693,16 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
-      if (!acc[variant.name]) {
-        acc[variant.name] = []
-      }
-      acc[variant.name].push(variant.value)
-      return acc
-    }, {} as Record<string, string[]>)
+    const groupedVariants = product.ProductVariant.reduce(
+      (acc, variant) => {
+        if (!acc[variant.name]) {
+          acc[variant.name] = []
+        }
+        acc[variant.name].push(variant.value)
+        return acc
+      },
+      {} as Record<string, string[]>,
+    )
 
     return {
       ...product,
@@ -561,13 +740,16 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found or not published')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
-      if (!acc[variant.name]) {
-        acc[variant.name] = []
-      }
-      acc[variant.name].push(variant.value)
-      return acc
-    }, {} as Record<string, string[]>)
+    const groupedVariants = product.ProductVariant.reduce(
+      (acc, variant) => {
+        if (!acc[variant.name]) {
+          acc[variant.name] = []
+        }
+        acc[variant.name].push(variant.value)
+        return acc
+      },
+      {} as Record<string, string[]>,
+    )
 
     const { basePrice, ...productData } = product
     return {
@@ -616,13 +798,16 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found in your shop')
 
     // Group variants by name
-    const groupedVariants = product.ProductVariant.reduce((acc, variant) => {
-      if (!acc[variant.name]) {
-        acc[variant.name] = []
-      }
-      acc[variant.name].push(variant.value)
-      return acc
-    }, {} as Record<string, string[]>)
+    const groupedVariants = product.ProductVariant.reduce(
+      (acc, variant) => {
+        if (!acc[variant.name]) {
+          acc[variant.name] = []
+        }
+        acc[variant.name].push(variant.value)
+        return acc
+      },
+      {} as Record<string, string[]>,
+    )
 
     return {
       product: {
@@ -675,7 +860,7 @@ class ProductServices {
       published?: boolean
       categoryId?: number // Optional for admin view
     },
-    pagination: { page: number; limit: number }
+    pagination: { page: number; limit: number },
   ) {
     await this.verifyProductPermission(adminId, ActionType.READ)
     const where: Prisma.ProductWhereInput = {
@@ -722,7 +907,15 @@ class ProductServices {
     ])
 
     return {
-      data: products,
+      // here converts addOns string to object
+      data: products.map(product => ({
+        ...product,
+        addOns: product.addOns
+          ? typeof product.addOns === 'string'
+            ? JSON.parse(product.addOns)
+            : product.addOns
+          : [],
+      })),
       pagination: {
         page: pagination.page,
         limit: pagination.limit,
@@ -948,7 +1141,7 @@ class ProductServices {
     days: number = 30,
     page = 1,
     limit = 10,
-    isSeller: boolean = false
+    isSeller: boolean = false,
   ) {
     try {
       // More robust date calculation using timestamps
@@ -1020,12 +1213,12 @@ class ProductServices {
     filters?: {
       search?: string
     },
-    pagination?: { page: number; limit: number }
+    pagination?: { page: number; limit: number },
   ) {
     await userServices.verifyUserPermission(
       userId!,
       PermissionType.PRODUCT_MANAGEMENT,
-      ActionType.READ
+      ActionType.READ,
     )
     // Fetch archived products
     const products = await prisma.product.findMany({

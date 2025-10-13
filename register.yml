@@ -1,23 +1,21 @@
 config:
-  target: "http://localhost:3000"
+  target: "http://localhost:80"  #nginx loadbalancer with two backend servers
   phases:
     # Reduce initial load to diagnose issues
     - duration: 30
-      arrivalRate: 2  # Reduced from 5
+      arrivalRate: 50  # Reduced from 5
       name: "Diagnostic phase"
     
     - duration: 60
-      arrivalRate: 5   # Reduced from 10
-      name: "Normal load"
+      arrivalRate: 100 # Reduced from 10
+      rampTo: 300   # Reduced from 20
+      name: "Ramp-up phase"
     
     - duration: 120
-      arrivalRate: 10  # Reduced from 20
-      rampTo: 25       # Reduced from 50
-      name: "Peak load"
-    
-    - duration: 180
-      arrivalRate: 8   # Reduced from 15
+      arrivalRate: 200 # Reduced from 20
       name: "Sustained load"
+
+
 
   defaults:
     headers:

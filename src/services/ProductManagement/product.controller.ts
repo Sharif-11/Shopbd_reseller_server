@@ -1,3 +1,4 @@
+import console from 'console'
 import { NextFunction, Request, Response } from 'express'
 import productServices from './product.services'
 
@@ -17,6 +18,7 @@ class ProductController {
         basePrice,
         suggestedMaxPrice,
         videoUrl, // Optional field for video URL
+        addOns,
       } = req.body
 
       const product = await productServices.createProduct(userId!, {
@@ -27,6 +29,7 @@ class ProductController {
         basePrice: Number(basePrice),
         suggestedMaxPrice: Number(suggestedMaxPrice),
         videoUrl,
+        addOns: JSON.stringify(addOns),
       })
 
       res.status(201).json({
@@ -77,6 +80,7 @@ class ProductController {
         suggestedMaxPrice,
         videoUrl,
         categoryId,
+        addOns,
       } = req.body
 
       const product = await productServices.updateProduct(
@@ -91,6 +95,7 @@ class ProductController {
             ...(videoUrl && { videoUrl }),
             ...(categoryId && { categoryId: Number(categoryId) }),
           }),
+          ...(addOns && { addOns: JSON.stringify(addOns) }),
         },
       )
 
