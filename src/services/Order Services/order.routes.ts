@@ -24,7 +24,7 @@ class OrderRouter {
       '/fraud-check/:phoneNumber',
       OrderValidator.checkFraud(),
       validateRequest,
-      orderControllers.checkFraud
+      orderControllers.checkFraud,
     )
     this.router.post(
       '/seller',
@@ -32,7 +32,7 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.createSellerOrder(),
       validateRequest,
-      orderControllers.createSellerOrder
+      orderControllers.createSellerOrder,
     )
     this.router.post(
       '/customer',
@@ -40,7 +40,7 @@ class OrderRouter {
       // verifyRole('Customer'),
       OrderValidator.createCustomerOrder(),
       validateRequest,
-      orderControllers.createCustomerOrder
+      orderControllers.createCustomerOrder,
     )
 
     this.router.get(
@@ -49,7 +49,7 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.getSellerOrders(),
       validateRequest,
-      orderControllers.getSellerOrders
+      orderControllers.getSellerOrders,
     )
     this.router.get(
       '/seller/referral',
@@ -57,7 +57,7 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.getAllReferredOrdersForSeller(),
       validateRequest,
-      orderControllers.getAllReferredOrdersForSeller
+      orderControllers.getAllReferredOrdersForSeller,
     )
     this.router.get(
       '/seller/customer-referral',
@@ -65,13 +65,13 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.getAllReferredOrdersForSeller(),
       validateRequest,
-      orderControllers.getAllCustomerOrdersForSeller
+      orderControllers.getAllCustomerOrdersForSeller,
     )
     this.router.get(
       '/customer',
       OrderValidator.getCustomerOrders(),
       validateRequest,
-      orderControllers.getCustomerOrders
+      orderControllers.getCustomerOrders,
     )
 
     this.router.post(
@@ -80,13 +80,13 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.orderPaymentBySeller(),
       validateRequest,
-      orderControllers.orderPaymentBySeller
+      orderControllers.orderPaymentBySeller,
     )
     this.router.post(
       '/customer/payment',
       OrderValidator.orderPaymentByCustomer(),
       validateRequest,
-      orderControllers.orderPaymentByCustomer
+      orderControllers.orderPaymentByCustomer,
     )
 
     this.router.post(
@@ -95,13 +95,13 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.cancelOrderBySeller(),
       validateRequest,
-      orderControllers.cancelOrderBySeller
+      orderControllers.cancelOrderBySeller,
     )
     this.router.post(
       '/customer/cancel',
       OrderValidator.cancelOrderByCustomer(),
       validateRequest,
-      orderControllers.cancelOrderByCustomer
+      orderControllers.cancelOrderByCustomer,
     )
 
     this.router.post(
@@ -110,18 +110,18 @@ class OrderRouter {
       verifyRole('Seller'),
       OrderValidator.confirmOrderBySeller(),
       validateRequest,
-      orderControllers.confirmOrderBySeller
+      orderControllers.confirmOrderBySeller,
     )
 
     this.router.post(
       '/seller/re-order/:orderId',
       isAuthenticated,
       verifyRole('Seller'),
-      orderControllers.reorderFailedOrderBySeller
+      orderControllers.reorderFailedOrderBySeller,
     )
     this.router.post(
       '/customer/re-order/:orderId',
-      orderControllers.reorderFailedOrderByCustomer
+      orderControllers.reorderFailedOrderByCustomer,
     )
 
     // ==========================================
@@ -132,21 +132,28 @@ class OrderRouter {
       isAuthenticated,
       OrderValidator.getSellerOrders(),
       validateRequest,
-      orderControllers.getAllOrdersForAdmin
+      orderControllers.getAllOrdersForAdmin,
+    )
+    this.router.delete(
+      '/admin/:orderId',
+      isAuthenticated,
+      OrderValidator.confirmOrderByAdmin(),
+      validateRequest,
+      orderControllers.deleteUnpaidOrderByAdmin,
     )
     this.router.post(
       '/admin/confirm/:orderId',
       isAuthenticated,
       OrderValidator.confirmOrderByAdmin(),
       validateRequest,
-      orderControllers.confirmOrderByAdmin
+      orderControllers.makeOrderConfirmedFromPendingByAdmin,
     )
     this.router.post(
       '/admin/cancel/:orderId',
       isAuthenticated,
       OrderValidator.cancelOrderByAdmin(),
       validateRequest,
-      orderControllers.cancelOrderByAdmin
+      orderControllers.cancelOrderByAdmin,
     )
 
     this.router.post(
@@ -154,24 +161,31 @@ class OrderRouter {
       isAuthenticated,
       OrderValidator.deliverOrderByAdmin(),
       validateRequest,
-      orderControllers.deliverOrderByAdmin
+      orderControllers.deliverOrderByAdmin,
+    )
+    this.router.patch(
+      '/admin/deliver/:orderId',
+      isAuthenticated,
+      OrderValidator.deliverOrderByAdmin(),
+      validateRequest,
+      orderControllers.updateTrackingUrlByAdmin,
     )
     this.router.post(
       '/admin/complete/:orderId',
       isAuthenticated,
       OrderValidator.completeOrderByAdmin(),
       validateRequest,
-      orderControllers.completeOrderByAdmin
+      orderControllers.completeOrderByAdmin,
     )
     this.router.post(
       '/admin/fail/:orderId',
       isAuthenticated,
-      orderControllers.markOrderAsFailedByAdmin
+      orderControllers.markOrderAsFailedByAdmin,
     )
     this.router.post(
       '/admin/return/:orderId',
       isAuthenticated,
-      orderControllers.returnOrderByAdmin
+      orderControllers.returnOrderByAdmin,
     )
 
     this.router.post(
@@ -179,12 +193,12 @@ class OrderRouter {
       isAuthenticated,
       OrderValidator.rejectOrderByAdmin(),
       validateRequest,
-      orderControllers.rejectOrderByAdmin
+      orderControllers.rejectOrderByAdmin,
     )
     this.router.get(
       '/top-selling-products',
       authenticate,
-      orderControllers.getTrendingTopSellingProducts
+      orderControllers.getTrendingTopSellingProducts,
     )
   }
 

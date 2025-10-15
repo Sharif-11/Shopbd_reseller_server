@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const console_1 = __importDefault(require("console"));
 const product_services_1 = __importDefault(require("./product.services"));
 class ProductController {
     // ==========================================
@@ -23,7 +24,7 @@ class ProductController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { shopId, categoryId, name, description, basePrice, suggestedMaxPrice, videoUrl, // Optional field for video URL
-                 } = req.body;
+                addOns, } = req.body;
                 const product = yield product_services_1.default.createProduct(userId, {
                     shopId: Number(shopId),
                     categoryId: Number(categoryId),
@@ -32,6 +33,7 @@ class ProductController {
                     basePrice: Number(basePrice),
                     suggestedMaxPrice: Number(suggestedMaxPrice),
                     videoUrl,
+                    addOns: JSON.stringify(addOns),
                 });
                 res.status(201).json({
                     statusCode: 201,
@@ -70,8 +72,8 @@ class ProductController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { productId } = req.params;
-                const { name, description, basePrice, suggestedMaxPrice, videoUrl, categoryId, } = req.body;
-                const product = yield product_services_1.default.updateProduct(userId, Number(productId), Object.assign(Object.assign(Object.assign(Object.assign({}, (name && { name })), (description && { description })), (basePrice && { basePrice: Number(basePrice) })), (suggestedMaxPrice && Object.assign(Object.assign({ suggestedMaxPrice: Number(suggestedMaxPrice) }, (videoUrl && { videoUrl })), (categoryId && { categoryId: Number(categoryId) })))));
+                const { name, description, basePrice, suggestedMaxPrice, videoUrl, categoryId, addOns, } = req.body;
+                const product = yield product_services_1.default.updateProduct(userId, Number(productId), Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, (name && { name })), (description && { description })), (basePrice && { basePrice: Number(basePrice) })), (suggestedMaxPrice && Object.assign(Object.assign({ suggestedMaxPrice: Number(suggestedMaxPrice) }, (videoUrl && { videoUrl })), (categoryId && { categoryId: Number(categoryId) })))), (addOns && { addOns: JSON.stringify(addOns) })));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Product updated successfully',
@@ -343,7 +345,7 @@ class ProductController {
             var _a;
             const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
             const { productId } = req.params;
-            console.clear();
+            console_1.default.clear();
             const { userType, product } = yield product_services_1.default.getProductDetail({
                 userId,
                 productId: Number(productId),
@@ -423,7 +425,7 @@ class ProductController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { search, minPrice, maxPrice, categoryId, shopId, page, limit } = req.query;
-                console.log(req.query);
+                console_1.default.log(req.query);
                 const result = yield product_services_1.default.getAllProductsForSeller({
                     search: search === null || search === void 0 ? void 0 : search.toString(),
                     minPrice: minPrice ? Number(minPrice) : undefined,
@@ -451,7 +453,7 @@ class ProductController {
             var _a;
             try {
                 const userId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId;
-                console.log('user', req === null || req === void 0 ? void 0 : req.user);
+                console_1.default.log('user', req === null || req === void 0 ? void 0 : req.user);
                 const { search, minPrice, maxPrice, categoryId, shopId, page, limit } = req.query;
                 const formattedPage = !isNaN(Number(req.query.page))
                     ? Number(req.query.page)
@@ -459,7 +461,7 @@ class ProductController {
                 const formattedLimit = !isNaN(Number(req.query.limit))
                     ? Number(req.query.limit)
                     : undefined;
-                console.log({
+                console_1.default.log({
                     search,
                     minPrice,
                     maxPrice,
@@ -530,7 +532,7 @@ class ProductController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { search, page, limit } = req === null || req === void 0 ? void 0 : req.query;
-                console.log('inside archive', { search, page, limit });
+                console_1.default.log('inside archive', { search, page, limit });
                 const result = yield product_services_1.default.getArchiveProducts(userId, {
                     search: search === null || search === void 0 ? void 0 : search.toString(),
                 }, {

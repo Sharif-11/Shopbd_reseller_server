@@ -96,6 +96,7 @@ class OrderService {
             // verify products
             const verifiedOrderData = yield product_services_1.default.verifyOrderProducts(products);
             console.clear();
+            console.log(verifiedOrderData);
             const deliveryCharge = yield this.calculateDeliveryCharge({
                 shopId,
                 customerZilla,
@@ -136,6 +137,9 @@ class OrderService {
                             totalProductBasePrice: product.totalProductBasePrice,
                             totalProductSellingPrice: product.totalProductSellingPrice,
                             totalProductQuantity: product.totalProductQuantity,
+                            selectedAddOns: product.selectedAddOns || JSON.stringify([]),
+                            totalAddOnPrice: product.totalAddOnPrice,
+                            finalProductPrice: product.finalProductPrice,
                         })),
                     },
                     deliveryCharge,

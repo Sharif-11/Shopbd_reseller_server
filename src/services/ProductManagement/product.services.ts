@@ -369,16 +369,6 @@ class ProductServices {
     if (!product) throw new ApiError(404, 'Product not found')
     return product.addOns
   }
-  async updateProductAddOns(userId: string, productId: number, addOns: any[]) {
-    await this.verifyProductPermission(userId, ActionType.UPDATE)
-    if (!this.validateAddOnFormat(addOns)) {
-      throw new ApiError(400, 'Invalid add-on format')
-    }
-    return prisma.product.update({
-      where: { productId },
-      data: { addOns: addOns.length > 0 ? addOns : Prisma.JsonNull },
-    })
-  }
 
   // ==========================================
   // IMAGE MANAGEMENT
@@ -476,11 +466,6 @@ class ProductServices {
           this.validateSelectedAddOns(
             product.selectedAddOns,
             JSON.stringify(availableAddOns),
-          )
-        } else if (product.selectedAddOns.length > 0) {
-          throw new ApiError(
-            400,
-            `Product ${product.id} does not have add-ons available`,
           )
         }
       }
@@ -982,6 +967,7 @@ class ProductServices {
         name: true,
         description: true,
         suggestedMaxPrice: true,
+        addOns: true,
         shop: { select: { shopName: true, shopLocation: true } },
         category: { select: { name: true, categoryId: true } },
         ProductImage: {
@@ -1005,6 +991,11 @@ class ProductServices {
       data: products.map(p => ({
         ...p,
         price: p.suggestedMaxPrice,
+        addOns: p.addOns
+          ? typeof p.addOns === 'string'
+            ? JSON.parse(p.addOns)
+            : p.addOns
+          : [],
       })),
       pagination: {
         page: filters.page || 1,
@@ -1087,7 +1078,14 @@ class ProductServices {
     })
 
     return {
-      data: products,
+      data: products.map(p => ({
+        ...p,
+        addOns: p.addOns
+          ? typeof p.addOns === 'string'
+            ? JSON.parse(p.addOns)
+            : p.addOns
+          : [],
+      })),
       pagination: {
         page: filters.page || 1,
         limit: filters.limit || 10,

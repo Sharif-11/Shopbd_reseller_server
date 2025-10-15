@@ -4,6 +4,7 @@ export type NotificationType =
   | 'PAYMENT_REQUEST'
   | 'WITHDRAW_REQUEST'
   | 'TICKET_MESSAGE'
+  | 'SYSTEM_ALERT'
 
 export interface NotificationData {
   type: NotificationType

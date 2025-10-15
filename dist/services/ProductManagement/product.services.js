@@ -39,12 +39,69 @@ class ProductServices {
             yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.PRODUCT_MANAGEMENT, action);
         });
     }
+    /**
+     * Validate selected add-ons against available add-ons
+     */
+    validateAddOnFormat(addOns) {
+        const parsedAddOns = typeof addOns === 'string' ? JSON.parse(addOns) : addOns;
+        //convert string to json
+        console.log(parsedAddOns, typeof addOns);
+        if (!Array.isArray(parsedAddOns)) {
+            throw new ApiError_1.default(400, 'Add-ons must be an array');
+        }
+        for (const addOn of parsedAddOns) {
+            if (typeof addOn.id !== 'string' ||
+                typeof addOn.name !== 'string' ||
+                typeof addOn.price !== 'number' ||
+                (addOn.imageUrl && typeof addOn.imageUrl !== 'string')) {
+                return false;
+            }
+        }
+        return true;
+    }
+    validateSelectedAddOns(selectedAddOns, availableAddOns) {
+        // Parse JSON strings
+        const updatedSelectedAddOns = JSON.parse(selectedAddOns);
+        const updatedAvailableAddOns = JSON.parse(availableAddOns);
+        if (!this.validateAddOnFormat(selectedAddOns)) {
+            throw new ApiError_1.default(400, 'Invalid add-on format');
+        }
+        // Create map with proper typing
+        const availableAddOnMap = new Map(updatedAvailableAddOns.map((addOn) => [addOn.id, addOn]));
+        for (const selectedAddOn of updatedSelectedAddOns) {
+            const availableAddOn = availableAddOnMap.get(selectedAddOn.id);
+            if (!availableAddOn) {
+                throw new ApiError_1.default(400, `Invalid add-on ID: ${selectedAddOn.id}`);
+            }
+            if (selectedAddOn.price !== availableAddOn.price) {
+                throw new ApiError_1.default(400, `Price mismatch for add-on: ${selectedAddOn.name}`);
+            }
+            if (selectedAddOn.quantity < 1) {
+                throw new ApiError_1.default(400, `Invalid quantity for add-on: ${selectedAddOn.name}`);
+            }
+        }
+    }
+    /**
+     * Calculate total price of selected add-ons
+     */
+    calculateTotalAddOnPrice(selectedAddOns) {
+        if (!selectedAddOns || selectedAddOns.length === 0) {
+            return 0;
+        }
+        const parsedAddOns = JSON.parse(selectedAddOns);
+        return parsedAddOns.reduce((total, addOn) => {
+            return total + addOn.price;
+        }, 0);
+    }
     // ==========================================
     // PRODUCT CRUD OPERATIONS
     // ==========================================
     createProduct(userId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.CREATE);
+            if (data.addOns && !this.validateAddOnFormat(data.addOns)) {
+                throw new ApiError_1.default(400, 'Invalid add-on format');
+            }
             // check validity of shop and category
             const shop = yield prisma_1.default.shop.findUnique({
                 where: { shopId: data.shopId },
@@ -65,7 +122,7 @@ class ProductServices {
             });
             if (shopCategory) {
                 return prisma_1.default.product.create({
-                    data: Object.assign(Object.assign({}, data), { published: false }),
+                    data: Object.assign(Object.assign({}, data), { addOns: data.addOns || client_1.Prisma.JsonNull, published: false }),
                 });
             }
             else {
@@ -78,7 +135,7 @@ class ProductServices {
                         },
                     });
                     return tx.product.create({
-                        data: Object.assign(Object.assign({}, data), { published: false }),
+                        data: Object.assign(Object.assign({}, data), { addOns: data.addOns || client_1.Prisma.JsonNull, published: false }),
                     });
                 }));
             }
@@ -90,9 +147,12 @@ class ProductServices {
             if (data.categoryId) {
                 yield shopCategory_services_1.default.getCategory(data.categoryId);
             }
+            if (data.addOns && !this.validateAddOnFormat(data.addOns)) {
+                throw new ApiError_1.default(400, 'Invalid add-on format');
+            }
             return prisma_1.default.product.update({
                 where: { productId },
-                data,
+                data: Object.assign(Object.assign({}, data), { addOns: data.addOns !== undefined ? data.addOns : undefined }),
             });
         });
     }
@@ -215,6 +275,18 @@ class ProductServices {
             }));
         });
     }
+    // AddOn management could be added here if needed
+    getProductAddOns(productId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const product = yield prisma_1.default.product.findUnique({
+                where: { productId },
+                select: { addOns: true },
+            });
+            if (!product)
+                throw new ApiError_1.default(404, 'Product not found');
+            return product.addOns;
+        });
+    }
     // ==========================================
     // IMAGE MANAGEMENT
     // ==========================================
@@ -271,13 +343,12 @@ class ProductServices {
     }
     verifyOrderProducts(productsData) {
         return __awaiter(this, void 0, void 0, function* () {
-            // here for each product we need to check existence of products, image visibility and whether the selling price is greater or equal to base price and we need to check whether the product is archived
             const productIds = productsData.map(p => p.id);
             const products = yield prisma_1.default.product.findMany({
                 where: {
                     productId: { in: productIds },
                     ProductImage: {
-                        some: { hidden: false }, // Ensure at least one visible image exists
+                        some: { hidden: false },
                     },
                     archived: false,
                 },
@@ -294,21 +365,35 @@ class ProductServices {
                 if (!foundProduct) {
                     throw new ApiError_1.default(404, `Product with ID ${product.id} not found`);
                 }
-                // Check if the selling price is greater than or equal to base price
-                if (product.sellingPrice < foundProduct.basePrice.toNumber()) {
-                    throw new ApiError_1.default(400, `Selling price for product ${product.id} must be greater than or equal to base price`);
+                // Validate selected add-ons against product's available add-ons
+                if (product.selectedAddOns) {
+                    const availableAddOns = Array.isArray(foundProduct.addOns)
+                        ? foundProduct.addOns
+                        : [];
+                    if (availableAddOns.length > 0) {
+                        this.validateSelectedAddOns(product.selectedAddOns, JSON.stringify(availableAddOns));
+                    }
                 }
-                const image = foundProduct.ProductImage.some(img => img.imageId === product.imageId);
-                if (!image) {
+                // CORRECTED: Calculate base product portion (sellingPrice minus add-ons)
+                const totalAddOnPrice = this.calculateTotalAddOnPrice(product.selectedAddOns);
+                const baseProductPrice = product.sellingPrice - totalAddOnPrice;
+                // CORRECTED: Validate that base product portion meets minimum requirement
+                if (baseProductPrice < foundProduct.basePrice.toNumber()) {
+                    throw new ApiError_1.default(400, `Base product price (${baseProductPrice}) for "${foundProduct.name}" must be ≥ ${foundProduct.basePrice.toNumber()} (after deducting add-ons)`);
+                }
+                const imageExists = foundProduct.ProductImage.some(img => img.imageId === product.imageId);
+                if (!imageExists) {
                     throw new ApiError_1.default(404, `Invalid image ID ${product.imageId} for product ${product.id}`);
                 }
             }
-            // now we need to re arrange the productsData compatible with the OrderProduct interface
+            // Transform productsData to orderProducts format
             const orderProducts = productsData.map(product => {
                 const foundProduct = products.find(p => p.productId === product.id);
                 if (!foundProduct) {
                     throw new ApiError_1.default(404, `Product with ID ${product.id} not found`);
                 }
+                const totalAddOnPrice = this.calculateTotalAddOnPrice(product.selectedAddOns);
+                const baseProductPrice = product.sellingPrice - totalAddOnPrice;
                 return {
                     productId: foundProduct.productId,
                     productName: foundProduct.name,
@@ -316,24 +401,35 @@ class ProductServices {
                     productVariant: product.selectedVariants
                         ? JSON.stringify(product.selectedVariants)
                         : null,
+                    // Add-on fields
+                    selectedAddOns: product.selectedAddOns || null,
+                    totalAddOnPrice: new client_1.Prisma.Decimal(totalAddOnPrice),
+                    // CORRECTED: finalProductPrice should be the sellingPrice (which includes add-ons)
+                    finalProductPrice: new client_1.Prisma.Decimal(product.sellingPrice),
                     productQuantity: product.quantity,
-                    productSellingPrice: new client_1.Prisma.Decimal(product.sellingPrice),
+                    // CORRECTED: productSellingPrice should be base product portion only
+                    productSellingPrice: new client_1.Prisma.Decimal(baseProductPrice),
                     productBasePrice: foundProduct.basePrice,
                     totalProductQuantity: product.quantity,
-                    totalProductSellingPrice: new client_1.Prisma.Decimal(product.sellingPrice * product.quantity),
+                    totalProductSellingPrice: new client_1.Prisma.Decimal(baseProductPrice * product.quantity),
                     totalProductBasePrice: new client_1.Prisma.Decimal(foundProduct.basePrice.toNumber() * product.quantity),
                 };
             });
-            // order summary
+            // Calculate order summary
             const totalProductQuantity = orderProducts.reduce((sum, product) => sum + product.totalProductQuantity, 0);
             const totalProductSellingPrice = orderProducts.reduce((sum, product) => sum.add(product.totalProductSellingPrice), new client_1.Prisma.Decimal(0));
             const totalProductBasePrice = orderProducts.reduce((sum, product) => sum.add(product.totalProductBasePrice), new client_1.Prisma.Decimal(0));
+            const totalAddOnPrice = orderProducts.reduce((sum, product) => sum.add(product.totalAddOnPrice), new client_1.Prisma.Decimal(0));
             const totalCommission = totalProductSellingPrice.sub(totalProductBasePrice);
+            // CORRECTED: finalOrderTotal should be totalProductSellingPrice + totalAddOnPrice
+            const finalOrderTotal = totalProductSellingPrice.add(totalAddOnPrice);
             return {
                 totalProductQuantity,
                 totalProductSellingPrice,
                 totalProductBasePrice,
+                totalAddOnPrice,
                 totalCommission,
+                finalOrderTotal,
                 products: orderProducts,
             };
         });
@@ -600,7 +696,12 @@ class ProductServices {
                 prisma_1.default.product.count({ where }),
             ]);
             return {
-                data: products,
+                // here converts addOns string to object
+                data: products.map(product => (Object.assign(Object.assign({}, product), { addOns: product.addOns
+                        ? typeof product.addOns === 'string'
+                            ? JSON.parse(product.addOns)
+                            : product.addOns
+                        : [] }))),
                 pagination: {
                     page: pagination.page,
                     limit: pagination.limit,
@@ -654,6 +755,7 @@ class ProductServices {
                     name: true,
                     description: true,
                     suggestedMaxPrice: true,
+                    addOns: true,
                     shop: { select: { shopName: true, shopLocation: true } },
                     category: { select: { name: true, categoryId: true } },
                     ProductImage: {
@@ -673,7 +775,11 @@ class ProductServices {
                 where,
             });
             return {
-                data: products.map(p => (Object.assign(Object.assign({}, p), { price: p.suggestedMaxPrice }))),
+                data: products.map(p => (Object.assign(Object.assign({}, p), { price: p.suggestedMaxPrice, addOns: p.addOns
+                        ? typeof p.addOns === 'string'
+                            ? JSON.parse(p.addOns)
+                            : p.addOns
+                        : [] }))),
                 pagination: {
                     page: filters.page || 1,
                     limit: filters.limit || 10,
@@ -741,7 +847,11 @@ class ProductServices {
                 where,
             });
             return {
-                data: products,
+                data: products.map(p => (Object.assign(Object.assign({}, p), { addOns: p.addOns
+                        ? typeof p.addOns === 'string'
+                            ? JSON.parse(p.addOns)
+                            : p.addOns
+                        : [] }))),
                 pagination: {
                     page: filters.page || 1,
                     limit: filters.limit || 10,

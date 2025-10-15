@@ -104,7 +104,10 @@ class OrderService {
       BlockActionType.ORDER_REQUEST,
     )
     if (isBlocked) {
-      throw new Error('You are blocked from placing orders')
+      throw new ApiError(
+        400,
+        'আপনাকে অর্ডার দেওয়া থেকে ব্লক করা হয়েছে। অনুগ্রহ করে সাপোর্ট এর সাথে যোগাযোগ করুন।',
+      )
     }
     // check shop data
     const shop = await shopCategoryServices.checkShopStatus(shopId)
@@ -115,7 +118,6 @@ class OrderService {
     // verify products
     const verifiedOrderData =
       await productServices.verifyOrderProducts(products)
-    console.clear()
 
     const deliveryCharge = await this.calculateDeliveryCharge({
       shopId,
@@ -130,7 +132,6 @@ class OrderService {
         orderType: 'SELLER_ORDER',
       },
     })
-    console.log('existingOrder', existingOrder)
     if (existingOrder) {
       throw new ApiError(
         400,
@@ -160,6 +161,9 @@ class OrderService {
             totalProductBasePrice: product.totalProductBasePrice,
             totalProductSellingPrice: product.totalProductSellingPrice,
             totalProductQuantity: product.totalProductQuantity,
+            selectedAddOns: product.selectedAddOns || JSON.stringify([]),
+            totalAddOnPrice: product.totalAddOnPrice,
+            finalProductPrice: product.finalProductPrice,
           })),
         },
         deliveryCharge,
@@ -177,6 +181,8 @@ class OrderService {
         totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
         totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
         totalProductQuantity: verifiedOrderData.totalProductQuantity,
+        totalAddOnPrice: verifiedOrderData.totalAddOnPrice,
+        finalOrderTotal: verifiedOrderData.finalOrderTotal,
       },
     })
     // send order notification to admin
@@ -187,8 +193,8 @@ class OrderService {
     const targetUserIds = admins.map(admin => admin.userId)
     notificationService.addNotification(
       {
-        title: 'New Seller Order',
-        message: `New order #${order.orderId} from seller ${sellerName}.`,
+        title: 'নতুন সেলার অর্ডার',
+        message: `সেলার ${sellerName} থেকে নতুন অর্ডার #${order.orderId}।`,
         orderId: order.orderId,
         type: 'NEW_ORDER',
       },
@@ -225,8 +231,9 @@ class OrderService {
       BlockActionType.ORDER_REQUEST,
     )
     if (isBlocked) {
-      throw new Error(
-        'You are blocked from placing orders. Please contact support.',
+      throw new ApiError(
+        400,
+        'আপনাকে অর্ডার দেওয়া থেকে ব্লক করা হয়েছে। অনুগ্রহ করে সাপোর্ট এর সাথে যোগাযোগ করুন।',
       )
     }
     const shop = await shopCategoryServices.checkShopStatus(shopId)
@@ -282,6 +289,9 @@ class OrderService {
               totalProductBasePrice: product.totalProductBasePrice,
               totalProductSellingPrice: product.totalProductSellingPrice,
               totalProductQuantity: product.totalProductQuantity,
+              selectedAddOns: product.selectedAddOns || JSON.stringify([]),
+              totalAddOnPrice: product.totalAddOnPrice,
+              finalProductPrice: product.finalProductPrice,
             })),
           },
           deliveryCharge,
@@ -296,6 +306,8 @@ class OrderService {
           totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
           totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
           totalProductQuantity: verifiedOrderData.totalProductQuantity,
+          totalAddOnPrice: verifiedOrderData.totalAddOnPrice,
+          finalOrderTotal: verifiedOrderData.finalOrderTotal,
         },
       })
       // update customer name if different
@@ -312,8 +324,8 @@ class OrderService {
       const targetUserIds = admins.map(admin => admin.userId)
       notificationService.addNotification(
         {
-          title: 'New Customer Order',
-          message: `New order #${order.orderId} from customer ${customerName}.`,
+          title: 'নতুন কাস্টমার অর্ডার',
+          message: `কাস্টমার ${customerName} থেকে নতুন অর্ডার #${order.orderId}।`,
           orderId: order.orderId,
           type: 'NEW_ORDER',
         },
@@ -331,7 +343,7 @@ class OrderService {
           customerId: customer?.customerId!,
           amount: deliveryCharge.toNumber(),
           transactionType: 'Debit',
-          reason: 'অর্ডারের জন্য ডেলিভারি চার্জ কর্তন (গ্রাহক)',
+          reason: 'অর্ডারের জন্য ডেলিভারি চার্জ কর্তন (কাস্টমার) ',
         })
         const order = await tx.order.create({
           data: {
@@ -357,13 +369,16 @@ class OrderService {
                 totalProductBasePrice: product.totalProductBasePrice,
                 totalProductSellingPrice: product.totalProductSellingPrice,
                 totalProductQuantity: product.totalProductQuantity,
+                selectedAddOns: product.selectedAddOns || JSON.stringify([]),
+                totalAddOnPrice: product.totalAddOnPrice,
+                finalProductPrice: product.finalProductPrice,
               })),
             },
             deliveryCharge,
             sellerId: customer?.sellerId || '',
             sellerName: customer?.sellerName || '',
             sellerPhoneNo: customer?.sellerPhone || '',
-            orderStatus: 'CONFIRMED',
+            orderStatus: 'PENDING',
             orderType: 'CUSTOMER_ORDER',
 
             totalCommission:
@@ -376,7 +391,9 @@ class OrderService {
             totalProductSellingPrice:
               verifiedOrderData.totalProductSellingPrice,
             totalProductQuantity: verifiedOrderData.totalProductQuantity,
-            cashOnAmount: verifiedOrderData.totalProductSellingPrice,
+            cashOnAmount: verifiedOrderData.finalOrderTotal,
+            totalAddOnPrice: verifiedOrderData.totalAddOnPrice,
+            finalOrderTotal: verifiedOrderData.finalOrderTotal,
           },
         })
         // send order notification to admin
@@ -397,8 +414,8 @@ class OrderService {
       const targetUserIds = admins.map(admin => admin.userId)
       notificationService.addNotification(
         {
-          title: 'New Customer Order',
-          message: `New order #${order.orderId} from customer ${customerName}.`,
+          title: 'নতুন কাস্টমার অর্ডার',
+          message: `কাস্টমার ${customerName} থেকে নতুন অর্ডার #${order.orderId}।`,
           orderId: order.orderId,
           type: 'NEW_ORDER',
         },
@@ -408,6 +425,42 @@ class OrderService {
     }
 
     // now create order connecting with payment
+  }
+  public async deleteUnpaidOrderByAdmin(userId: string, orderId: number) {
+    await userServices.verifyUserPermission(
+      userId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.DELETE,
+    )
+    const order = await prisma.order.findUnique({
+      where: {
+        orderId,
+      },
+    })
+    if (!order) {
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
+    }
+    if (order.orderStatus !== 'UNPAID') {
+      throw new ApiError(400, 'শুধুমাত্র UNPAID অর্ডারগুলি মুছে ফেলা যাবে')
+    }
+    const result = await prisma.$transaction(async tx => {
+      // Delete all related OrderProducts first
+      await tx.orderProduct.deleteMany({
+        where: {
+          orderId,
+        },
+      })
+
+      // Then delete the order
+      const result = await tx.order.delete({
+        where: {
+          orderId,
+        },
+      })
+
+      return result
+    })
+    return result
   }
 
   public async getSellerOrders({
@@ -449,7 +502,7 @@ class OrderService {
     const orders = await prisma.order
       .findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
         skip,
         take: limit || 10,
         include: {
@@ -463,6 +516,7 @@ class OrderService {
           OrderProduct: order.OrderProduct.map(product => ({
             ...product,
             productVariant: JSON.parse(product.productVariant as string),
+            selectedAddOns: JSON.parse(product.selectedAddOns as string),
           })),
         })),
       )
@@ -515,7 +569,7 @@ class OrderService {
     const orders = await prisma.order
       .findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
         skip,
         take: limit || 10,
         include: {
@@ -529,6 +583,7 @@ class OrderService {
           OrderProduct: order.OrderProduct.map(product => ({
             ...product,
             productVariant: JSON.parse(product.productVariant as string),
+            selectedAddOns: JSON.parse(product.selectedAddOns as string),
           })),
         })),
       )
@@ -601,7 +656,7 @@ class OrderService {
       const [orders, totalOrders] = await Promise.all([
         prisma.order.findMany({
           where,
-          orderBy: { createdAt: 'desc' },
+          orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
           skip,
           take: validatedLimit,
           include: {
@@ -621,6 +676,7 @@ class OrderService {
         OrderProduct: order.OrderProduct.map(product => ({
           ...product,
           productVariant: JSON.parse(product.productVariant as string),
+          selectedAddOns: JSON.parse(product.selectedAddOns as string),
         })),
       }))
 
@@ -659,20 +715,20 @@ class OrderService {
   }) {
     const user = await userServices.getUserById(userId)
     if (!user) {
-      throw new ApiError(404, 'User not found')
+      throw new ApiError(404, 'সেলার পাওয়া যায়নি')
     }
     const order = await prisma.order.findUnique({
       where: { orderId, sellerId: userId },
       include: { OrderProduct: true },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
     if (order.orderStatus !== 'UNPAID') {
-      throw new ApiError(400, 'Only unpaid orders can be paid')
+      throw new ApiError(400, 'শুধুমাত্র অপেইড অর্ডারগুলি পেমেন্ট করা যাবে')
     }
     if (order.cancelled) {
-      throw new ApiError(400, 'Order already cancelled by you')
+      throw new ApiError(400, 'আপনি ইতিমধ্যে অর্ডার বাতিল করেছেন')
     }
 
     const { balance: sellerBalance, isVerified: sellerVerified } = user
@@ -682,19 +738,19 @@ class OrderService {
     ) {
       throw new ApiError(
         400,
-        'Insufficient balance in your wallet to pay for the order',
+        'আপনার ওয়ালেটে পেমেন্টের জন্য পর্যাপ্ত ব্যালেন্স নেই',
       )
     } else if (paymentMethod === 'BALANCE') {
       const updatedOrder = await prisma.$transaction(async tx => {
         const updatedOrder = await tx.order.update({
           where: { orderId },
           data: {
-            orderStatus: 'CONFIRMED',
+            orderStatus: 'PENDING',
             paymentType: paymentMethod,
             isDeliveryChargePaid: true,
             deliveryChargePaidAt: new Date(),
             paymentVerified: true,
-            cashOnAmount: order.totalProductSellingPrice,
+            cashOnAmount: order.finalOrderTotal,
           },
         })
         // update seller balance
@@ -705,20 +761,21 @@ class OrderService {
           amount: order.deliveryCharge.toNumber(),
           reason: 'ডেলিভারি চার্জ কর্তন',
         })
-        try {
-          const phoneNumbers = await this.getOrderSmsRecipients()
-          console.clear()
-          // console.log(phoneNumbers)
 
-          await SmsServices.sendOrderNotificationToAdmin({
-            mobileNo: phoneNumbers,
-            orderId: order.orderId,
-          })
-        } catch (error) {
-          console.error('Error sending order SMS:', error)
-        }
         return updatedOrder
       })
+      try {
+        const phoneNumbers = await this.getOrderSmsRecipients()
+        console.clear()
+        // console.log(phoneNumbers)
+
+        await SmsServices.sendOrderNotificationToAdmin({
+          mobileNo: phoneNumbers,
+          orderId: order.orderId,
+        })
+      } catch (error) {
+        console.error('Error sending order SMS:', error)
+      }
       return updatedOrder
     } else {
       if (
@@ -759,7 +816,7 @@ class OrderService {
             isDeliveryChargePaid: true,
             deliveryChargePaidAt: new Date(),
             paymentVerified: false,
-            cashOnAmount: order.totalProductSellingPrice,
+            cashOnAmount: order.finalOrderTotal,
             Payment: {
               connect: { paymentId: payment.paymentId },
             },
@@ -815,13 +872,13 @@ class OrderService {
       include: { OrderProduct: true },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
     if (order.orderStatus !== 'UNPAID') {
-      throw new ApiError(400, 'Only unpaid orders can be paid')
+      throw new ApiError(400, 'শুধুমাত্র অপেইড অর্ডারগুলি পেমেন্ট করা যাবে')
     }
     if (order.cancelled) {
-      throw new ApiError(400, 'Order already cancelled by you')
+      throw new ApiError(400, 'আপনি ইতিমধ্যে অর্ডার বাতিল করেছেন')
     }
 
     if (
@@ -838,7 +895,7 @@ class OrderService {
       systemWalletPhoneNo: systemWalletPhoneNo!,
     })
     if (amount < order.deliveryCharge.toNumber()) {
-      throw new ApiError(400, 'Insufficient amount to pay for the order')
+      throw new ApiError(400, 'অর্ডারের জন্য অপর্যাপ্ত পরিমাণ')
     }
 
     const updatedOrder = await prisma.$transaction(async tx => {
@@ -862,7 +919,7 @@ class OrderService {
           isDeliveryChargePaid: true,
           deliveryChargePaidAt: new Date(),
           paymentVerified: false,
-          cashOnAmount: order.totalProductSellingPrice,
+          cashOnAmount: order.finalOrderTotal,
           Payment: {
             connect: { paymentId: payment.paymentId },
           },
@@ -894,7 +951,7 @@ class OrderService {
   }) {
     const user = await userServices.getUserById(userId)
     if (!user) {
-      throw new ApiError(404, 'User not found')
+      throw new ApiError(404, 'সেলার পাওয়া যায়নি')
     }
 
     const order = await prisma.order.findUnique({
@@ -902,13 +959,22 @@ class OrderService {
       include: { OrderProduct: true },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
-    if (!(order.orderStatus === 'UNPAID' || order.orderStatus === 'PAID')) {
-      throw new ApiError(400, 'Only unpaid or paid orders can be canceled')
+    if (
+      !(
+        order.orderStatus === 'UNPAID' ||
+        order.orderStatus === 'PAID' ||
+        order.orderStatus === 'PENDING'
+      )
+    ) {
+      throw new ApiError(
+        400,
+        'শুধুমাত্র অপেইড, পেইড বা পেন্ডিং অর্ডারগুলি বাতিল করা যাবে',
+      )
     }
     if (order.cancelled) {
-      throw new ApiError(400, 'Order already cancelled by you')
+      throw new ApiError(400, 'আপনি ইতিমধ্যে অর্ডার বাতিল করেছেন')
     }
 
     if (order.orderStatus === 'UNPAID') {
@@ -952,13 +1018,22 @@ class OrderService {
       include: { OrderProduct: true },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
-    if (!(order.orderStatus === 'UNPAID' || order.orderStatus === 'PAID')) {
-      throw new ApiError(400, 'Only unpaid or paid orders can be canceled')
+    if (
+      !(
+        order.orderStatus === 'UNPAID' ||
+        order.orderStatus === 'PAID' ||
+        order.orderStatus === 'PENDING'
+      )
+    ) {
+      throw new ApiError(
+        400,
+        'শুধুমাত্র অপেইড, পেইড বা পেন্ডিং অর্ডারগুলি বাতিল করা যাবে',
+      )
     }
     if (order.cancelled) {
-      throw new ApiError(400, 'Order already cancelled by you')
+      throw new ApiError(400, 'আপনি ইতিমধ্যে অর্ডার বাতিল করেছেন')
     }
 
     if (order.orderStatus === 'UNPAID') {
@@ -993,7 +1068,7 @@ class OrderService {
   }) {
     const user = await userServices.getUserById(userId)
     if (!user) {
-      throw new ApiError(404, 'User not found')
+      throw new ApiError(404, 'সেলার পাওয়া যায়নি')
     }
 
     const order = await prisma.order.findUnique({
@@ -1001,30 +1076,33 @@ class OrderService {
       include: { OrderProduct: true },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
 
     if (order.cancelled) {
-      throw new ApiError(400, 'Order already cancelled by you')
+      throw new ApiError(400, 'আপনি ইতিমধ্যে অর্ডার বাতিল করেছেন')
     }
     if (order.orderStatus === 'PAID') {
-      throw new ApiError(400, 'Order already paid')
+      throw new ApiError(400, 'অর্ডার ইতিমধ্যে পেইড')
     }
     if (order.orderStatus === 'UNPAID' && !order.sellerVerified) {
       throw new ApiError(
         400,
-        'Only unpaid orders can be confirmed by verified sellers',
+        'শুধুমাত্র অপেইড অর্ডারগুলি যাচাইকৃত সেলার দ্বারা নিশ্চিত করা যেতে পারে',
       )
     }
     if (order.orderStatus !== 'UNPAID') {
-      throw new ApiError(400, 'Only unpaid orders can be confirmed')
+      throw new ApiError(
+        400,
+        'শুধুমাত্র অপেইড অর্ডারগুলি নিশ্চিত করা যেতে পারে',
+      )
     }
 
     const result = await prisma.order.update({
       where: { orderId },
       data: {
-        orderStatus: 'CONFIRMED',
-        cashOnAmount: order.totalProductSellingPrice.add(
+        orderStatus: 'PENDING',
+        cashOnAmount: order.finalOrderTotal.add(
           order.deliveryCharge.toNumber(),
         ),
       },
@@ -1055,18 +1133,54 @@ class OrderService {
       where: { orderId },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
     if (order.orderStatus !== 'PAID') {
-      throw new ApiError(400, 'Only paid orders can be confirmed')
+      throw new ApiError(400, 'শুধুমাত্র পেইড অর্ডারগুলি নিশ্চিত করা যাবে')
     }
     const result = await (tx || prisma).order.update({
+      where: { orderId },
+      data: {
+        orderStatus: 'PENDING',
+      },
+    })
+
+    return result
+  }
+  public async makeOrderConfirmedFromPendingByAdmin(
+    userId: string,
+    orderId: number,
+  ) {
+    await userServices.verifyUserPermission(
+      userId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.UPDATE,
+    )
+
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+    })
+    if (!order) {
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
+    }
+
+    if (order.orderStatus !== 'PENDING') {
+      throw new ApiError(400, 'শুধুমাত্র পেন্ডিং অর্ডারগুলি নিশ্চিত করা যাবে')
+    }
+    if (order.cancelled && order.cancelledBy !== 'SYSTEM') {
+      return this.cancelOrderByAdmin({
+        adminId: userId,
+        orderId,
+        reason: order.cancelledReason || 'No reason provided',
+      })
+    }
+
+    const result = await prisma.order.update({
       where: { orderId },
       data: {
         orderStatus: 'CONFIRMED',
       },
     })
-
     return result
   }
   public async deliverOrderByAdmin({
@@ -1088,7 +1202,7 @@ class OrderService {
       include: { OrderProduct: true },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
     // await this.checkExistingTrackingUrl(trackingUrl?.trim())
     if (order.orderStatus !== 'CONFIRMED') {
@@ -1121,6 +1235,42 @@ class OrderService {
       }
     }
   }
+  public async updateTrackingUrlByAdmin({
+    adminId,
+    orderId,
+    trackingUrl,
+  }: {
+    adminId: string
+    orderId: number
+    trackingUrl: string
+  }) {
+    await userServices.verifyUserPermission(
+      adminId,
+      PermissionType.ORDER_MANAGEMENT,
+      ActionType.UPDATE,
+    )
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+    })
+    if (!order) {
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
+    }
+
+    if (order.orderStatus !== 'DELIVERED') {
+      throw new ApiError(
+        400,
+        'শুধুমাত্র ডেলিভার করা অর্ডারগুলির ট্র্যাকিং URL আপডেট করা যেতে পারে',
+      )
+    }
+    const result = await prisma.order.update({
+      where: { orderId },
+      data: {
+        trackingUrl: trackingUrl?.trim() || null,
+      },
+    })
+    return result
+  }
+
   public async reorderFailedOrderBySeller({
     userId,
     orderId,
@@ -1130,18 +1280,21 @@ class OrderService {
   }) {
     const user = await userServices.getUserById(userId)
     if (!user) {
-      throw new ApiError(404, 'User not found')
+      throw new ApiError(404, 'সেলার পাওয়া যায়নি')
     }
 
     const order = await prisma.order.findUnique({
       where: { orderId },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
 
     if (order.orderStatus !== 'FAILED') {
-      throw new ApiError(400, 'Only failed orders can be reordered')
+      throw new ApiError(
+        400,
+        'শুধুমাত্র ব্যর্থ অর্ডারগুলি পুনরায় অর্ডার করা যেতে পারে',
+      )
     }
 
     const updatedOrder = await prisma.order.update({
@@ -1164,16 +1317,19 @@ class OrderService {
       customerPhoneNo,
     })
     if (!customer) {
-      throw new ApiError(404, 'Customer not found')
+      throw new ApiError(404, 'কাস্টমার পাওয়া যায়নি')
     }
     const order = await prisma.order.findUnique({
       where: { orderId },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
     if (order.orderStatus !== 'FAILED') {
-      throw new ApiError(400, 'Only failed orders can be reordered')
+      throw new ApiError(
+        400,
+        'শুধুমাত্র ব্যর্থ অর্ডারগুলি পুনরায় অর্ডার করা যেতে পারে',
+      )
     }
 
     const updatedOrder = await prisma.order.update({
@@ -1196,7 +1352,7 @@ class OrderService {
       where: { orderId },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
     if (order.orderStatus === 'CANCELLED') {
       return await (tx || prisma).order.update({
@@ -1268,6 +1424,7 @@ class OrderService {
           OrderProduct: order.OrderProduct.map(product => ({
             ...product,
             productVariant: JSON.parse(product.productVariant as string),
+            selectedAddOns: JSON.parse(product.selectedAddOns as string),
           })),
         })),
       )
@@ -1306,10 +1463,13 @@ class OrderService {
       },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
-    if (order.orderStatus !== 'CONFIRMED') {
-      throw new ApiError(400, 'Only confirmed orders can be cancelled by admin')
+    if (order.orderStatus !== 'CONFIRMED' && order.orderStatus !== 'PENDING') {
+      throw new ApiError(
+        400,
+        'শুধুমাত্র নিশ্চিত বা পেন্ডিং অর্ডারগুলি অ্যাডমিন দ্বারা বাতিল করা যেতে পারে',
+      )
     }
     if (order.orderType === 'SELLER_ORDER') {
       if (
@@ -1346,46 +1506,6 @@ class OrderService {
         },
       })
     } else {
-      const customer = await userServices.getCustomerByPhoneNo({
-        customerPhoneNo: order.customerPhoneNo,
-      })
-      if (!customer) {
-        throw new ApiError(404, 'Customer not found')
-      }
-      // handle customer order cancellation
-      if (order?.Payment?.paymentStatus === 'COMPLETED') {
-        const result = await prisma.$transaction(async tx => {
-          await transactionServices.createTransactionForCustomer({
-            tx,
-            customerId: customer.customerId!,
-            amount: order.deliveryCharge.toNumber(),
-            reason: 'অর্ডার বাতিলের জন্য রিফান্ড',
-            transactionType: 'Credit',
-          })
-          await tx.order.update({
-            where: { orderId },
-            data: {
-              orderStatus: 'REFUNDED',
-              cancelledReason: reason,
-              cancelledBy: 'SYSTEM',
-              cancelledAt: new Date(),
-            },
-          })
-          return order
-        })
-        return result
-      } else {
-        const updatedOrder = await prisma.order.update({
-          where: { orderId },
-          data: {
-            orderStatus: 'CANCELLED',
-            cancelledReason: reason,
-            cancelledBy: 'SYSTEM',
-            cancelledAt: new Date(),
-          },
-        })
-        return updatedOrder
-      }
     }
   }
   public async completeOrderByAdmin({
@@ -1410,13 +1530,16 @@ class OrderService {
       },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
     if (order.orderStatus !== 'DELIVERED') {
-      throw new ApiError(400, 'Only delivered orders can be completed by admin')
+      throw new ApiError(
+        400,
+        'শুধুমাত্র ডেলিভার করা অর্ডারগুলি অ্যাডমিনের দ্বারা সম্পন্ন করা যাবে',
+      )
     }
     if (!order.cashOnAmount) {
-      throw new ApiError(400, 'Cash on amount is not set for this order')
+      throw new ApiError(400, 'এই অর্ডারের জন্য ক্যাশ অন পরিমাণ সেট করা হয়নি')
     }
     const minimumAmountToBePaid = order.totalProductBasePrice
       .add(order.cashOnAmount)
@@ -1508,6 +1631,15 @@ class OrderService {
           )
         }
       } catch (error) {
+        notificationService.addNotification(
+          {
+            title: 'কমিশন পাঠাতে ব্যর্থ হয়েছে',
+            message: `অর্ডার #${order.orderId} এর জন্য কমিশন পাঠাতে ব্যর্থ হয়েছে। অনুগ্রহ করে দ্রুত এটি পরীক্ষা করুন।`,
+            orderId: order.orderId,
+            type: 'SYSTEM_ALERT',
+          },
+          [adminId],
+        )
         console.log('Failed to send commissions:', error)
       }
     }
@@ -1547,10 +1679,13 @@ class OrderService {
       },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
     if (order.orderStatus !== 'DELIVERED') {
-      throw new ApiError(400, 'Only delivered orders can be returned')
+      throw new ApiError(
+        400,
+        'শুধুমাত্র ডেলিভার করা অর্ডারগুলি ফেরত দেওয়া যাবে',
+      )
     }
     if (!order.Payment && order.paymentType !== 'BALANCE') {
       // we need to deduct the delivery charge from the seller's balance and update the order status as returned within the transaction
@@ -1598,10 +1733,13 @@ class OrderService {
       where: { orderId },
     })
     if (!order) {
-      throw new ApiError(404, 'Order not found')
+      throw new ApiError(404, 'অর্ডার পাওয়া যায়নি')
     }
     if (order.orderStatus !== 'DELIVERED') {
-      throw new ApiError(400, 'Only delivered orders can be marked as failed')
+      throw new ApiError(
+        400,
+        'শুধুমাত্র ডেলিভার করা অর্ডারগুলি ব্যর্থ হিসেবে চিহ্নিত করা যাবে',
+      )
     }
     return await prisma.order.update({
       where: { orderId },
