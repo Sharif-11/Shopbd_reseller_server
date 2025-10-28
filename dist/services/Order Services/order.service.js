@@ -85,7 +85,7 @@ class OrderService {
             // check user blocked
             const isBlocked = yield block_services_1.blockServices.isUserBlocked(sellerPhoneNo, client_1.BlockActionType.ORDER_REQUEST);
             if (isBlocked) {
-                throw new Error('You are blocked from placing orders');
+                throw new ApiError_1.default(400, 'আপনাকে অর্ডার দেওয়া থেকে ব্লক করা হয়েছে। অনুগ্রহ করে সাপোর্ট এর সাথে যোগাযোগ করুন।');
             }
             // check shop data
             const shop = yield shopCategory_services_1.default.checkShopStatus(shopId);
@@ -95,8 +95,6 @@ class OrderService {
             const { shopName, shopLocation } = shop;
             // verify products
             const verifiedOrderData = yield product_services_1.default.verifyOrderProducts(products);
-            console.clear();
-            console.log(verifiedOrderData);
             const deliveryCharge = yield this.calculateDeliveryCharge({
                 shopId,
                 customerZilla,
@@ -110,7 +108,6 @@ class OrderService {
                     orderType: 'SELLER_ORDER',
                 },
             });
-            console.log('existingOrder', existingOrder);
             if (existingOrder) {
                 throw new ApiError_1.default(400, 'আপনার একটি পেমেন্ট করা হয়নি এমন অর্ডার রয়েছে। নতুন অর্ডার করার আগে অনুগ্রহ করে সেটি পেমেন্ট করুন অথবা কনফার্ম করুন।');
             }
@@ -156,14 +153,16 @@ class OrderService {
                     totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
                     totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
                     totalProductQuantity: verifiedOrderData.totalProductQuantity,
+                    totalAddOnPrice: verifiedOrderData.totalAddOnPrice,
+                    finalOrderTotal: verifiedOrderData.finalOrderTotal,
                 },
             });
             // send order notification to admin
             const admins = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.READ);
             const targetUserIds = admins.map(admin => admin.userId);
             NotificationService_1.notificationService.addNotification({
-                title: 'New Seller Order',
-                message: `New order #${order.orderId} from seller ${sellerName}.`,
+                title: 'নতুন সেলার অর্ডার',
+                message: `সেলার ${sellerName} থেকে নতুন অর্ডার #${order.orderId}।`,
                 orderId: order.orderId,
                 type: 'NEW_ORDER',
             }, targetUserIds);
@@ -178,7 +177,7 @@ class OrderService {
             });
             const isBlocked = yield block_services_1.blockServices.isUserBlocked(customerPhoneNo, client_1.BlockActionType.ORDER_REQUEST);
             if (isBlocked) {
-                throw new Error('You are blocked from placing orders. Please contact support.');
+                throw new ApiError_1.default(400, 'আপনাকে অর্ডার দেওয়া থেকে ব্লক করা হয়েছে। অনুগ্রহ করে সাপোর্ট এর সাথে যোগাযোগ করুন।');
             }
             const shop = yield shopCategory_services_1.default.checkShopStatus(shopId);
             if (!shop || !shop.isActive) {
@@ -228,6 +227,9 @@ class OrderService {
                                 totalProductBasePrice: product.totalProductBasePrice,
                                 totalProductSellingPrice: product.totalProductSellingPrice,
                                 totalProductQuantity: product.totalProductQuantity,
+                                selectedAddOns: product.selectedAddOns || JSON.stringify([]),
+                                totalAddOnPrice: product.totalAddOnPrice,
+                                finalProductPrice: product.finalProductPrice,
                             })),
                         },
                         deliveryCharge,
@@ -241,6 +243,8 @@ class OrderService {
                         totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
                         totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
                         totalProductQuantity: verifiedOrderData.totalProductQuantity,
+                        totalAddOnPrice: verifiedOrderData.totalAddOnPrice,
+                        finalOrderTotal: verifiedOrderData.finalOrderTotal,
                     },
                 });
                 // update customer name if different
@@ -253,8 +257,8 @@ class OrderService {
                 const admins = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.READ);
                 const targetUserIds = admins.map(admin => admin.userId);
                 NotificationService_1.notificationService.addNotification({
-                    title: 'New Customer Order',
-                    message: `New order #${order.orderId} from customer ${customerName}.`,
+                    title: 'নতুন কাস্টমার অর্ডার',
+                    message: `কাস্টমার ${customerName} থেকে নতুন অর্ডার #${order.orderId}।`,
                     orderId: order.orderId,
                     type: 'NEW_ORDER',
                 }, targetUserIds);
@@ -269,7 +273,7 @@ class OrderService {
                         customerId: customer === null || customer === void 0 ? void 0 : customer.customerId,
                         amount: deliveryCharge.toNumber(),
                         transactionType: 'Debit',
-                        reason: 'অর্ডারের জন্য ডেলিভারি চার্জ কর্তন (গ্রাহক)',
+                        reason: 'অর্ডারের জন্য ডেলিভারি চার্জ কর্তন (কাস্টমার) ',
                     });
                     const order = yield tx.order.create({
                         data: {
@@ -295,14 +299,20 @@ class OrderService {
                                     totalProductBasePrice: product.totalProductBasePrice,
                                     totalProductSellingPrice: product.totalProductSellingPrice,
                                     totalProductQuantity: product.totalProductQuantity,
+                                    selectedAddOns: product.selectedAddOns || JSON.stringify([]),
+                                    totalAddOnPrice: product.totalAddOnPrice,
+                                    finalProductPrice: product.finalProductPrice,
                                 })),
                             },
                             deliveryCharge,
                             sellerId: (customer === null || customer === void 0 ? void 0 : customer.sellerId) || '',
                             sellerName: (customer === null || customer === void 0 ? void 0 : customer.sellerName) || '',
                             sellerPhoneNo: (customer === null || customer === void 0 ? void 0 : customer.sellerPhone) || '',
-                            orderStatus: 'CONFIRMED',
+                            orderStatus: 'PENDING',
                             orderType: 'CUSTOMER_ORDER',
+                            paymentType: 'BALANCE',
+                            paymentVerified: true,
+                            deliveryChargePaidAt: new Date(),
                             totalCommission: verifiedOrderData.totalCommission.toNumber() *
                                 config_1.default.sellerCommissionRate,
                             actualCommission: verifiedOrderData.totalCommission.toNumber() *
@@ -310,7 +320,9 @@ class OrderService {
                             totalProductBasePrice: verifiedOrderData.totalProductBasePrice,
                             totalProductSellingPrice: verifiedOrderData.totalProductSellingPrice,
                             totalProductQuantity: verifiedOrderData.totalProductQuantity,
-                            cashOnAmount: verifiedOrderData.totalProductSellingPrice,
+                            cashOnAmount: verifiedOrderData.finalOrderTotal,
+                            totalAddOnPrice: verifiedOrderData.totalAddOnPrice,
+                            finalOrderTotal: verifiedOrderData.finalOrderTotal,
                         },
                     });
                     // send order notification to admin
@@ -326,14 +338,46 @@ class OrderService {
                 const admins = yield user_services_1.default.getUsersWithPermission(client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.READ);
                 const targetUserIds = admins.map(admin => admin.userId);
                 NotificationService_1.notificationService.addNotification({
-                    title: 'New Customer Order',
-                    message: `New order #${order.orderId} from customer ${customerName}.`,
+                    title: 'নতুন কাস্টমার অর্ডার',
+                    message: `কাস্টমার ${customerName} থেকে নতুন অর্ডার #${order.orderId}।`,
                     orderId: order.orderId,
                     type: 'NEW_ORDER',
                 }, targetUserIds);
                 return order;
             }
             // now create order connecting with payment
+        });
+    }
+    deleteUnpaidOrderByAdmin(userId, orderId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.DELETE);
+            const order = yield prisma_1.default.order.findUnique({
+                where: {
+                    orderId,
+                },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
+            }
+            if (order.orderStatus !== 'UNPAID') {
+                throw new ApiError_1.default(400, 'শুধুমাত্র UNPAID অর্ডারগুলি মুছে ফেলা যাবে');
+            }
+            const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
+                // Delete all related OrderProducts first
+                yield tx.orderProduct.deleteMany({
+                    where: {
+                        orderId,
+                    },
+                });
+                // Then delete the order
+                const result = yield tx.order.delete({
+                    where: {
+                        orderId,
+                    },
+                });
+                return result;
+            }));
+            return result;
         });
     }
     getSellerOrders(_a) {
@@ -361,7 +405,7 @@ class OrderService {
             const orders = yield prisma_1.default.order
                 .findMany({
                 where,
-                orderBy: { createdAt: 'desc' },
+                orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
                 skip,
                 take: limit || 10,
                 include: {
@@ -369,7 +413,7 @@ class OrderService {
                     Payment: true,
                 },
             })
-                .then(orders => orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant) }))) }))));
+                .then(orders => orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant), selectedAddOns: JSON.parse(product.selectedAddOns) }))) }))));
             const totalOrders = yield prisma_1.default.order.count({
                 where,
             });
@@ -406,7 +450,7 @@ class OrderService {
             const orders = yield prisma_1.default.order
                 .findMany({
                 where,
-                orderBy: { createdAt: 'desc' },
+                orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
                 skip,
                 take: limit || 10,
                 include: {
@@ -414,7 +458,7 @@ class OrderService {
                     Payment: true,
                 },
             })
-                .then(orders => orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant) }))) }))));
+                .then(orders => orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant), selectedAddOns: JSON.parse(product.selectedAddOns) }))) }))));
             const totalOrders = yield prisma_1.default.order.count({
                 where,
             });
@@ -468,7 +512,7 @@ class OrderService {
                 const [orders, totalOrders] = yield Promise.all([
                     prisma_1.default.order.findMany({
                         where,
-                        orderBy: { createdAt: 'desc' },
+                        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
                         skip,
                         take: validatedLimit,
                         include: {
@@ -482,7 +526,7 @@ class OrderService {
                     }),
                     prisma_1.default.order.count({ where }),
                 ]);
-                const processedOrders = orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant) }))) })));
+                const processedOrders = orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant), selectedAddOns: JSON.parse(product.selectedAddOns) }))) })));
                 return {
                     orders: processedOrders,
                     totalOrders,
@@ -503,37 +547,37 @@ class OrderService {
         return __awaiter(this, arguments, void 0, function* ({ userId, orderId, paymentMethod, sellerWalletName, sellerWalletPhoneNo, systemWalletPhoneNo, amount, transactionId, }) {
             const user = yield user_services_1.default.getUserById(userId);
             if (!user) {
-                throw new ApiError_1.default(404, 'User not found');
+                throw new ApiError_1.default(404, 'সেলার পাওয়া যায়নি');
             }
             const order = yield prisma_1.default.order.findUnique({
                 where: { orderId, sellerId: userId },
                 include: { OrderProduct: true },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             if (order.orderStatus !== 'UNPAID') {
-                throw new ApiError_1.default(400, 'Only unpaid orders can be paid');
+                throw new ApiError_1.default(400, 'শুধুমাত্র অপেইড অর্ডারগুলি পেমেন্ট করা যাবে');
             }
             if (order.cancelled) {
-                throw new ApiError_1.default(400, 'Order already cancelled by you');
+                throw new ApiError_1.default(400, 'আপনি ইতিমধ্যে অর্ডার বাতিল করেছেন');
             }
             const { balance: sellerBalance, isVerified: sellerVerified } = user;
             if (paymentMethod === 'BALANCE' &&
                 user.balance.toNumber() < order.deliveryCharge.toNumber()) {
-                throw new ApiError_1.default(400, 'Insufficient balance in your wallet to pay for the order');
+                throw new ApiError_1.default(400, 'আপনার ওয়ালেটে পেমেন্টের জন্য পর্যাপ্ত ব্যালেন্স নেই');
             }
             else if (paymentMethod === 'BALANCE') {
                 const updatedOrder = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                     const updatedOrder = yield tx.order.update({
                         where: { orderId },
                         data: {
-                            orderStatus: 'CONFIRMED',
+                            orderStatus: 'PENDING',
                             paymentType: paymentMethod,
                             isDeliveryChargePaid: true,
                             deliveryChargePaidAt: new Date(),
                             paymentVerified: true,
-                            cashOnAmount: order.totalProductSellingPrice,
+                            cashOnAmount: order.finalOrderTotal,
                         },
                     });
                     // update seller balance
@@ -544,20 +588,20 @@ class OrderService {
                         amount: order.deliveryCharge.toNumber(),
                         reason: 'ডেলিভারি চার্জ কর্তন',
                     });
-                    try {
-                        const phoneNumbers = yield this.getOrderSmsRecipients();
-                        console.clear();
-                        // console.log(phoneNumbers)
-                        yield sms_services_1.default.sendOrderNotificationToAdmin({
-                            mobileNo: phoneNumbers,
-                            orderId: order.orderId,
-                        });
-                    }
-                    catch (error) {
-                        console.error('Error sending order SMS:', error);
-                    }
                     return updatedOrder;
                 }));
+                try {
+                    const phoneNumbers = yield this.getOrderSmsRecipients();
+                    console.clear();
+                    // console.log(phoneNumbers)
+                    yield sms_services_1.default.sendOrderNotificationToAdmin({
+                        mobileNo: phoneNumbers,
+                        orderId: order.orderId,
+                    });
+                }
+                catch (error) {
+                    console.error('Error sending order SMS:', error);
+                }
                 return updatedOrder;
             }
             else {
@@ -596,7 +640,7 @@ class OrderService {
                             isDeliveryChargePaid: true,
                             deliveryChargePaidAt: new Date(),
                             paymentVerified: false,
-                            cashOnAmount: order.totalProductSellingPrice,
+                            cashOnAmount: order.finalOrderTotal,
                             Payment: {
                                 connect: { paymentId: payment.paymentId },
                             },
@@ -634,13 +678,13 @@ class OrderService {
                 include: { OrderProduct: true },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             if (order.orderStatus !== 'UNPAID') {
-                throw new ApiError_1.default(400, 'Only unpaid orders can be paid');
+                throw new ApiError_1.default(400, 'শুধুমাত্র অপেইড অর্ডারগুলি পেমেন্ট করা যাবে');
             }
             if (order.cancelled) {
-                throw new ApiError_1.default(400, 'Order already cancelled by you');
+                throw new ApiError_1.default(400, 'আপনি ইতিমধ্যে অর্ডার বাতিল করেছেন');
             }
             if (!systemWalletPhoneNo ||
                 !customerWalletName ||
@@ -654,7 +698,7 @@ class OrderService {
                 systemWalletPhoneNo: systemWalletPhoneNo,
             });
             if (amount < order.deliveryCharge.toNumber()) {
-                throw new ApiError_1.default(400, 'Insufficient amount to pay for the order');
+                throw new ApiError_1.default(400, 'অর্ডারের জন্য অপর্যাপ্ত পরিমাণ');
             }
             const updatedOrder = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 const payment = yield payment_service_1.default.createPayment({
@@ -677,7 +721,7 @@ class OrderService {
                         isDeliveryChargePaid: true,
                         deliveryChargePaidAt: new Date(),
                         paymentVerified: false,
-                        cashOnAmount: order.totalProductSellingPrice,
+                        cashOnAmount: order.finalOrderTotal,
                         Payment: {
                             connect: { paymentId: payment.paymentId },
                         },
@@ -703,20 +747,22 @@ class OrderService {
         return __awaiter(this, arguments, void 0, function* ({ userId, orderId, reason, }) {
             const user = yield user_services_1.default.getUserById(userId);
             if (!user) {
-                throw new ApiError_1.default(404, 'User not found');
+                throw new ApiError_1.default(404, 'সেলার পাওয়া যায়নি');
             }
             const order = yield prisma_1.default.order.findUnique({
                 where: { orderId, sellerId: userId },
                 include: { OrderProduct: true },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
-            if (!(order.orderStatus === 'UNPAID' || order.orderStatus === 'PAID')) {
-                throw new ApiError_1.default(400, 'Only unpaid or paid orders can be canceled');
+            if (!(order.orderStatus === 'UNPAID' ||
+                order.orderStatus === 'PAID' ||
+                order.orderStatus === 'PENDING')) {
+                throw new ApiError_1.default(400, 'শুধুমাত্র অপেইড, পেইড বা পেন্ডিং অর্ডারগুলি বাতিল করা যাবে');
             }
             if (order.cancelled) {
-                throw new ApiError_1.default(400, 'Order already cancelled by you');
+                throw new ApiError_1.default(400, 'আপনি ইতিমধ্যে অর্ডার বাতিল করেছেন');
             }
             if (order.orderStatus === 'UNPAID') {
                 return yield prisma_1.default.order.update({
@@ -753,13 +799,15 @@ class OrderService {
                 include: { OrderProduct: true },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
-            if (!(order.orderStatus === 'UNPAID' || order.orderStatus === 'PAID')) {
-                throw new ApiError_1.default(400, 'Only unpaid or paid orders can be canceled');
+            if (!(order.orderStatus === 'UNPAID' ||
+                order.orderStatus === 'PAID' ||
+                order.orderStatus === 'PENDING')) {
+                throw new ApiError_1.default(400, 'শুধুমাত্র অপেইড, পেইড বা পেন্ডিং অর্ডারগুলি বাতিল করা যাবে');
             }
             if (order.cancelled) {
-                throw new ApiError_1.default(400, 'Order already cancelled by you');
+                throw new ApiError_1.default(400, 'আপনি ইতিমধ্যে অর্ডার বাতিল করেছেন');
             }
             if (order.orderStatus === 'UNPAID') {
                 return yield prisma_1.default.order.update({
@@ -790,32 +838,32 @@ class OrderService {
         return __awaiter(this, arguments, void 0, function* ({ userId, orderId, }) {
             const user = yield user_services_1.default.getUserById(userId);
             if (!user) {
-                throw new ApiError_1.default(404, 'User not found');
+                throw new ApiError_1.default(404, 'সেলার পাওয়া যায়নি');
             }
             const order = yield prisma_1.default.order.findUnique({
                 where: { orderId, sellerId: userId },
                 include: { OrderProduct: true },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             if (order.cancelled) {
-                throw new ApiError_1.default(400, 'Order already cancelled by you');
+                throw new ApiError_1.default(400, 'আপনি ইতিমধ্যে অর্ডার বাতিল করেছেন');
             }
             if (order.orderStatus === 'PAID') {
-                throw new ApiError_1.default(400, 'Order already paid');
+                throw new ApiError_1.default(400, 'অর্ডার ইতিমধ্যে পেইড');
             }
             if (order.orderStatus === 'UNPAID' && !order.sellerVerified) {
-                throw new ApiError_1.default(400, 'Only unpaid orders can be confirmed by verified sellers');
+                throw new ApiError_1.default(400, 'শুধুমাত্র অপেইড অর্ডারগুলি যাচাইকৃত সেলার দ্বারা নিশ্চিত করা যেতে পারে');
             }
             if (order.orderStatus !== 'UNPAID') {
-                throw new ApiError_1.default(400, 'Only unpaid orders can be confirmed');
+                throw new ApiError_1.default(400, 'শুধুমাত্র অপেইড অর্ডারগুলি নিশ্চিত করা যেতে পারে');
             }
             const result = yield prisma_1.default.order.update({
                 where: { orderId },
                 data: {
-                    orderStatus: 'CONFIRMED',
-                    cashOnAmount: order.totalProductSellingPrice.add(order.deliveryCharge.toNumber()),
+                    orderStatus: 'PENDING',
+                    cashOnAmount: order.finalOrderTotal.add(order.deliveryCharge.toNumber()),
                 },
             });
             if (result) {
@@ -840,12 +888,40 @@ class OrderService {
                 where: { orderId },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             if (order.orderStatus !== 'PAID') {
-                throw new ApiError_1.default(400, 'Only paid orders can be confirmed');
+                throw new ApiError_1.default(400, 'শুধুমাত্র পেইড অর্ডারগুলি নিশ্চিত করা যাবে');
             }
             const result = yield (tx || prisma_1.default).order.update({
+                where: { orderId },
+                data: {
+                    orderStatus: 'PENDING',
+                },
+            });
+            return result;
+        });
+    }
+    makeOrderConfirmedFromPendingByAdmin(userId, orderId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield user_services_1.default.verifyUserPermission(userId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
+            }
+            if (order.orderStatus !== 'PENDING') {
+                throw new ApiError_1.default(400, 'শুধুমাত্র পেন্ডিং অর্ডারগুলি নিশ্চিত করা যাবে');
+            }
+            if (order.cancelled && order.cancelledBy !== 'SYSTEM') {
+                return this.cancelOrderByAdmin({
+                    adminId: userId,
+                    orderId,
+                    reason: order.cancelledReason || 'No reason provided',
+                });
+            }
+            const result = yield prisma_1.default.order.update({
                 where: { orderId },
                 data: {
                     orderStatus: 'CONFIRMED',
@@ -862,7 +938,7 @@ class OrderService {
                 include: { OrderProduct: true },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             // await this.checkExistingTrackingUrl(trackingUrl?.trim())
             if (order.orderStatus !== 'CONFIRMED') {
@@ -896,20 +972,41 @@ class OrderService {
             }
         });
     }
+    updateTrackingUrlByAdmin(_a) {
+        return __awaiter(this, arguments, void 0, function* ({ adminId, orderId, trackingUrl, }) {
+            yield user_services_1.default.verifyUserPermission(adminId, client_1.PermissionType.ORDER_MANAGEMENT, client_1.ActionType.UPDATE);
+            const order = yield prisma_1.default.order.findUnique({
+                where: { orderId },
+            });
+            if (!order) {
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
+            }
+            if (order.orderStatus !== 'DELIVERED') {
+                throw new ApiError_1.default(400, 'শুধুমাত্র ডেলিভার করা অর্ডারগুলির ট্র্যাকিং URL আপডেট করা যেতে পারে');
+            }
+            const result = yield prisma_1.default.order.update({
+                where: { orderId },
+                data: {
+                    trackingUrl: (trackingUrl === null || trackingUrl === void 0 ? void 0 : trackingUrl.trim()) || null,
+                },
+            });
+            return result;
+        });
+    }
     reorderFailedOrderBySeller(_a) {
         return __awaiter(this, arguments, void 0, function* ({ userId, orderId, }) {
             const user = yield user_services_1.default.getUserById(userId);
             if (!user) {
-                throw new ApiError_1.default(404, 'User not found');
+                throw new ApiError_1.default(404, 'সেলার পাওয়া যায়নি');
             }
             const order = yield prisma_1.default.order.findUnique({
                 where: { orderId },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             if (order.orderStatus !== 'FAILED') {
-                throw new ApiError_1.default(400, 'Only failed orders can be reordered');
+                throw new ApiError_1.default(400, 'শুধুমাত্র ব্যর্থ অর্ডারগুলি পুনরায় অর্ডার করা যেতে পারে');
             }
             const updatedOrder = yield prisma_1.default.order.update({
                 where: { orderId },
@@ -927,16 +1024,16 @@ class OrderService {
                 customerPhoneNo,
             });
             if (!customer) {
-                throw new ApiError_1.default(404, 'Customer not found');
+                throw new ApiError_1.default(404, 'কাস্টমার পাওয়া যায়নি');
             }
             const order = yield prisma_1.default.order.findUnique({
                 where: { orderId },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             if (order.orderStatus !== 'FAILED') {
-                throw new ApiError_1.default(400, 'Only failed orders can be reordered');
+                throw new ApiError_1.default(400, 'শুধুমাত্র ব্যর্থ অর্ডারগুলি পুনরায় অর্ডার করা যেতে পারে');
             }
             const updatedOrder = yield prisma_1.default.order.update({
                 where: { orderId },
@@ -954,7 +1051,7 @@ class OrderService {
                 where: { orderId },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             if (order.orderStatus === 'CANCELLED') {
                 return yield (tx || prisma_1.default).order.update({
@@ -1006,7 +1103,7 @@ class OrderService {
                 },
                 orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
             })
-                .then(orders => orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant) }))) }))));
+                .then(orders => orders.map(order => (Object.assign(Object.assign({}, order), { OrderProduct: order.OrderProduct.map(product => (Object.assign(Object.assign({}, product), { productVariant: JSON.parse(product.productVariant), selectedAddOns: JSON.parse(product.selectedAddOns) }))) }))));
             const totalOrders = yield prisma_1.default.order.count({
                 where,
             });
@@ -1031,10 +1128,10 @@ class OrderService {
                 },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
-            if (order.orderStatus !== 'CONFIRMED') {
-                throw new ApiError_1.default(400, 'Only confirmed orders can be cancelled by admin');
+            if (order.orderStatus !== 'CONFIRMED' && order.orderStatus !== 'PENDING') {
+                throw new ApiError_1.default(400, 'শুধুমাত্র নিশ্চিত বা পেন্ডিং অর্ডারগুলি অ্যাডমিন দ্বারা বাতিল করা যেতে পারে');
             }
             if (order.orderType === 'SELLER_ORDER') {
                 if (((_b = order.Payment) === null || _b === void 0 ? void 0 : _b.paymentStatus) === 'COMPLETED' ||
@@ -1070,21 +1167,22 @@ class OrderService {
                 });
             }
             else {
-                const customer = yield user_services_1.default.getCustomerByPhoneNo({
-                    customerPhoneNo: order.customerPhoneNo,
-                });
-                if (!customer) {
-                    throw new ApiError_1.default(404, 'Customer not found');
-                }
-                // handle customer order cancellation
-                if (((_c = order === null || order === void 0 ? void 0 : order.Payment) === null || _c === void 0 ? void 0 : _c.paymentStatus) === 'COMPLETED') {
+                if (((_c = order.Payment) === null || _c === void 0 ? void 0 : _c.paymentStatus) === 'COMPLETED' ||
+                    order.paymentType === 'BALANCE') {
+                    // we need to refund the payment to the customer and update the order status as refunded within the transaction
+                    const customer = yield user_services_1.default.getCustomerByPhoneNo({
+                        customerPhoneNo: order.customerPhoneNo,
+                    });
+                    if (!customer) {
+                        throw new ApiError_1.default(404, 'কাস্টমার পাওয়া যায়নি');
+                    }
                     const result = yield prisma_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                         yield transaction_services_1.transactionServices.createTransactionForCustomer({
                             tx,
-                            customerId: customer.customerId,
-                            amount: order.deliveryCharge.toNumber(),
-                            reason: 'অর্ডার বাতিলের জন্য রিফান্ড',
+                            customerId: customer === null || customer === void 0 ? void 0 : customer.customerId,
                             transactionType: 'Credit',
+                            amount: order.deliveryCharge.toNumber(),
+                            reason: 'অর্ডার বাতিলের জন্য রিফান্ড (কাস্টমার)',
                         });
                         yield tx.order.update({
                             where: { orderId },
@@ -1098,18 +1196,6 @@ class OrderService {
                         return order;
                     }));
                     return result;
-                }
-                else {
-                    const updatedOrder = yield prisma_1.default.order.update({
-                        where: { orderId },
-                        data: {
-                            orderStatus: 'CANCELLED',
-                            cancelledReason: reason,
-                            cancelledBy: 'SYSTEM',
-                            cancelledAt: new Date(),
-                        },
-                    });
-                    return updatedOrder;
                 }
             }
         });
@@ -1125,13 +1211,13 @@ class OrderService {
                 },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             if (order.orderStatus !== 'DELIVERED') {
-                throw new ApiError_1.default(400, 'Only delivered orders can be completed by admin');
+                throw new ApiError_1.default(400, 'শুধুমাত্র ডেলিভার করা অর্ডারগুলি অ্যাডমিনের দ্বারা সম্পন্ন করা যাবে');
             }
             if (!order.cashOnAmount) {
-                throw new ApiError_1.default(400, 'Cash on amount is not set for this order');
+                throw new ApiError_1.default(400, 'এই অর্ডারের জন্য ক্যাশ অন পরিমাণ সেট করা হয়নি');
             }
             const minimumAmountToBePaid = order.totalProductBasePrice
                 .add(order.cashOnAmount)
@@ -1190,7 +1276,7 @@ class OrderService {
                                 return transaction_services_1.transactionServices.createTransaction({
                                     tx,
                                     userId: referrer.userId,
-                                    amount: referrer.commissionAmount,
+                                    amount: referrer.commissionAmount * order.totalProductQuantity,
                                     reason: `রেফারেল কমিশন`,
                                     transactionType: 'Credit',
                                     reference: {
@@ -1208,6 +1294,12 @@ class OrderService {
                     }
                 }
                 catch (error) {
+                    NotificationService_1.notificationService.addNotification({
+                        title: 'কমিশন পাঠাতে ব্যর্থ হয়েছে',
+                        message: `অর্ডার #${order.orderId} এর জন্য কমিশন পাঠাতে ব্যর্থ হয়েছে। অনুগ্রহ করে দ্রুত এটি পরীক্ষা করুন।`,
+                        orderId: order.orderId,
+                        type: 'SYSTEM_ALERT',
+                    }, [adminId]);
                     console.log('Failed to send commissions:', error);
                 }
             }
@@ -1239,10 +1331,10 @@ class OrderService {
                 },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             if (order.orderStatus !== 'DELIVERED') {
-                throw new ApiError_1.default(400, 'Only delivered orders can be returned');
+                throw new ApiError_1.default(400, 'শুধুমাত্র ডেলিভার করা অর্ডারগুলি ফেরত দেওয়া যাবে');
             }
             if (!order.Payment && order.paymentType !== 'BALANCE') {
                 // we need to deduct the delivery charge from the seller's balance and update the order status as returned within the transaction
@@ -1283,10 +1375,10 @@ class OrderService {
                 where: { orderId },
             });
             if (!order) {
-                throw new ApiError_1.default(404, 'Order not found');
+                throw new ApiError_1.default(404, 'অর্ডার পাওয়া যায়নি');
             }
             if (order.orderStatus !== 'DELIVERED') {
-                throw new ApiError_1.default(400, 'Only delivered orders can be marked as failed');
+                throw new ApiError_1.default(400, 'শুধুমাত্র ডেলিভার করা অর্ডারগুলি ব্যর্থ হিসেবে চিহ্নিত করা যাবে');
             }
             return yield prisma_1.default.order.update({
                 where: { orderId },
@@ -1630,6 +1722,7 @@ class OrderService {
                     cashOnAmount: true,
                     amountPaidByCustomer: true,
                     trackingUrl: true,
+                    finalOrderTotal: true,
                     OrderProduct: {
                         select: {
                             productName: true,

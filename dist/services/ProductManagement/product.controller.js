@@ -24,7 +24,7 @@ class ProductController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { shopId, categoryId, name, description, basePrice, suggestedMaxPrice, videoUrl, // Optional field for video URL
-                addOns, } = req.body;
+                addOns, stockPrice, } = req.body;
                 const product = yield product_services_1.default.createProduct(userId, {
                     shopId: Number(shopId),
                     categoryId: Number(categoryId),
@@ -34,6 +34,7 @@ class ProductController {
                     suggestedMaxPrice: Number(suggestedMaxPrice),
                     videoUrl,
                     addOns: JSON.stringify(addOns),
+                    stockPrice: Number(stockPrice),
                 });
                 res.status(201).json({
                     statusCode: 201,
@@ -72,8 +73,8 @@ class ProductController {
             try {
                 const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
                 const { productId } = req.params;
-                const { name, description, basePrice, suggestedMaxPrice, videoUrl, categoryId, addOns, } = req.body;
-                const product = yield product_services_1.default.updateProduct(userId, Number(productId), Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, (name && { name })), (description && { description })), (basePrice && { basePrice: Number(basePrice) })), (suggestedMaxPrice && Object.assign(Object.assign({ suggestedMaxPrice: Number(suggestedMaxPrice) }, (videoUrl && { videoUrl })), (categoryId && { categoryId: Number(categoryId) })))), (addOns && { addOns: JSON.stringify(addOns) })));
+                const { name, description, basePrice, suggestedMaxPrice, videoUrl, categoryId, addOns, stockPrice, } = req.body;
+                const product = yield product_services_1.default.updateProduct(userId, Number(productId), Object.assign(Object.assign(Object.assign(Object.assign(Object.assign(Object.assign({}, (name && { name })), (description && { description })), (basePrice && { basePrice: Number(basePrice) })), (suggestedMaxPrice && Object.assign(Object.assign({ suggestedMaxPrice: Number(suggestedMaxPrice) }, (videoUrl && { videoUrl })), (categoryId && { categoryId: Number(categoryId) })))), (addOns && { addOns: JSON.stringify(addOns) })), (stockPrice && { stockPrice: Number(stockPrice) })));
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Product updated successfully',

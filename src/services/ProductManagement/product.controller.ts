@@ -19,6 +19,7 @@ class ProductController {
         suggestedMaxPrice,
         videoUrl, // Optional field for video URL
         addOns,
+        stockPrice,
       } = req.body
 
       const product = await productServices.createProduct(userId!, {
@@ -30,6 +31,7 @@ class ProductController {
         suggestedMaxPrice: Number(suggestedMaxPrice),
         videoUrl,
         addOns: JSON.stringify(addOns),
+        stockPrice: Number(stockPrice),
       })
 
       res.status(201).json({
@@ -81,6 +83,7 @@ class ProductController {
         videoUrl,
         categoryId,
         addOns,
+        stockPrice,
       } = req.body
 
       const product = await productServices.updateProduct(
@@ -96,6 +99,7 @@ class ProductController {
             ...(categoryId && { categoryId: Number(categoryId) }),
           }),
           ...(addOns && { addOns: JSON.stringify(addOns) }),
+          ...(stockPrice && { stockPrice: Number(stockPrice) }),
         },
       )
 

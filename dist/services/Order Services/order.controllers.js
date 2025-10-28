@@ -67,6 +67,44 @@ class OrderController {
             }
         });
     }
+    deleteUnpaidOrderByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { orderId } = req.params;
+                const order = yield order_service_1.orderService.deleteUnpaidOrderByAdmin(userId, Number(orderId));
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Unpaid order deleted successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    makeOrderConfirmedFromPendingByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+                const { orderId } = req.params;
+                const order = yield order_service_1.orderService.makeOrderConfirmedFromPendingByAdmin(userId, Number(orderId));
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Order confirmed successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
     getSellerOrders(req, res, next) {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
@@ -336,6 +374,29 @@ class OrderController {
                 res.status(200).json({
                     statusCode: 200,
                     message: 'Order delivered successfully',
+                    success: true,
+                    data: order,
+                });
+            }
+            catch (error) {
+                next(error);
+            }
+        });
+    }
+    updateTrackingUrlByAdmin(req, res, next) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            try {
+                const { orderId } = req.params;
+                const { trackingUrl } = req.body;
+                const order = yield order_service_1.orderService.updateTrackingUrlByAdmin({
+                    adminId: (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId,
+                    orderId: Number(orderId),
+                    trackingUrl,
+                });
+                res.status(200).json({
+                    statusCode: 200,
+                    message: 'Tracking URL updated successfully',
                     success: true,
                     data: order,
                 });

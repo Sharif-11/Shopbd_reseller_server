@@ -375,6 +375,7 @@ model Product {
   description       String
   published         Boolean @default(false)
   videoUrl          String?
+  stockPrice        Decimal @default(0.0) @db.Decimal(15, 2)
   basePrice         Decimal @db.Decimal(15, 2)
   suggestedMaxPrice Decimal @db.Decimal(15, 2)
 

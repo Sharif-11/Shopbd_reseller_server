@@ -134,7 +134,6 @@ app.get('/', (req, res) => {
 })
 // Handle 404
 app.all('*', (req, res) => {
-  console.log('Server Hit')
   res.status(404).json({
     statusCode: 404,
     success: false,

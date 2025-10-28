@@ -380,7 +380,9 @@ class OrderService {
             sellerPhoneNo: customer?.sellerPhone || '',
             orderStatus: 'PENDING',
             orderType: 'CUSTOMER_ORDER',
-
+            paymentType: 'BALANCE',
+            paymentVerified: true,
+            deliveryChargePaidAt: new Date(),
             totalCommission:
               verifiedOrderData.totalCommission.toNumber() *
               config.sellerCommissionRate,
@@ -1506,6 +1508,38 @@ class OrderService {
         },
       })
     } else {
+      if (
+        order.Payment?.paymentStatus === 'COMPLETED' ||
+        order.paymentType === 'BALANCE'
+      ) {
+        // we need to refund the payment to the customer and update the order status as refunded within the transaction
+        const customer = await userServices.getCustomerByPhoneNo({
+          customerPhoneNo: order.customerPhoneNo,
+        })
+        if (!customer) {
+          throw new ApiError(404, 'কাস্টমার পাওয়া যায়নি')
+        }
+        const result = await prisma.$transaction(async tx => {
+          await transactionServices.createTransactionForCustomer({
+            tx,
+            customerId: customer?.customerId!,
+            transactionType: 'Credit',
+            amount: order.deliveryCharge.toNumber(),
+            reason: 'অর্ডার বাতিলের জন্য রিফান্ড (কাস্টমার)',
+          })
+          await tx.order.update({
+            where: { orderId },
+            data: {
+              orderStatus: 'REFUNDED',
+              cancelledReason: reason,
+              cancelledBy: 'SYSTEM',
+              cancelledAt: new Date(),
+            },
+          })
+          return order
+        })
+        return result
+      }
     }
   }
   public async completeOrderByAdmin({
@@ -1612,7 +1646,8 @@ class OrderService {
                 return transactionServices.createTransaction({
                   tx,
                   userId: referrer.userId,
-                  amount: referrer.commissionAmount,
+                  amount:
+                    referrer.commissionAmount * order.totalProductQuantity,
                   reason: `রেফারেল কমিশন`,
                   transactionType: 'Credit',
                   reference: {
@@ -2142,6 +2177,7 @@ class OrderService {
         cashOnAmount: true,
         amountPaidByCustomer: true,
         trackingUrl: true,
+        finalOrderTotal: true,
         OrderProduct: {
           select: {
             productName: true,

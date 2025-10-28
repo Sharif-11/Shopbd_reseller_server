@@ -135,6 +135,7 @@ class ProductServices {
       categoryId: number
       name: string
       description: string
+      stockPrice: Prisma.Decimal | number
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
       videoUrl?: string
@@ -142,6 +143,18 @@ class ProductServices {
     },
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.CREATE)
+    const stockPriceNum =
+      typeof data.stockPrice === 'number'
+        ? data.stockPrice
+        : data.stockPrice.toNumber()
+    const basePriceNum =
+      typeof data.basePrice === 'number'
+        ? data.basePrice
+        : data.basePrice.toNumber()
+
+    if (basePriceNum < stockPriceNum) {
+      throw new ApiError(400, 'Base price cannot be less than stock price')
+    }
     if (data.addOns && !this.validateAddOnFormat(data.addOns)) {
       throw new ApiError(400, 'Invalid add-on format')
     }
@@ -199,6 +212,7 @@ class ProductServices {
     data: {
       name: string
       description: string
+      stockPrice?: Prisma.Decimal | number
       basePrice: Prisma.Decimal | number
       suggestedMaxPrice: Prisma.Decimal | number
       videoUrl?: string
@@ -207,6 +221,20 @@ class ProductServices {
     },
   ): Promise<Product> {
     await this.verifyProductPermission(userId, ActionType.UPDATE)
+    if (data.stockPrice !== undefined && data.basePrice !== undefined) {
+      const stockPriceNum =
+        typeof data.stockPrice === 'number'
+          ? data.stockPrice
+          : data.stockPrice.toNumber()
+      const basePriceNum =
+        typeof data.basePrice === 'number'
+          ? data.basePrice
+          : data.basePrice.toNumber()
+
+      if (basePriceNum < stockPriceNum) {
+        throw new ApiError(400, 'Base price cannot be less than stock price')
+      }
+    }
     if (data.categoryId) {
       await shopCategoryServices.getCategory(data.categoryId)
     }
@@ -736,7 +764,7 @@ class ProductServices {
       {} as Record<string, string[]>,
     )
 
-    const { basePrice, ...productData } = product
+    const { basePrice, stockPrice, ...productData } = product
     return {
       product: {
         ...productData,
@@ -747,14 +775,7 @@ class ProductServices {
     }
   }
 
-  async getProductDetailForSeller(productId: number): Promise<{
-    product: Product & {
-      shop: { shopName: string }
-      category: { name: string }
-      variants: Record<string, string[]> // Changed to grouped variants
-      images: { imageUrl: string }[]
-    }
-  }> {
+  async getProductDetailForSeller(productId: number) {
     const product = await prisma.product.findFirst({
       where: {
         productId,
@@ -794,9 +815,11 @@ class ProductServices {
       {} as Record<string, string[]>,
     )
 
+    const { stockPrice, ...productWithoutStockPrice } = product
+
     return {
       product: {
-        ...product,
+        ...productWithoutStockPrice,
         variants: groupedVariants,
         images: product.ProductImage,
       },
@@ -895,6 +918,7 @@ class ProductServices {
       // here converts addOns string to object
       data: products.map(product => ({
         ...product,
+        stockPrice: product.stockPrice,
         addOns: product.addOns
           ? typeof product.addOns === 'string'
             ? JSON.parse(product.addOns)
@@ -991,6 +1015,7 @@ class ProductServices {
       data: products.map(p => ({
         ...p,
         price: p.suggestedMaxPrice,
+        stockPrice: undefined,
         addOns: p.addOns
           ? typeof p.addOns === 'string'
             ? JSON.parse(p.addOns)
@@ -1080,6 +1105,7 @@ class ProductServices {
     return {
       data: products.map(p => ({
         ...p,
+        stockPrice: undefined,
         addOns: p.addOns
           ? typeof p.addOns === 'string'
             ? JSON.parse(p.addOns)
@@ -1192,6 +1218,7 @@ class ProductServices {
       return {
         data: products.map(p => ({
           ...p,
+          stockPrice: undefined,
           price: isSeller ? p.basePrice : p.suggestedMaxPrice,
         })),
         pagination: {

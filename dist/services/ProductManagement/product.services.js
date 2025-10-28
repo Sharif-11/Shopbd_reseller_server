@@ -99,6 +99,15 @@ class ProductServices {
     createProduct(userId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.CREATE);
+            const stockPriceNum = typeof data.stockPrice === 'number'
+                ? data.stockPrice
+                : data.stockPrice.toNumber();
+            const basePriceNum = typeof data.basePrice === 'number'
+                ? data.basePrice
+                : data.basePrice.toNumber();
+            if (basePriceNum < stockPriceNum) {
+                throw new ApiError_1.default(400, 'Base price cannot be less than stock price');
+            }
             if (data.addOns && !this.validateAddOnFormat(data.addOns)) {
                 throw new ApiError_1.default(400, 'Invalid add-on format');
             }
@@ -144,6 +153,17 @@ class ProductServices {
     updateProduct(userId, productId, data) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.verifyProductPermission(userId, client_1.ActionType.UPDATE);
+            if (data.stockPrice !== undefined && data.basePrice !== undefined) {
+                const stockPriceNum = typeof data.stockPrice === 'number'
+                    ? data.stockPrice
+                    : data.stockPrice.toNumber();
+                const basePriceNum = typeof data.basePrice === 'number'
+                    ? data.basePrice
+                    : data.basePrice.toNumber();
+                if (basePriceNum < stockPriceNum) {
+                    throw new ApiError_1.default(400, 'Base price cannot be less than stock price');
+                }
+            }
             if (data.categoryId) {
                 yield shopCategory_services_1.default.getCategory(data.categoryId);
             }
@@ -576,7 +596,7 @@ class ProductServices {
                 acc[variant.name].push(variant.value);
                 return acc;
             }, {});
-            const { basePrice } = product, productData = __rest(product, ["basePrice"]);
+            const { basePrice, stockPrice } = product, productData = __rest(product, ["basePrice", "stockPrice"]);
             return {
                 product: Object.assign(Object.assign({}, productData), { price: product.suggestedMaxPrice, variants: groupedVariants, images: product.ProductImage }),
             };
@@ -618,8 +638,9 @@ class ProductServices {
                 acc[variant.name].push(variant.value);
                 return acc;
             }, {});
+            const { stockPrice } = product, productWithoutStockPrice = __rest(product, ["stockPrice"]);
             return {
-                product: Object.assign(Object.assign({}, product), { variants: groupedVariants, images: product.ProductImage }),
+                product: Object.assign(Object.assign({}, productWithoutStockPrice), { variants: groupedVariants, images: product.ProductImage }),
             };
         });
     }
@@ -697,7 +718,7 @@ class ProductServices {
             ]);
             return {
                 // here converts addOns string to object
-                data: products.map(product => (Object.assign(Object.assign({}, product), { addOns: product.addOns
+                data: products.map(product => (Object.assign(Object.assign({}, product), { stockPrice: product.stockPrice, addOns: product.addOns
                         ? typeof product.addOns === 'string'
                             ? JSON.parse(product.addOns)
                             : product.addOns
@@ -775,7 +796,7 @@ class ProductServices {
                 where,
             });
             return {
-                data: products.map(p => (Object.assign(Object.assign({}, p), { price: p.suggestedMaxPrice, addOns: p.addOns
+                data: products.map(p => (Object.assign(Object.assign({}, p), { price: p.suggestedMaxPrice, stockPrice: undefined, addOns: p.addOns
                         ? typeof p.addOns === 'string'
                             ? JSON.parse(p.addOns)
                             : p.addOns
@@ -847,7 +868,7 @@ class ProductServices {
                 where,
             });
             return {
-                data: products.map(p => (Object.assign(Object.assign({}, p), { addOns: p.addOns
+                data: products.map(p => (Object.assign(Object.assign({}, p), { stockPrice: undefined, addOns: p.addOns
                         ? typeof p.addOns === 'string'
                             ? JSON.parse(p.addOns)
                             : p.addOns
@@ -934,7 +955,7 @@ class ProductServices {
                     },
                 });
                 return {
-                    data: products.map(p => (Object.assign(Object.assign({}, p), { price: isSeller ? p.basePrice : p.suggestedMaxPrice }))),
+                    data: products.map(p => (Object.assign(Object.assign({}, p), { stockPrice: undefined, price: isSeller ? p.basePrice : p.suggestedMaxPrice }))),
                     pagination: {
                         page,
                         limit,

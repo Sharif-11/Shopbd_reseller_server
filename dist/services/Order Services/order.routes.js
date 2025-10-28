@@ -38,9 +38,11 @@ class OrderRouter {
         // ADMIN ORDER MANAGEMENT ROUTES
         // ==========================================
         this.router.get('/admin', auth_middlewares_1.isAuthenticated, order_validator_1.default.getSellerOrders(), validation_middleware_1.default, order_controllers_1.default.getAllOrdersForAdmin);
-        this.router.post('/admin/confirm/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.confirmOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.confirmOrderByAdmin);
+        this.router.delete('/admin/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.confirmOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.deleteUnpaidOrderByAdmin);
+        this.router.post('/admin/confirm/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.confirmOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.makeOrderConfirmedFromPendingByAdmin);
         this.router.post('/admin/cancel/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.cancelOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.cancelOrderByAdmin);
         this.router.post('/admin/deliver/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.deliverOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.deliverOrderByAdmin);
+        this.router.patch('/admin/deliver/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.deliverOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.updateTrackingUrlByAdmin);
         this.router.post('/admin/complete/:orderId', auth_middlewares_1.isAuthenticated, order_validator_1.default.completeOrderByAdmin(), validation_middleware_1.default, order_controllers_1.default.completeOrderByAdmin);
         this.router.post('/admin/fail/:orderId', auth_middlewares_1.isAuthenticated, order_controllers_1.default.markOrderAsFailedByAdmin);
         this.router.post('/admin/return/:orderId', auth_middlewares_1.isAuthenticated, order_controllers_1.default.returnOrderByAdmin);

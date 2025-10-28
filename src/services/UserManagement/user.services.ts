@@ -536,6 +536,7 @@ class UserManagementServices {
     const customer = await prisma.customer.findUnique({
       where: { customerPhoneNo },
     })
+
     if (!customer) {
       if (throwError) {
         throw new ApiError(404, 'Customer not found')

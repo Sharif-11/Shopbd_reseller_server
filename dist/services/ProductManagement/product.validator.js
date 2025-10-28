@@ -34,12 +34,22 @@ class ProductValidator {
                 .optional({ checkFalsy: true, nullable: true })
                 .isURL()
                 .withMessage('ভিডিও URL সঠিক ফরম্যাটে হতে হবে'),
+            (0, express_validator_1.body)('stockPrice')
+                .notEmpty()
+                .withMessage('স্টক মূল্য প্রয়োজন')
+                .isFloat({ gt: 0 })
+                .withMessage('স্টক মূল্য অবশ্যই ধনাত্মক সংখ্যা হতে হবে'),
             (0, express_validator_1.body)('basePrice')
                 .notEmpty()
                 .withMessage('মূল্য প্রয়োজন')
                 .custom(value => {
                 try {
                     new client_1.Prisma.Decimal(value);
+                    // must not be smaller than stock price
+                    const stockPrice = new client_1.Prisma.Decimal(value);
+                    if (new client_1.Prisma.Decimal(value).lessThan(stockPrice)) {
+                        throw new Error('মূল্য স্টক মূল্যের চেয়ে বেশি হতে হবে');
+                    }
                     return true;
                 }
                 catch (_a) {

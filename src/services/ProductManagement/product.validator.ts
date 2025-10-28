@@ -35,12 +35,22 @@ class ProductValidator {
         .optional({ checkFalsy: true, nullable: true })
         .isURL()
         .withMessage('ভিডিও URL সঠিক ফরম্যাটে হতে হবে'),
+      body('stockPrice')
+        .notEmpty()
+        .withMessage('স্টক মূল্য প্রয়োজন')
+        .isFloat({ gt: 0 })
+        .withMessage('স্টক মূল্য অবশ্যই ধনাত্মক সংখ্যা হতে হবে'),
       body('basePrice')
         .notEmpty()
         .withMessage('মূল্য প্রয়োজন')
         .custom(value => {
           try {
             new Prisma.Decimal(value)
+            // must not be smaller than stock price
+            const stockPrice = new Prisma.Decimal(value)
+            if (new Prisma.Decimal(value).lessThan(stockPrice)) {
+              throw new Error('মূল্য স্টক মূল্যের চেয়ে বেশি হতে হবে')
+            }
             return true
           } catch {
             throw new Error('সঠিক মূল্য প্রদান করুন')
