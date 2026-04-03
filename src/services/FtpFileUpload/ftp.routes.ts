@@ -1,50 +1,28 @@
-import { RequestHandler, Router } from 'express'
+import { Router } from 'express'
 import multer from 'multer'
-import { ftpController } from './ftp.controller'
+import { FileController } from './file.controller'
+import { ftpUploader } from './ftpUploader'
+import { s3Uploader } from './s3Uploader'
 
-class FTPRouter {
-  protected router: Router
-  protected upload: multer.Multer
+// Choose uploader dynamically
+const useS3 = true
+const controller = new FileController(useS3 ? s3Uploader : ftpUploader)
 
-  constructor() {
-    this.router = Router()
-    // Initialize multer for file uploads such that it accepts only image and maximum 5 MB size
+const upload = multer({
+  storage: multer.memoryStorage(), // Store files in memory
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5 MB
+  fileFilter: (req, file, cb) => {
+    // Accept only images
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'))
+    }
+    cb(null, true)
+  },
+})
+const router = Router()
 
-    this.upload = multer({
-      storage: multer.memoryStorage(), // Store files in memory
-      limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5 MB
-      fileFilter: (req, file, cb) => {
-        // Accept only images
-        if (!file.mimetype.startsWith('image/')) {
-          return cb(new Error('Only image files are allowed'))
-        }
-        cb(null, true)
-      },
-    })
+router.post('/upload', upload.single('image'), controller.uploadFile)
+router.delete('/delete/:fileName', controller.deleteFile)
+router.post('/download', controller.downloadFile)
 
-    this.initializeRoutes()
-  }
-
-  protected initializeRoutes(): void {
-    // Single file upload
-    this.router.post(
-      '/upload',
-      this.upload.single('image') as RequestHandler, // Expect a single file with field name 'image'
-      ftpController.uploadFile,
-    )
-    this.router.post('/download', ftpController.downloadFile as RequestHandler)
-    // Add this to your initializeRoutes method in FTPRouter
-    this.router.delete(
-      '/delete/:fileName',
-
-      ftpController.deleteFile,
-    )
-  }
-
-  public getRouter(): Router {
-    return this.router
-  }
-}
-
-// Export a singleton instance
-export default new FTPRouter().getRouter()
+export default router

@@ -7,7 +7,7 @@ import {
 } from '@prisma/client'
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
-import { ftpUploader } from '../FtpFileUpload/ftp.services'
+import { ftpUploader } from '../FtpFileUpload/ftpUploader'
 
 import axios from 'axios'
 import { OrderProductData } from '../Order Services/order.types'

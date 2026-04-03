@@ -1,4 +1,4 @@
-import { ftpUploader } from '../FtpFileUpload/ftp.services'
+import { ftpUploader } from '../FtpFileUpload/ftpUploader'
 
 export async function DeleteFilesFromFTP(fileUrls: string[]) {
   if (!fileUrls || fileUrls.length === 0) return

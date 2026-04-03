@@ -50,6 +50,11 @@ export interface IConfig {
 
   localCachePath: string
   remoteFilePath: string
+  s3Endpoint: string
+  s3AccessKey: string
+  s3SecretKey: string
+  s3Bucket: string
+  s3BaseUrl: string
 
   ttlForNotification?: number
 }
@@ -108,6 +113,12 @@ const config: IConfig = {
   ttlForNotification: !isNaN(Number(process.env.TTL_FOR_NOTIFICATION))
     ? Number(process.env.TTL_FOR_NOTIFICATION)
     : 24 * 60 * 60 * 1000, // 1 day
+
+  s3Endpoint: process.env.S3_ENDPOINT || '',
+  s3AccessKey: process.env.S3_ACCESS_KEY || '',
+  s3SecretKey: process.env.S3_SECRET_KEY || '',
+  s3Bucket: process.env.S3_BUCKET || '',
+  s3BaseUrl: process.env.S3_BASE_URL || '',
 }
 
 export default config

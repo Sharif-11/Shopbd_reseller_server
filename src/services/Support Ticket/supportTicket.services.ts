@@ -8,7 +8,7 @@ import {
 
 import ApiError from '../../utils/ApiError'
 import prisma from '../../utils/prisma'
-import { ftpUploader } from '../FtpFileUpload/ftp.services'
+import { ftpUploader } from '../FtpFileUpload/ftpUploader'
 import { notificationService } from '../Real-Time-Notification/NotificationService'
 import userServices from '../UserManagement/user.services'
 
@@ -30,7 +30,7 @@ class SupportTicketService {
     await userServices.verifyUserPermission(
       userId,
       'SUPPORT_TICKET_MANAGEMENT',
-      'READ'
+      'READ',
     )
   }
 
@@ -79,7 +79,7 @@ class SupportTicketService {
       orderId?: string
       paymentId?: string
       productId?: string
-    }
+    },
   ) {
     const user = await userServices.getUserById(userId)
     if (!user) {
@@ -123,7 +123,7 @@ class SupportTicketService {
     })
     const admins = await userServices.getUsersWithPermission(
       'SUPPORT_TICKET_MANAGEMENT',
-      'READ'
+      'READ',
     )
     const adminIds = admins.map(admin => admin.userId)
     // Notify admins about new ticket
@@ -135,7 +135,7 @@ class SupportTicketService {
         type: 'TICKET_MESSAGE',
         ticketId: ticket.ticketId,
       },
-      adminIds
+      adminIds,
     )
     return ticket
   }
@@ -152,7 +152,7 @@ class SupportTicketService {
       message: string
       attachmentUrls?: string[]
       senderType: SenderType
-    }
+    },
   ) {
     const user = await userServices.getUserById(userId)
     if (!user) {
@@ -199,7 +199,7 @@ class SupportTicketService {
     if (senderType === 'SELLER') {
       const admins = await userServices.getUsersWithPermission(
         'SUPPORT_TICKET_MANAGEMENT',
-        'READ'
+        'READ',
       )
       const adminIds = admins.map(admin => admin.userId)
       // Notify admins about new ticket message
@@ -210,7 +210,7 @@ class SupportTicketService {
           type: 'TICKET_MESSAGE',
           ticketId: ticket.ticketId,
         },
-        adminIds
+        adminIds,
       )
     }
     return result
@@ -299,7 +299,7 @@ class SupportTicketService {
       page?: number
       limit?: number
       search?: string
-    }
+    },
   ) {
     const skip = (page - 1) * limit
     const where: Prisma.SupportTicketWhereInput = { userId }
@@ -350,7 +350,7 @@ class SupportTicketService {
       search?: string
       priority?: TicketPriority | TicketPriority[]
       category?: TicketCategory | TicketCategory[]
-    }
+    },
   ) {
     await this.validateAdminAccess(adminId)
 
@@ -404,7 +404,7 @@ class SupportTicketService {
     await userServices.verifyUserPermission(
       adminId,
       'SUPPORT_TICKET_MANAGEMENT',
-      'DELETE'
+      'DELETE',
     )
 
     if (days < 1) {
